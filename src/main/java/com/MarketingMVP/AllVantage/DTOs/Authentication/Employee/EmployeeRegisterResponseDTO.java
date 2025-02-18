@@ -1,6 +1,6 @@
 package com.MarketingMVP.AllVantage.DTOs.Authentication.Employee;
 
-import com.MarketingMVP.AllVantage.DTOs.UserEntity.EmployeeDTO;
+import com.MarketingMVP.AllVantage.DTOs.UserEntity.Employee.EmployeeDTO;
 import lombok.Builder;
 import lombok.Data;
 

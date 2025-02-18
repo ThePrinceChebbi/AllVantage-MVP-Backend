@@ -8,11 +8,11 @@ import lombok.Getter;
 @AllArgsConstructor
 public class ClientRegisterDTO {
 
-    //TODO: Fix all the fields to match the UserEntity fields
+    private String firstName;
 
-    private String name;
+    private String lastName;
 
-    private String reference;
+    private String username;
 
     private String email;
 

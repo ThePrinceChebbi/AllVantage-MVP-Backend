@@ -2,10 +2,11 @@ package com.MarketingMVP.AllVantage.Services.UserEntity;
 
 
 import com.MarketingMVP.AllVantage.DTOs.Authentication.LoginDTO;
-import com.MarketingMVP.AllVantage.DTOs.UserEntity.ClientDTO;
-import com.MarketingMVP.AllVantage.DTOs.UserEntity.ClientDTOMapper;
-import com.MarketingMVP.AllVantage.DTOs.UserEntity.EmployeeDTO;
-import com.MarketingMVP.AllVantage.DTOs.UserEntity.EmployeeDTOMapper;
+import com.MarketingMVP.AllVantage.DTOs.UserEntity.Client.ClientDTO;
+import com.MarketingMVP.AllVantage.DTOs.UserEntity.Client.ClientDTOMapper;
+import com.MarketingMVP.AllVantage.DTOs.UserEntity.Employee.EmployeeDTO;
+import com.MarketingMVP.AllVantage.DTOs.UserEntity.Employee.EmployeeDTOMapper;
+import com.MarketingMVP.AllVantage.Entities.UserEntity.Admin;
 import com.MarketingMVP.AllVantage.Entities.UserEntity.Client;
 import com.MarketingMVP.AllVantage.Entities.UserEntity.Employee;
 import com.MarketingMVP.AllVantage.Entities.UserEntity.UserEntity;
@@ -36,43 +37,6 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public ResponseEntity<Object> fetchPersonById(final UUID userId) {
-        final EmployeeDTO personDTO = employeeDTOMapper.apply(getEmployeeById(userId));
-
-        return ResponseEntity.status(200).body(personDTO);
-    }
-    @Override
-    public ResponseEntity<Object> fetchAgencyById(final UUID userId) {
-        final ClientDTO agencyDTO = clientDTOMapper.apply(getClientById(userId));
-
-        return ResponseEntity.status(200).body(agencyDTO);
-    }
-
-    @Override
-    public ResponseEntity<Object> fetchAllPeople() {
-        final List<EmployeeDTO> personDTOList = userRepository.findAllPeople().stream().map(employeeDTOMapper).toList();
-        return ResponseEntity.status(200).body(personDTOList);
-    }
-    @Override
-    public ResponseEntity<Object> fetchAllAgencies() {
-        final List<ClientDTO> agencyDTOList= userRepository.findAllAgencies().stream().map(clientDTOMapper).toList();
-        return ResponseEntity.status(200).body(agencyDTOList);
-    }
-
-    @Override
-    public ResponseEntity<Object> fetchCurrentUser(@NonNull final UserDetails userDetails) {
-
-        final UserEntity currentUser = getUserByEmail(userDetails.getUsername());
-        if (currentUser.getRole().getName().equals("CLIENT")) {
-            ClientDTO currentUserDto = clientDTOMapper.apply(getClientById(currentUser.getId()));
-            return ResponseEntity.status(200).body(currentUserDto);
-        }else {
-            EmployeeDTO currentUserDto = employeeDTOMapper.apply(getEmployeeById(currentUser.getId()));
-            return ResponseEntity.status(200).body(currentUserDto);
-        }
-    }
-
-    @Override
     public ResponseEntity<Object> unlockAccount(UUID id) {
         try{
             UserEntity user = getUserById(id);
@@ -85,7 +49,6 @@ public class UserServiceImpl implements UserService {
             return ResponseEntity.status(500).body(e.getMessage());
         }
     }
-
 
     @Override
     public ResponseEntity<Object> lockAccount(UUID id) {
@@ -155,7 +118,7 @@ public class UserServiceImpl implements UserService {
         return userRepository.save(client);
     }
 
-    public UserEntity saveUser(final UserEntity userEntity) {
+    public <T extends UserEntity> T saveUser(final T userEntity) {
         return userRepository.save(userEntity);
     }
 
@@ -173,13 +136,19 @@ public class UserServiceImpl implements UserService {
     @Override
     public Client getClientById(UUID userId) {
         return userRepository.getClientById(userId)
-                .orElseThrow(() -> new ResourceNotFoundException(String.format("The Agency with ID : %s could not be found.", userId)));
+                .orElseThrow(() -> new ResourceNotFoundException(String.format("The Client with ID : %s could not be found.", userId)));
     }
 
     @Override
     public Employee getEmployeeById(UUID userId) {
         return userRepository.getEmployeeById(userId)
-                .orElseThrow(() -> new ResourceNotFoundException(String.format("The Person with ID : %s could not be found.", userId)));
+                .orElseThrow(() -> new ResourceNotFoundException(String.format("The Employee with ID : %s could not be found.", userId)));
+    }
+
+    @Override
+    public Admin getAdminById(UUID userId) {
+        return userRepository.getAdminById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException(String.format("The Admin with ID : %s could not be found.", userId)));
     }
 
     @Override

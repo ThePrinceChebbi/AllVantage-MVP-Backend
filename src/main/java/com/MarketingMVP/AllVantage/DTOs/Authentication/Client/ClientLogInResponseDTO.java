@@ -1,6 +1,6 @@
 package com.MarketingMVP.AllVantage.DTOs.Authentication.Client;
 
-import com.MarketingMVP.AllVantage.DTOs.UserEntity.ClientDTO;
+import com.MarketingMVP.AllVantage.DTOs.UserEntity.Client.ClientDTO;
 import lombok.Builder;
 import lombok.Data;
 

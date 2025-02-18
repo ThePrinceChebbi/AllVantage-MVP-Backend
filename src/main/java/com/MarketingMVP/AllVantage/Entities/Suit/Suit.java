@@ -4,9 +4,9 @@ import com.MarketingMVP.AllVantage.Entities.Account.Facebook.FacebookAccount;
 import com.MarketingMVP.AllVantage.Entities.Account.Instagram.InstagramAccount;
 import com.MarketingMVP.AllVantage.Entities.Account.LinkedIn.LinkedInAccount;
 import com.MarketingMVP.AllVantage.Entities.Account.Snapchat.SnapchatAccount;
+import com.MarketingMVP.AllVantage.Entities.Account.TikTok.TikTokAccount;
 import com.MarketingMVP.AllVantage.Entities.Account.X.XAccount;
 import com.MarketingMVP.AllVantage.Entities.FileData.FileData;
-import com.MarketingMVP.AllVantage.Entities.Post.Post;
 import com.MarketingMVP.AllVantage.Entities.UserEntity.Client;
 import com.MarketingMVP.AllVantage.Entities.UserEntity.Employee;
 import jakarta.persistence.*;
@@ -37,36 +37,42 @@ public class Suit {
     @Id
     private Long id;
 
-    @ManyToOne
-    private Client client;
-
     @NotNull
     private String name;
 
     @Nullable
     private String description;
 
-    @ManyToOne
+    @OneToOne
     private FileData image;
 
-    @OneToMany
-    private List<Employee> employee;
-
     @ManyToOne
-    private FacebookAccount facebookAccount;
+    private Client client;
 
-    @ManyToOne
-    private InstagramAccount instagramAccount;
-
-    @ManyToOne
-    private LinkedInAccount linkedInAccount;
-
-    @ManyToOne
-    private XAccount xAccount;
-
-    @ManyToOne
-    private SnapchatAccount snapchatAccount;
+    @ManyToMany
+    @JoinTable(
+            name = "employee_suits",
+            joinColumns = @JoinColumn(name = "suit_id"),
+            inverseJoinColumns = @JoinColumn(name = "employee_id")
+    )
+    private List<Employee> employees;
 
     @OneToMany
-    private List<Post> posts;
+    private List<FacebookAccount> facebookAccounts;
+
+    @OneToMany
+    private List<InstagramAccount> instagramAccounts;
+
+    @OneToMany
+    private List<LinkedInAccount> linkedInAccounts;
+
+    @OneToMany
+    private List<XAccount> xAccounts;
+
+    @OneToMany
+    private List<SnapchatAccount> snapchatAccounts;
+
+    @OneToMany
+    private List<TikTokAccount> tikTokAccounts;
+
 }

@@ -1,12 +1,43 @@
 package com.MarketingMVP.AllVantage.Entities.Account.LinkedIn;
 
 
-import com.MarketingMVP.AllVantage.Entities.Account.Account;
 import jakarta.persistence.*;
+import jakarta.validation.constraints.NotNull;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
+import java.util.Date;
+
+@Data
 @Entity
-public class LinkedInAccount extends Account {
+@AllArgsConstructor
+@NoArgsConstructor
+@Table(name = "linkedin_accounts")
+public class LinkedInAccount {
 
+    @Id
+    @GeneratedValue(
+            strategy = GenerationType.SEQUENCE,
+            generator = "account-generator"
+    )
+    @SequenceGenerator(
+            allocationSize = 1,
+            name = "account-generator",
+            sequenceName = "account-generator"
+    )
+    private Long id;
 
+    @NotNull
+    private String facebookId;
+
+    @NotNull
+    private String accountName;
+
+    @NotNull
+    private Date createdAt;
+
+    @NotNull
+    private Date updatedAt;
 
 }

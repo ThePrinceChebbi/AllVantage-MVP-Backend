@@ -2,7 +2,7 @@ package com.MarketingMVP.AllVantage.Services.Token;
 
 import com.MarketingMVP.AllVantage.Entities.Tokens.AccessToken.Token;
 import com.MarketingMVP.AllVantage.Exceptions.ResourceNotFoundException;
-import com.MarketingMVP.AllVantage.Repositories.Token.TokenRepository;
+import com.MarketingMVP.AllVantage.Repositories.Token.AccessToken.TokenRepository;
 import com.MarketingMVP.AllVantage.Security.JWT.JWTService;
 import lombok.NonNull;
 import org.springframework.beans.factory.annotation.Autowired;

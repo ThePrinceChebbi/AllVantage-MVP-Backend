@@ -3,7 +3,7 @@ package com.MarketingMVP.AllVantage.Services.Token;
 import com.MarketingMVP.AllVantage.Entities.Tokens.RefreshToken.RefreshToken;
 import com.MarketingMVP.AllVantage.Entities.UserEntity.UserEntity;
 import com.MarketingMVP.AllVantage.Exceptions.ResourceNotFoundException;
-import com.MarketingMVP.AllVantage.Repositories.Token.RefreshTokenRepository;
+import com.MarketingMVP.AllVantage.Repositories.Token.RefreshToken.RefreshTokenRepository;
 import com.MarketingMVP.AllVantage.Security.Utility.SecurityConstants;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;

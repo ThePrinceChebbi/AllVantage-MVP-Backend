@@ -1,4 +1,4 @@
-package com.MarketingMVP.AllVantage.Repositories.Token;
+package com.MarketingMVP.AllVantage.Repositories.Token.RefreshToken;
 
 
 

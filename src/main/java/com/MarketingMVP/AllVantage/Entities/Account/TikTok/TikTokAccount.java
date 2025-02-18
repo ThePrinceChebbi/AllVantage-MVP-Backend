@@ -1,17 +1,19 @@
-package com.MarketingMVP.AllVantage.Entities.Account;
+package com.MarketingMVP.AllVantage.Entities.Account.TikTok;
 
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+
 import java.util.Date;
 
 @Data
+@Entity
 @AllArgsConstructor
 @NoArgsConstructor
-@MappedSuperclass
-public abstract class Account {
+@Table(name = "tiktok_accounts")
+public class TikTokAccount {
     @Id
     @GeneratedValue(
             strategy = GenerationType.SEQUENCE,
@@ -22,13 +24,10 @@ public abstract class Account {
             name = "account-generator",
             sequenceName = "account-generator"
     )
-    private String id;
+    private Long id;
 
     @NotNull
-    private PlatformType platform;
-
-    @NotNull
-    private String accountId;
+    private String facebookId;
 
     @NotNull
     private String accountName;

@@ -1,4 +1,4 @@
-package com.MarketingMVP.AllVantage.Repositories.Token;
+package com.MarketingMVP.AllVantage.Repositories.Token.ConfirmationToken;
 
 
 import com.MarketingMVP.AllVantage.Entities.Tokens.ConfirmationToken.ConfirmationToken;

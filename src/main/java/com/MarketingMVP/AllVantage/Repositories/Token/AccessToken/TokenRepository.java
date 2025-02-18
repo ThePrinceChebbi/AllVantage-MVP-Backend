@@ -1,4 +1,4 @@
-package com.MarketingMVP.AllVantage.Repositories.Token;
+package com.MarketingMVP.AllVantage.Repositories.Token.AccessToken;
 
 import com.MarketingMVP.AllVantage.Entities.Tokens.AccessToken.Token;
 import org.springframework.data.jpa.repository.JpaRepository;

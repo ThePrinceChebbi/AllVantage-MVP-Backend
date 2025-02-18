@@ -1,6 +1,7 @@
 package com.MarketingMVP.AllVantage.Repositories.UserEntity;
 
 
+import com.MarketingMVP.AllVantage.Entities.UserEntity.Admin;
 import com.MarketingMVP.AllVantage.Entities.UserEntity.Client;
 import com.MarketingMVP.AllVantage.Entities.UserEntity.Employee;
 import com.MarketingMVP.AllVantage.Entities.UserEntity.UserEntity;
@@ -53,4 +54,7 @@ public interface UserRepository extends JpaRepository<UserEntity, UUID> {
 
     @Query(value = "SELECT EXISTS(SELECT U FROM UserEntity U WHERE  U.username = :username) AS RESULT")
     Boolean isUsernameRegistered(@Param("username") String username);
+
+    @Query(value = "SELECT a FROM Admin a WHERE a.id = :userId")
+    Optional<Admin> getAdminById(@Param("userId") UUID userId);
 }

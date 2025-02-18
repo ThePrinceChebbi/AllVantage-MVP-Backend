@@ -3,7 +3,7 @@ package com.MarketingMVP.AllVantage.Services.Token;
 import com.MarketingMVP.AllVantage.Entities.Tokens.ConfirmationToken.ConfirmationToken;
 import com.MarketingMVP.AllVantage.Entities.UserEntity.UserEntity;
 import com.MarketingMVP.AllVantage.Exceptions.ResourceNotFoundException;
-import com.MarketingMVP.AllVantage.Repositories.Token.ConfirmationTokenRepository;
+import com.MarketingMVP.AllVantage.Repositories.Token.ConfirmationToken.ConfirmationTokenRepository;
 import lombok.NonNull;
 import org.springframework.stereotype.Service;
 

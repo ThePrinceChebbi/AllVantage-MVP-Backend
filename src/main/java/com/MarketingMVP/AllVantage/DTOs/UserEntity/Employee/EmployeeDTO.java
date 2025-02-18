@@ -1,4 +1,4 @@
-package com.MarketingMVP.AllVantage.DTOs.UserEntity;
+package com.MarketingMVP.AllVantage.DTOs.UserEntity.Employee;
 
 import com.MarketingMVP.AllVantage.Entities.Role.Role;
 

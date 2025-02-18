@@ -29,8 +29,10 @@ public class UserEntity implements UserDetails {
     )
     private UUID id;
 
+/*
     @OneToOne
     private FileData image;
+*/
 
     @NotNull
     private String firstName;
@@ -77,4 +79,10 @@ public class UserEntity implements UserDetails {
     public String getUsername() {
         return this.username;
     }
+
+    @Override
+    public boolean isAccountNonLocked(){
+        return !this.locked;
+    }
+
 }

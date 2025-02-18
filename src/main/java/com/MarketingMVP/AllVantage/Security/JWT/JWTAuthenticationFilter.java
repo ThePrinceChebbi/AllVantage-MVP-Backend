@@ -7,7 +7,7 @@ import com.MarketingMVP.AllVantage.Exceptions.ExpiredTokenException;
 import com.MarketingMVP.AllVantage.Exceptions.InvalidTokenException;
 import com.MarketingMVP.AllVantage.Exceptions.ResourceNotFoundException;
 import com.MarketingMVP.AllVantage.Exceptions.RevokedTokenException;
-import com.MarketingMVP.AllVantage.Repositories.Token.TokenRepository;
+import com.MarketingMVP.AllVantage.Repositories.Token.AccessToken.TokenRepository;
 import com.MarketingMVP.AllVantage.Services.UserDetails.CustomUserDetailsService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.FilterChain;

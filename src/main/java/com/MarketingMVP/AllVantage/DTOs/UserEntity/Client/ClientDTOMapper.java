@@ -1,4 +1,4 @@
-package com.MarketingMVP.AllVantage.DTOs.UserEntity;
+package com.MarketingMVP.AllVantage.DTOs.UserEntity.Client;
 
 import com.MarketingMVP.AllVantage.Entities.UserEntity.Client;
 import org.springframework.stereotype.Service;
