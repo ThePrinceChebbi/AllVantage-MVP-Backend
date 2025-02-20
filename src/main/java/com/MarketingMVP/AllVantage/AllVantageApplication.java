@@ -19,8 +19,8 @@ public class AllVantageApplication {
 		SpringApplication.run(AllVantageApplication.class, args);
 
 	}
-/*
-	@PostConstruct
+
+	/*@PostConstruct
 	private void initProject()
 	{
 		initRoles();

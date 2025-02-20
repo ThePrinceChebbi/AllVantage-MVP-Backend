@@ -31,4 +31,5 @@ public interface UserService {
     UserEntity enableAccount(UUID id);
     ResponseEntity<Object> unlockAccount(UUID id);
 
+    ResponseEntity<Object> getAllUsers();
 }

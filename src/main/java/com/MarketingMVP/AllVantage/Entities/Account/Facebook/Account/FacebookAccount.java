@@ -1,0 +1,42 @@
+package com.MarketingMVP.AllVantage.Entities.Account.Facebook.Account;
+
+import jakarta.persistence.*;
+import jakarta.validation.constraints.NotNull;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.util.Date;
+
+@Data
+@Entity
+@AllArgsConstructor
+@NoArgsConstructor
+@Table(name = "facebook_accounts")
+public class FacebookAccount {
+
+    @Id
+    @GeneratedValue(
+            strategy = GenerationType.SEQUENCE,
+            generator = "account-generator"
+    )
+    @SequenceGenerator(
+            allocationSize = 1,
+            name = "account-generator",
+            sequenceName = "account-generator"
+    )
+    private Long id;
+
+    @NotNull
+    private String facebookId;
+
+    @NotNull
+    private String accountName;
+
+    @NotNull
+    private Date connectedAt;
+
+    @NotNull
+    private Date updatedAt;
+
+}

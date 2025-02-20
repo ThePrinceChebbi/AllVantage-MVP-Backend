@@ -2,9 +2,8 @@ package com.MarketingMVP.AllVantage.Services.UserEntity;
 
 
 import com.MarketingMVP.AllVantage.DTOs.Authentication.LoginDTO;
-import com.MarketingMVP.AllVantage.DTOs.UserEntity.Client.ClientDTO;
+import com.MarketingMVP.AllVantage.DTOs.UserEntity.Admin.AdminDTOMapper;
 import com.MarketingMVP.AllVantage.DTOs.UserEntity.Client.ClientDTOMapper;
-import com.MarketingMVP.AllVantage.DTOs.UserEntity.Employee.EmployeeDTO;
 import com.MarketingMVP.AllVantage.DTOs.UserEntity.Employee.EmployeeDTOMapper;
 import com.MarketingMVP.AllVantage.Entities.UserEntity.Admin;
 import com.MarketingMVP.AllVantage.Entities.UserEntity.Client;
@@ -15,7 +14,6 @@ import com.MarketingMVP.AllVantage.Exceptions.UnauthorizedActionException;
 import com.MarketingMVP.AllVantage.Repositories.UserEntity.UserRepository;
 import lombok.NonNull;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -29,11 +27,13 @@ public class UserServiceImpl implements UserService {
     private final UserRepository userRepository;
     private final EmployeeDTOMapper employeeDTOMapper;
     private final ClientDTOMapper clientDTOMapper;
+    private final AdminDTOMapper adminDTOMapper;
 
-    public UserServiceImpl(UserRepository userRepository, EmployeeDTOMapper employeeDTOMapper, ClientDTOMapper clientDTOMapper) {
+    public UserServiceImpl(UserRepository userRepository, EmployeeDTOMapper employeeDTOMapper, ClientDTOMapper clientDTOMapper, AdminDTOMapper adminDTOMapper) {
         this.userRepository = userRepository;
         this.employeeDTOMapper = employeeDTOMapper;
         this.clientDTOMapper = clientDTOMapper;
+        this.adminDTOMapper = adminDTOMapper;
     }
 
     @Override
@@ -48,6 +48,20 @@ public class UserServiceImpl implements UserService {
         } catch (Exception e){
             return ResponseEntity.status(500).body(e.getMessage());
         }
+    }
+
+    @Override
+    public ResponseEntity<Object> getAllUsers() {
+        List<Record> users = userRepository.findAll().stream().map(user -> {
+            if (user instanceof Employee){
+                return employeeDTOMapper.apply((Employee) user);
+            }else if (user instanceof Client){
+                return clientDTOMapper.apply((Client) user);
+            }else {
+                return adminDTOMapper.apply((Admin) user);
+            }
+        }).toList();
+        return ResponseEntity.status(200).body(users);
     }
 
     @Override

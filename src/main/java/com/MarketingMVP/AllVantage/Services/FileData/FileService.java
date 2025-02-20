@@ -13,7 +13,7 @@ import java.util.List;
 
 public interface FileService {
 
-    FileData processUploadedFile(@NotNull final MultipartFile file, String eventName, String category, String type) throws IOException, IOException;
+    FileData processUploadedFile(@NotNull final MultipartFile file, String type) throws IOException;
     Path createNewEventDirectory (String dirName, String parentDirName) throws IOException;
     Path createNewCategoryDirectory (String dirName) throws IOException;
     Path deleteEventDirectory(String dirName, String parentDirName) throws IOException;

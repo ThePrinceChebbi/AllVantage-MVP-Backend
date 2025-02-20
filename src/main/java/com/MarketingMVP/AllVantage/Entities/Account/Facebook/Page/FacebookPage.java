@@ -1,5 +1,6 @@
-package com.MarketingMVP.AllVantage.Entities.Account.Facebook;
+package com.MarketingMVP.AllVantage.Entities.Account.Facebook.Page;
 
+import com.MarketingMVP.AllVantage.Entities.Account.Facebook.Account.FacebookAccount;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
@@ -12,9 +13,8 @@ import java.util.Date;
 @Entity
 @AllArgsConstructor
 @NoArgsConstructor
-@Table(name = "facebook_accounts")
-public class FacebookAccount {
-
+@Table
+public class FacebookPage {
     @Id
     @GeneratedValue(
             strategy = GenerationType.SEQUENCE,
@@ -28,17 +28,16 @@ public class FacebookAccount {
     private Long id;
 
     @NotNull
-    private String facebookId;
+    private String pageName;
 
     @NotNull
-    private String accountName;
-
-    @NotNull
-    private Date createdAt;
+    private Date connectedAt;
 
     @NotNull
     private Date updatedAt;
 
-    private FacebookAccountType facebookAccountType;
+    @ManyToOne
+    @JoinColumn(name = "facebook_account_id")
+    private FacebookAccount facebookAccount;
 
 }

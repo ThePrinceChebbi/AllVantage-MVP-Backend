@@ -1,6 +1,7 @@
 package com.MarketingMVP.AllVantage.Entities.Suit;
 
-import com.MarketingMVP.AllVantage.Entities.Account.Facebook.FacebookAccount;
+import com.MarketingMVP.AllVantage.Entities.Account.Facebook.Account.FacebookAccount;
+import com.MarketingMVP.AllVantage.Entities.Account.Facebook.Page.FacebookPage;
 import com.MarketingMVP.AllVantage.Entities.Account.Instagram.InstagramAccount;
 import com.MarketingMVP.AllVantage.Entities.Account.LinkedIn.LinkedInAccount;
 import com.MarketingMVP.AllVantage.Entities.Account.Snapchat.SnapchatAccount;
@@ -58,7 +59,7 @@ public class Suit {
     private List<Employee> employees;
 
     @OneToMany
-    private List<FacebookAccount> facebookAccounts;
+    private List<FacebookPage> facebookPages;
 
     @OneToMany
     private List<InstagramAccount> instagramAccounts;

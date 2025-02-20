@@ -1,4 +1,4 @@
-package com.MarketingMVP.AllVantage.Entities.Account.Facebook;
+package com.MarketingMVP.AllVantage.Entities.Account.Facebook.Account;
 
 public enum FacebookPermissions {
     PAGES_MANAGE_ADS,
