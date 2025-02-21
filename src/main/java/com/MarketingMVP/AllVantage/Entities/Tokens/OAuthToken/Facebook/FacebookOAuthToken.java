@@ -2,11 +2,13 @@ package com.MarketingMVP.AllVantage.Entities.Tokens.OAuthToken.Facebook;
 
 import com.MarketingMVP.AllVantage.Entities.Account.Facebook.Account.FacebookAccount;
 import jakarta.persistence.*;
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 
 import javax.crypto.Cipher;
 import javax.crypto.SecretKey;
@@ -45,40 +47,4 @@ public class FacebookOAuthToken {
     @NotNull
     private FacebookOAuthTokenType oAuthTokenType;
 
-    // 🔐 Secret Key for AES Encryption (Move this to config/env variables)
-    private static final String SECRET_KEY = "YOUR_32_CHAR_SECRET_KEY";
-
-    // 🔐 Encrypt token before saving
-    public void setAccessToken(String token) {
-        try {
-            this.accessToken = encrypt(token);
-        } catch (Exception e) {
-            throw new RuntimeException("Error encrypting access token", e);
-        }
-    }
-
-    // 🔐 Decrypt token when retrieving
-    public String getAccessToken() {
-        try {
-            return decrypt(this.accessToken);
-        } catch (Exception e) {
-            throw new RuntimeException("Error decrypting access token", e);
-        }
-    }
-
-    // 🔐 AES Encryption
-    private static String encrypt(String value) throws Exception {
-        SecretKey key = new SecretKeySpec(SECRET_KEY.getBytes(), "AES");
-        Cipher cipher = Cipher.getInstance("AES");
-        cipher.init(Cipher.ENCRYPT_MODE, key);
-        return Base64.getEncoder().encodeToString(cipher.doFinal(value.getBytes()));
-    }
-
-    // 🔐 AES Decryption
-    private static String decrypt(String encryptedValue) throws Exception {
-        SecretKey key = new SecretKeySpec(SECRET_KEY.getBytes(), "AES");
-        Cipher cipher = Cipher.getInstance("AES");
-        cipher.init(Cipher.DECRYPT_MODE, key);
-        return new String(cipher.doFinal(Base64.getDecoder().decode(encryptedValue)));
-    }
 }

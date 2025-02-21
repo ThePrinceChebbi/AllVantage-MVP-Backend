@@ -1,6 +1,6 @@
 package com.MarketingMVP.AllVantage.Services.Accounts.Facebook;
 
-import com.MarketingMVP.AllVantage.DTOs.Facebook.FacebookOAuthTokenDTO;
+import com.MarketingMVP.AllVantage.DTOs.Facebook.OAuthToken.FacebookOAuthTokenDTO;
 import com.MarketingMVP.AllVantage.Entities.Tokens.OAuthToken.Facebook.FacebookOAuthTokenType;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;

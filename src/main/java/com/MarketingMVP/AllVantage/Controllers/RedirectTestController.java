@@ -1,5 +1,6 @@
 package com.MarketingMVP.AllVantage.Controllers;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -10,5 +11,13 @@ public class RedirectTestController {
     @GetMapping("/")
     public String redirect() {
         return "Redirected Successfully";
+    }
+
+    @Value("${encryptionKey}")
+    private String envValue;
+
+    @GetMapping("/test-env")
+    public String test() {
+        return envValue;
     }
 }

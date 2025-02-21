@@ -5,6 +5,8 @@ import com.MarketingMVP.AllVantage.Entities.Tokens.OAuthToken.Facebook.FacebookO
 import com.MarketingMVP.AllVantage.Repositories.Token.OAuthToken.Facebook.FacebookOAuthTokenRepository;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
+
 @Service
 public class FacebookOAuthTokenServiceImpl implements FacebookOAuthTokenService {
 
@@ -21,7 +23,7 @@ public class FacebookOAuthTokenServiceImpl implements FacebookOAuthTokenService 
 
     @Override
     public FacebookOAuthToken getTokensByAccountId(Long accountId) {
-        return null;
+        return facebookOAuthTokenRepository.findByAccountId(accountId);
     }
 
     @Override
@@ -35,7 +37,7 @@ public class FacebookOAuthTokenServiceImpl implements FacebookOAuthTokenService 
     }
 
     @Override
-    public FacebookOAuthToken getTokenByAccountIdAndType(Long accountId, FacebookOAuthTokenType tokenType) {
+    public List<FacebookOAuthToken> getTokenByAccountIdAndType(Long accountId, FacebookOAuthTokenType tokenType) {
         return facebookOAuthTokenRepository.findByAccountIdAndTokenType(accountId, tokenType);
     }
 }

@@ -1,4 +1,4 @@
-package com.MarketingMVP.AllVantage.DTOs.Facebook;
+package com.MarketingMVP.AllVantage.DTOs.Facebook.OAuthToken;
 
 import java.util.concurrent.TimeUnit;
 

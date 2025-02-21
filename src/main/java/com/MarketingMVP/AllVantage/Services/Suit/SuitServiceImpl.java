@@ -1,6 +1,5 @@
 package com.MarketingMVP.AllVantage.Services.Suit;
 
-import com.MarketingMVP.AllVantage.DTOs.Suit.SuitCreationDTO;
 import com.MarketingMVP.AllVantage.DTOs.Suit.SuitDTO;
 import com.MarketingMVP.AllVantage.DTOs.Suit.SuitDTOMapper;
 import com.MarketingMVP.AllVantage.Entities.Account.Facebook.Page.FacebookPage;
