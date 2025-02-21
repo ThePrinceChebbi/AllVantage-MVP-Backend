@@ -3,10 +3,12 @@ package com.MarketingMVP.AllVantage.Services.Accounts.Facebook;
 import com.MarketingMVP.AllVantage.DTOs.Facebook.FacebookOAuthTokenDTO;
 import com.MarketingMVP.AllVantage.DTOs.Facebook.Page.FacebookPageDTO;
 import com.MarketingMVP.AllVantage.Entities.Account.Facebook.Account.FacebookAccount;
+import com.MarketingMVP.AllVantage.Entities.Account.Facebook.Page.FacebookPage;
 import com.MarketingMVP.AllVantage.Entities.Tokens.OAuthToken.Facebook.FacebookOAuthToken;
 import com.MarketingMVP.AllVantage.Entities.Tokens.OAuthToken.Facebook.FacebookOAuthTokenType;
 import com.MarketingMVP.AllVantage.Exceptions.ResourceNotFoundException;
 import com.MarketingMVP.AllVantage.Repositories.Account.Facebook.FacebookAccountRepository;
+import com.MarketingMVP.AllVantage.Repositories.Account.Facebook.FacebookPageRepository;
 import com.MarketingMVP.AllVantage.Services.OAuthToken.FacebookOAuthTokenService;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -27,6 +29,7 @@ import java.util.concurrent.TimeUnit;
 
 @Service
 public class FacebookServiceImpl implements FacebookService {
+
     @Value("${spring.security.oauth2.client.registration.facebook.client-id}")
     private String clientId;
 
@@ -39,12 +42,15 @@ public class FacebookServiceImpl implements FacebookService {
     private final RedisTemplate<String,Object> redisTemplate;
     private final FacebookOAuthTokenService facebookOAuthTokenService;
     private final FacebookAccountRepository facebookAccountRepository;
+    private final FacebookPageRepository facebookPageRepository;
 
-    public FacebookServiceImpl(RedisTemplate<String, Object> redisTemplate, FacebookOAuthTokenService facebookOAuthTokenService, FacebookAccountRepository facebookAccountRepository) {
+    public FacebookServiceImpl(RedisTemplate<String, Object> redisTemplate, FacebookOAuthTokenService facebookOAuthTokenService, FacebookAccountRepository facebookAccountRepository, FacebookPageRepository facebookPageRepository) {
         this.redisTemplate = redisTemplate;
         this.facebookOAuthTokenService = facebookOAuthTokenService;
         this.facebookAccountRepository = facebookAccountRepository;
+        this.facebookPageRepository = facebookPageRepository;
     }
+
 
     @Override
     public RedirectView getAuthenticationCode() {
@@ -55,6 +61,7 @@ public class FacebookServiceImpl implements FacebookService {
                 "&response_type=code";
         return new RedirectView(authUrl);
     }
+
 
     @Transactional
     @Override
@@ -103,7 +110,7 @@ public class FacebookServiceImpl implements FacebookService {
             ResponseEntity<String> response = restTemplate.getForEntity(url, String.class);
 
             JsonNode jsonNode = objectMapper.readTree(response.getBody());
-            FacebookOAuthToken savedToken = generateAndSaveToken(jsonNode, savedAccount);
+            FacebookOAuthToken savedToken = generateAndSaveToken(jsonNode, savedAccount, FacebookOAuthTokenType.FACEBOOK_LONG_LIVED_USER_ACCESS_TOKEN);
 
             cacheToken(savedAccount.getId(), savedToken);
 
@@ -116,12 +123,6 @@ public class FacebookServiceImpl implements FacebookService {
         }
     }
 
-
-    private void cacheToken(Long accountId, @NotNull FacebookOAuthToken token){
-        FacebookOAuthTokenDTO tokenDTO = new FacebookOAuthTokenDTO(token.getAccessToken(), token.getExpiresIn(), TimeUnit.SECONDS);
-        String key = token.getOAuthTokenType().toString() + accountId;
-        redisTemplate.opsForValue().set(key, tokenDTO);
-    }
 
     @Override
     public ResponseEntity<Object> getUserPages(Long accountId) {
@@ -147,36 +148,67 @@ public class FacebookServiceImpl implements FacebookService {
         }
     }
 
-    @Override
-    public ResponseEntity<Object> addFacebookPageToSuit(Long suitId,Long accountId) {
-        return null;
-    }
 
     @Override
-    public FacebookOAuthTokenDTO getCachedToken(Long accountId, FacebookOAuthTokenType tokenType) {
+    public ResponseEntity<Object> addFacebookPageToSuit(Long suitId,Long accountId, String pageId) {
+        try{
+            FacebookOAuthTokenDTO userToken = getCachedToken(accountId, FacebookOAuthTokenType.FACEBOOK_LONG_LIVED_USER_ACCESS_TOKEN);
+            if (userToken == null) userToken = fetchToken(accountId);
+
+            String url = String.format("https://graph.facebook.com/v19.0/%s?fields=id,name,access_token&access_token=%s",
+                    pageId, userToken.accessToken());
+
+            RestTemplate restTemplate = new RestTemplate();
+            ResponseEntity<String> response = restTemplate.getForEntity(url, String.class);
+
+            if (!response.getStatusCode().is2xxSuccessful() || response.getBody() == null) {
+                throw new RuntimeException("Failed to fetch page details. Status: " + response.getStatusCode());
+            }
+
+            ObjectMapper objectMapper = new ObjectMapper();
+            JsonNode jsonNode= objectMapper.readTree(response.getBody());
+
+            FacebookPage facebookPage = new FacebookPage();
+            facebookPage.setFacebookAccount(getFacebookAccount(accountId));
+            facebookPage.setPageName(jsonNode.get("name").asText());
+            facebookPage.setFacebookPageId(jsonNode.get("id").asText());
+            facebookPage.setConnectedAt(new Date());
+            facebookPage.setUpdatedAt(new Date());
+
+            facebookPageRepository.save(facebookPage);
+
+            FacebookOAuthToken pageToken = generateAndSaveToken(jsonNode, facebookPage.getFacebookAccount(), FacebookOAuthTokenType.FACEBOOK_PAGE_ACCESS_TOKEN);
+            FacebookOAuthToken savedToken = facebookOAuthTokenService.saveToken(pageToken);
+            cacheToken(facebookPage.getId(), savedToken);
+
+
+
+            return ResponseEntity.ok(facebookPage);
+
+        }catch (Exception e){
+            return ResponseEntity.badRequest().body("Error fetching page details: " + e.getMessage());
+        }
+    }
+
+    //Utility public methods -------------------------------------------------------------------------------------------------------------------------------
+
+    @Override
+    public FacebookOAuthTokenDTO getCachedToken(Long accountId, FacebookOAuthTokenType tokenType) throws ResourceNotFoundException {
         Object obj = redisTemplate.opsForValue().get(tokenType.toString() + accountId);
 
         if (obj instanceof FacebookOAuthTokenDTO) {
             return (FacebookOAuthTokenDTO) obj;
         } else {
-            return null;
+            throw new ResourceNotFoundException("Token not found for account: " + accountId +  ", please authenticate again.");
         }
     }
 
-    private FacebookOAuthTokenDTO fetchToken(Long accountId, FacebookOAuthTokenType tokenType) {
-        FacebookOAuthToken token = facebookOAuthTokenService.getTokenByAccountIdAndType(accountId,tokenType);
-        if (token == null) {
-            throw new ResourceNotFoundException("Token not found for account: " + accountId +  ", please authenticate again.");
-        }
-        cacheToken(accountId, token);
-        return new FacebookOAuthTokenDTO(token.getAccessToken(), token.getExpiresIn(), TimeUnit.SECONDS);
-    }
 
     @Override
     public JsonNode fetchUserPages(Long accountId) throws ResourceNotFoundException, JsonProcessingException {
         FacebookOAuthTokenDTO token;
         token = getCachedToken(accountId, FacebookOAuthTokenType.FACEBOOK_LONG_LIVED_USER_ACCESS_TOKEN);
-        if (token == null) token = fetchToken(accountId, FacebookOAuthTokenType.FACEBOOK_LONG_LIVED_USER_ACCESS_TOKEN);
+        if (token == null) token = fetchToken(accountId);
         String url = "https://graph.facebook.com/v19.0/me/accounts?access_token=" + token.accessToken();
 
         RestTemplate restTemplate = new RestTemplate();
@@ -185,10 +217,7 @@ public class FacebookServiceImpl implements FacebookService {
         if (!response.getStatusCode().is2xxSuccessful() || response.getBody() == null) {
             throw new RuntimeException("Failed to fetch managed pages. Status: " + response.getStatusCode());
         }
-
-        // Parse JSON response
         ObjectMapper objectMapper = new ObjectMapper();
-
         return objectMapper.readTree(response.getBody());
     }
 
@@ -197,7 +226,16 @@ public class FacebookServiceImpl implements FacebookService {
         return null;
     }
 
-    private FacebookOAuthToken generateAndSaveToken(JsonNode jsonNode, FacebookAccount savedAccount) {
+    //Utility private methods -------------------------------------------------------------------------------------------------------------------------------
+
+    private void cacheToken(Long accountId, @NotNull FacebookOAuthToken token){
+        FacebookOAuthTokenDTO tokenDTO = new FacebookOAuthTokenDTO(token.getAccessToken(), token.getExpiresIn(), TimeUnit.SECONDS);
+        String key = token.getOAuthTokenType().toString() + accountId;
+        redisTemplate.opsForValue().set(key, tokenDTO);
+    }
+
+
+    private FacebookOAuthToken generateAndSaveToken(JsonNode jsonNode, FacebookAccount savedAccount, FacebookOAuthTokenType authTokenType) {
         String longLivedToken = jsonNode.has("access_token") ? jsonNode.get("access_token").asText() : null;
         int expiresIn = jsonNode.has("expires_in") ? jsonNode.get("expires_in").asInt() : 0;
 
@@ -208,8 +246,17 @@ public class FacebookServiceImpl implements FacebookService {
         oAuthToken.setAccessToken(longLivedToken);
         oAuthToken.setExpiresIn(expiresIn); //remember to account for that 0 possibility being non expiry
         oAuthToken.setAccount(savedAccount);
-        oAuthToken.setOAuthTokenType(FacebookOAuthTokenType.FACEBOOK_LONG_LIVED_USER_ACCESS_TOKEN);
+        oAuthToken.setOAuthTokenType(authTokenType);
         return facebookOAuthTokenService.saveToken(oAuthToken);
+    }
+
+    private FacebookOAuthTokenDTO fetchToken(Long accountId) throws ResourceNotFoundException {
+        FacebookOAuthToken token = facebookOAuthTokenService.getTokenByAccountIdAndType(accountId, FacebookOAuthTokenType.FACEBOOK_LONG_LIVED_USER_ACCESS_TOKEN);
+        if (token == null) {
+            throw new ResourceNotFoundException("Token not found for account: " + accountId +  ", please authenticate again.");
+        }
+        cacheToken(accountId, token);
+        return new FacebookOAuthTokenDTO(token.getAccessToken(), token.getExpiresIn(), TimeUnit.SECONDS);
     }
 
     private JsonNode fetchUserInfoFromFacebook(List<String> requestedFields, String token) throws Exception {
@@ -219,5 +266,9 @@ public class FacebookServiceImpl implements FacebookService {
         ResponseEntity<String> response = restTemplate.getForEntity(url, String.class);
         ObjectMapper objectMapper = new ObjectMapper();
         return objectMapper.readTree(response.getBody());
+    }
+
+    private FacebookAccount getFacebookAccount(Long accountId) {
+        return facebookAccountRepository.findById(accountId).orElseThrow(() -> new ResourceNotFoundException(String.format("Account with id :%d not found", accountId)));
     }
 }

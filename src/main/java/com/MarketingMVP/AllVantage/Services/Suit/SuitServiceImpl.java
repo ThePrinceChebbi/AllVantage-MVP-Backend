@@ -1,7 +1,9 @@
 package com.MarketingMVP.AllVantage.Services.Suit;
 
 import com.MarketingMVP.AllVantage.DTOs.Suit.SuitCreationDTO;
+import com.MarketingMVP.AllVantage.DTOs.Suit.SuitDTO;
 import com.MarketingMVP.AllVantage.DTOs.Suit.SuitDTOMapper;
+import com.MarketingMVP.AllVantage.Entities.Account.Facebook.Page.FacebookPage;
 import com.MarketingMVP.AllVantage.Entities.FileData.FileData;
 import com.MarketingMVP.AllVantage.Entities.Suit.Suit;
 import com.MarketingMVP.AllVantage.Entities.UserEntity.Client;
@@ -14,6 +16,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -36,6 +39,7 @@ public class SuitServiceImpl implements SuitService {
         try{
             Client client = userService.getClientById(clientId);
             FileData fileData = fileService.processUploadedFile(file,"image");
+
             Suit suit = new Suit();
             suit.setName(name);
             suit.setDescription(description);
@@ -59,16 +63,31 @@ public class SuitServiceImpl implements SuitService {
         }
     }
 
-    public Suit saveSuit(Suit suit) {
-        return null;
+    @Override
+    public SuitDTO addFacebookPageToSuit(Long suitId, FacebookPage facebookPage) {
+        Suit suit = findSuitById(suitId);
+        List<FacebookPage> facebookPages = suit.getFacebookPages();
+        facebookPages.add(facebookPage);
+        suit.setFacebookPages(facebookPages);
+        suitRepository.save(suit);
+        return suitDTOMapper.apply(suit);
     }
 
+    @Override
+    public SuitDTO removeFacebookPageFromSuit(Long suitId, Long pageId) {
+        Suit suit = findSuitById(suitId);
+        List<FacebookPage> facebookPages = suit.getFacebookPages();
+        facebookPages.removeIf(facebookPage -> facebookPage.getId().equals(pageId));
+        suit.setFacebookPages(facebookPages);
+        suitRepository.save(suit);
+        return suitDTOMapper.apply(suit);
+    }
+
+    @Override
     public Suit findSuitById(Long suitId) throws ResourceNotFoundException {
         return suitRepository.findById(suitId).orElseThrow(
                 () -> new ResourceNotFoundException(String.format("Suit with Id : %s was not found",suitId))
         );
     }
 
-    public void deleteSuit(Long suitId) {
-    }
 }

@@ -15,7 +15,7 @@ public interface FacebookService {
     ResponseEntity<Object> exchangeCodeForToken(String authorizationCode);
 
     ResponseEntity<Object> getUserPages(Long accountId);
-    ResponseEntity<Object> addFacebookPageToSuit(Long suitId,Long accountId);
+    ResponseEntity<Object> addFacebookPageToSuit(Long suitId,Long accountId, String pageId);
 
     FacebookOAuthTokenDTO getCachedToken(Long accountId, FacebookOAuthTokenType tokenType);
     JsonNode fetchUserPages(Long accountId) throws JsonProcessingException;

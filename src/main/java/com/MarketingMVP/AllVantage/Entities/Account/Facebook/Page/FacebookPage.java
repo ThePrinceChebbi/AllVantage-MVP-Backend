@@ -31,6 +31,9 @@ public class FacebookPage {
     private String pageName;
 
     @NotNull
+    private String facebookPageId;
+
+    @NotNull
     private Date connectedAt;
 
     @NotNull
