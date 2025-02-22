@@ -1,4 +1,4 @@
-package com.MarketingMVP.AllVantage.Services.OAuthToken;
+package com.MarketingMVP.AllVantage.Services.Token.FacebookOAuthToken;
 
 import com.MarketingMVP.AllVantage.Entities.Tokens.OAuthToken.Facebook.FacebookOAuthToken;
 import com.MarketingMVP.AllVantage.Entities.Tokens.OAuthToken.Facebook.FacebookOAuthTokenType;

@@ -1,4 +1,4 @@
-package com.MarketingMVP.AllVantage.Services.Token;
+package com.MarketingMVP.AllVantage.Services.Token.Access;
 
 import com.MarketingMVP.AllVantage.Entities.Tokens.AccessToken.Token;
 import lombok.NonNull;

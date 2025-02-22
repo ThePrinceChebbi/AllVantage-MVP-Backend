@@ -24,9 +24,9 @@ import com.MarketingMVP.AllVantage.Exceptions.ResourceNotFoundException;
 import com.MarketingMVP.AllVantage.Security.JWT.JWTService;
 import com.MarketingMVP.AllVantage.Services.FileData.FileService;
 import com.MarketingMVP.AllVantage.Services.Role.RoleService;
-import com.MarketingMVP.AllVantage.Services.Token.ConfirmationTokenService;
-import com.MarketingMVP.AllVantage.Services.Token.RefreshTokenService;
-import com.MarketingMVP.AllVantage.Services.Token.TokenService;
+import com.MarketingMVP.AllVantage.Services.Token.Confirmation.ConfirmationTokenService;
+import com.MarketingMVP.AllVantage.Services.Token.Refresh.RefreshTokenService;
+import com.MarketingMVP.AllVantage.Services.Token.Access.TokenService;
 import com.MarketingMVP.AllVantage.Services.UserEntity.UserService;
 import io.micrometer.common.lang.NonNull;
 import jakarta.validation.constraints.NotNull;
@@ -165,7 +165,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
             );
             SecurityContextHolder.getContext().setAuthentication(authentication);
 
-            UserEntity user = userService.getUserByEmail(loginDto.getEmail());
+            UserEntity user = userService.getUserByUsername(loginDto.getEmail());
             revokeAllUserAccessTokens(user);
             revokeAllUserRefreshToken(user);
             String jwtAccessToken = revokeGenerateAndSaveToken(user);

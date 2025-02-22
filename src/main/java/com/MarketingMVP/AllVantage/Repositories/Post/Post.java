@@ -1,4 +1,5 @@
-package com.MarketingMVP.AllVantage.Entities.Suit;
+package com.MarketingMVP.AllVantage.Repositories.Post;
+
 
 import com.MarketingMVP.AllVantage.Entities.Account.Facebook.Account.FacebookAccount;
 import com.MarketingMVP.AllVantage.Entities.Account.Facebook.Page.FacebookPage;
@@ -8,17 +9,14 @@ import com.MarketingMVP.AllVantage.Entities.Account.Snapchat.SnapchatAccount;
 import com.MarketingMVP.AllVantage.Entities.Account.TikTok.TikTokAccount;
 import com.MarketingMVP.AllVantage.Entities.Account.X.XAccount;
 import com.MarketingMVP.AllVantage.Entities.FileData.FileData;
-import com.MarketingMVP.AllVantage.Entities.UserEntity.Client;
 import com.MarketingMVP.AllVantage.Entities.UserEntity.Employee;
-import com.MarketingMVP.AllVantage.Repositories.Post.Post;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.hibernate.annotations.Where;
-import org.springframework.lang.Nullable;
 
+import java.util.Date;
 import java.util.List;
 
 @Entity
@@ -26,39 +24,39 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 @Data
-public class Suit {
-
+public class Post {
     @GeneratedValue(
             strategy = GenerationType.SEQUENCE,
-            generator = "suit_sequence"
+            generator = "post_sequence"
     )
     @SequenceGenerator(
-            name = "suit_sequence",
-            sequenceName = "suit_sequence",
+            name = "post_sequence",
+            sequenceName = "post_sequence",
             allocationSize = 1
     )
     @Id
     private Long id;
 
     @NotNull
-    private String name;
+    private String title;
 
-    @Nullable
-    private String description;
+    @NotNull
+    private String content;
 
-    @OneToOne
-    private FileData image;
+    @OneToMany
+    private List<FileData> images;
+
+    @NotNull
+    private Date createdAt;
+
+    @NotNull
+    private Date scheduledToPostAt;
+
+    @NotNull
+    private Date lastEditedAt;
 
     @ManyToOne
-    private Client client;
-
-    @ManyToMany
-    @JoinTable(
-            name = "employee_suits",
-            joinColumns = @JoinColumn(name = "suit_id"),
-            inverseJoinColumns = @JoinColumn(name = "employee_id")
-    )
-    private List<Employee> employees;
+    private Employee employee;
 
     @OneToMany
     private List<FacebookPage> facebookPages;
@@ -81,14 +79,20 @@ public class Suit {
     @OneToMany
     private List<TikTokAccount> tikTokAccounts;
 
-    @OneToMany
-    private List<Post> posts;
-
-    @PrePersist
-    @PreUpdate
-    private void validateFacebookAccounts() {
-        if (facebookAccounts != null && facebookAccounts.stream().anyMatch(FacebookAccount::isGlobal)) {
-            throw new IllegalStateException("Cannot associate global Facebook accounts with specific suits.");
-        }
+    public Post(String title, String content, List<FileData> images, Date createdAt, Date scheduledToPostAt, Date lastEditedAt, Employee employee, List<FacebookPage> facebookPages, List<FacebookAccount> facebookAccounts, List<InstagramAccount> instagramAccounts, List<LinkedInAccount> linkedInAccounts, List<XAccount> xAccounts, List<SnapchatAccount> snapchatAccounts, List<TikTokAccount> tikTokAccounts) {
+        this.title = title;
+        this.content = content;
+        this.images = images;
+        this.createdAt = createdAt;
+        this.scheduledToPostAt = scheduledToPostAt;
+        this.lastEditedAt = lastEditedAt;
+        this.employee = employee;
+        this.facebookPages = facebookPages;
+        this.facebookAccounts = facebookAccounts;
+        this.instagramAccounts = instagramAccounts;
+        this.linkedInAccounts = linkedInAccounts;
+        this.xAccounts = xAccounts;
+        this.snapchatAccounts = snapchatAccounts;
+        this.tikTokAccounts = tikTokAccounts;
     }
 }

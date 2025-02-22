@@ -7,9 +7,7 @@ import com.MarketingMVP.AllVantage.Repositories.FileData.FileDataRepository;
 import jakarta.validation.constraints.NotNull;
 import org.springframework.core.io.InputStreamResource;
 import org.springframework.core.io.Resource;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpRange;
-import org.springframework.http.ResponseEntity;
+import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StreamUtils;
@@ -116,37 +114,56 @@ public class FileServiceImpl implements FileService{
                 .orElseThrow(() -> new ResourceNotFoundException(String.format("The file with ID : %s could not be found.", fileDataId)));
     }
 
-    @Override
-    public ResponseEntity<byte[]> getFile(@NotNull final  FileData fileData, HttpHeaders headers) {
-        final Path filePath = Paths.get(fileData.getPath()).toAbsolutePath().normalize();
-        File file = new File(filePath.toUri());
+    private ResponseEntity<byte[]> downloadImage(@NotNull final  FileData fileData) throws IOException {
+        final String filePath = fileData.getPath();
+        byte[] file = Files.readAllBytes(new File(filePath).toPath());
+        HttpHeaders headers = new HttpHeaders();
+        String contentType = determineContentType(filePath);
+        headers.setContentDispositionFormData("attachment", fileData.getPath());
+        headers.setContentType(MediaType.parseMediaType(contentType));
 
-        try {
-            Resource videoResource = new InputStreamResource(new FileInputStream(file));
+        return new ResponseEntity<>(file, headers, HttpStatus.OK);
+    }
 
-            if (videoResource.exists() && videoResource.isReadable()) {
-                byte[] videoBytes = StreamUtils.copyToByteArray(videoResource.getInputStream());
-                HttpHeaders responseHeaders = new HttpHeaders();
-                List<HttpRange> ranges = headers.getRange();
-                if (ranges.isEmpty()) {
-                    responseHeaders.add("Content-Type", "video/mp4");
-                    return ResponseEntity.ok()
-                            .headers(responseHeaders)
-                            .body(videoBytes);
-                } else {
-                    HttpRange range = ranges.get(0);
-                    long rangeStart = range.getRangeStart(videoBytes.length);
-                    long rangeEnd = range.getRangeEnd(videoBytes.length);
-                    responseHeaders.add("Content-Range", "bytes " + rangeStart + "-" + rangeEnd + "/" + videoBytes.length);
-                    responseHeaders.add("Content-Type", "video/mp4");
-                    byte[] rangeBytes = new byte[(int) (rangeEnd - rangeStart + 1)];
-                    System.arraycopy(videoBytes, (int) rangeStart, rangeBytes, 0, rangeBytes.length);
-                    return ResponseEntity.status(206)
-                            .headers(responseHeaders)
-                            .body(rangeBytes);
-                }
+    private ResponseEntity<byte[]> getVideo(File file, HttpHeaders headers) throws IOException {
+        Resource videoResource = new InputStreamResource(new FileInputStream(file));
+
+        if (videoResource.exists() && videoResource.isReadable()) {
+            byte[] videoBytes = StreamUtils.copyToByteArray(videoResource.getInputStream());
+            HttpHeaders responseHeaders = new HttpHeaders();
+            List<HttpRange> ranges = headers.getRange();
+            if (ranges.isEmpty()) {
+                responseHeaders.add("Content-Type", "video/mp4");
+                return ResponseEntity.ok()
+                        .headers(responseHeaders)
+                        .body(videoBytes);
             } else {
-                return ResponseEntity.notFound().build();
+                HttpRange range = ranges.get(0);
+                long rangeStart = range.getRangeStart(videoBytes.length);
+                long rangeEnd = range.getRangeEnd(videoBytes.length);
+                responseHeaders.add("Content-Range", "bytes " + rangeStart + "-" + rangeEnd + "/" + videoBytes.length);
+                responseHeaders.add("Content-Type", "video/mp4");
+                byte[] rangeBytes = new byte[(int) (rangeEnd - rangeStart + 1)];
+                System.arraycopy(videoBytes, (int) rangeStart, rangeBytes, 0, rangeBytes.length);
+                return ResponseEntity.status(206)
+                        .headers(responseHeaders)
+                        .body(rangeBytes);
+            }
+        } else {
+            return ResponseEntity.notFound().build();
+        }
+    }
+
+    @Override
+    public ResponseEntity<byte[]> getFile(final Long fileId, HttpHeaders headers) {
+        try {
+            FileData fileData = getFileDataById(fileId);
+            final Path filePath = Paths.get(fileData.getPath()).toAbsolutePath().normalize();
+            File file = new File(filePath.toUri());
+            if (fileData.getType().equalsIgnoreCase("video")) {
+                return getVideo(file, headers);
+            }else {
+                return downloadImage(fileData);
             }
         } catch (IOException e) {
             return ResponseEntity.status(500).build();

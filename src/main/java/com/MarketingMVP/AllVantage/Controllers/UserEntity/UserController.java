@@ -2,7 +2,6 @@ package com.MarketingMVP.AllVantage.Controllers.UserEntity;
 
 import com.MarketingMVP.AllVantage.DTOs.Authentication.Client.ClientRegisterDTO;
 import com.MarketingMVP.AllVantage.DTOs.Authentication.Employee.EmployeeRegisterDTO;
-import com.MarketingMVP.AllVantage.DTOs.Suit.SuitCreationDTO;
 import com.MarketingMVP.AllVantage.Services.Authentication.AuthenticationService;
 import com.MarketingMVP.AllVantage.Services.Suit.SuitService;
 import com.MarketingMVP.AllVantage.Services.UserEntity.UserService;
@@ -45,4 +44,5 @@ public class UserController {
     public ResponseEntity<Object> getAll() {
         return userService.getAllUsers();
     }
+
 }

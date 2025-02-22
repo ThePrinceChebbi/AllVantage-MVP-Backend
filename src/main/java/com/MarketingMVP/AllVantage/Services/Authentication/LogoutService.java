@@ -1,6 +1,6 @@
 package com.MarketingMVP.AllVantage.Services.Authentication;
 
-import com.MarketingMVP.AllVantage.Services.Token.TokenService;
+import com.MarketingMVP.AllVantage.Services.Token.Access.TokenService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.security.core.Authentication;

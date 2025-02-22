@@ -1,4 +1,4 @@
-package com.MarketingMVP.AllVantage.Services.Token;
+package com.MarketingMVP.AllVantage.Services.Token.Access;
 
 import com.MarketingMVP.AllVantage.Entities.Tokens.AccessToken.Token;
 import com.MarketingMVP.AllVantage.Exceptions.ResourceNotFoundException;
@@ -12,7 +12,7 @@ import java.util.List;
 import java.util.UUID;
 
 @Service
-public class TokenServiceImpl implements TokenService{
+public class TokenServiceImpl implements TokenService {
     private final TokenRepository tokenRepository;
     private final JWTService jwtService;
 

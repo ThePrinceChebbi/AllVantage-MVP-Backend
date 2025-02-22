@@ -1,5 +1,6 @@
 package com.MarketingMVP.AllVantage.DTOs.Suit;
 
+import com.MarketingMVP.AllVantage.DTOs.Facebook.Account.FacebookAccountDTO;
 import com.MarketingMVP.AllVantage.DTOs.UserEntity.Client.ClientDTO;
 import com.MarketingMVP.AllVantage.DTOs.UserEntity.Employee.EmployeeDTO;
 import com.MarketingMVP.AllVantage.Entities.Account.Facebook.Page.FacebookPage;
@@ -20,6 +21,7 @@ public record SuitDTO (
         ClientDTO client,
         List<EmployeeDTO> employees,
         List<FacebookPage> facebookPages,
+        List<FacebookAccountDTO> facebookAccounts,
         List<InstagramAccount> instagramAccounts,
         List<LinkedInAccount> linkedInAccounts,
         List<XAccount> xAccounts,

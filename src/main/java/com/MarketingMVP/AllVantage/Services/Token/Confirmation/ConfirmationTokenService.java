@@ -1,4 +1,4 @@
-package com.MarketingMVP.AllVantage.Services.Token;
+package com.MarketingMVP.AllVantage.Services.Token.Confirmation;
 
 
 

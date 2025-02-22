@@ -9,7 +9,6 @@ import com.MarketingMVP.AllVantage.Entities.UserEntity.Employee;
 import com.MarketingMVP.AllVantage.Entities.UserEntity.UserEntity;
 import org.springframework.http.ResponseEntity;
 import org.springframework.lang.NonNull;
-import org.springframework.security.core.userdetails.UserDetails;
 
 import java.util.UUID;
 
@@ -19,7 +18,8 @@ public interface UserService {
     Client getClientById(final UUID userId);
     Employee getEmployeeById(final UUID userId);
     Admin getAdminById(final UUID userId);
-    UserEntity getUserByEmail(final String email);
+    UserEntity getUserByUsername(final String username);
+    Employee getEmployeeByUsername(final String username);
     boolean isEmailRegistered(final String email);
     boolean isUsernameRegistered(final String username);
     boolean isPhoneNumberRegistered(final String phoneNumber);
@@ -32,4 +32,6 @@ public interface UserService {
     ResponseEntity<Object> unlockAccount(UUID id);
 
     ResponseEntity<Object> getAllUsers();
+
+    boolean clientExists(UUID clientId);
 }

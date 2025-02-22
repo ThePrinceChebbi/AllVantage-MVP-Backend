@@ -6,6 +6,7 @@ import com.MarketingMVP.AllVantage.Entities.UserEntity.Client;
 import com.MarketingMVP.AllVantage.Entities.UserEntity.Employee;
 import com.MarketingMVP.AllVantage.Entities.UserEntity.UserEntity;
 import jakarta.transaction.Transactional;
+import jakarta.validation.constraints.NotNull;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -24,6 +25,9 @@ public interface UserRepository extends JpaRepository<UserEntity, UUID> {
 
     @Query(value = "SELECT U FROM UserEntity U WHERE  U.email = :email ")
     Optional<UserEntity> fetchUserWithEmail(@Param("email") String email);
+
+    @Query(value = "SELECT U FROM UserEntity U WHERE  U.username = :username ")
+    Optional<UserEntity> findUserByUsername(@NotNull @Param("username") String username);
 
     @Query(value = "SELECT E FROM Employee E WHERE  E.email=:email ")
     Optional<Employee> fetchEmployeeWithEmail(@Param("email") String email);
@@ -57,4 +61,10 @@ public interface UserRepository extends JpaRepository<UserEntity, UUID> {
 
     @Query(value = "SELECT a FROM Admin a WHERE a.id = :userId")
     Optional<Admin> getAdminById(@Param("userId") UUID userId);
+
+    @Query(value = "SELECT EXISTS(SELECT U FROM UserEntity U WHERE U.id = :clientId and U.role.name ='CLIENT' ) AS RESULT")
+    boolean clientExists(@Param("clientId") UUID clientId);
+
+    @Query(value = "SELECT E FROM Employee E WHERE E.username = :username")
+    Optional<Employee> fetchEmployeeWithUsername(String username);
 }

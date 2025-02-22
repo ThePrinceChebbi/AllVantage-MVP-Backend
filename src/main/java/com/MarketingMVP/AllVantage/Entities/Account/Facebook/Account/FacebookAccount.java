@@ -39,4 +39,14 @@ public class FacebookAccount {
     @NotNull
     private Date updatedAt;
 
+    @NotNull
+    private boolean isGlobal;
+
+    public FacebookAccount(String facebookId, String accountName, Date connectedAt, Date updatedAt, boolean isGlobal) {
+        this.facebookId = facebookId;
+        this.accountName = accountName;
+        this.connectedAt = connectedAt;
+        this.updatedAt = updatedAt;
+        this.isGlobal = isGlobal;
+    }
 }

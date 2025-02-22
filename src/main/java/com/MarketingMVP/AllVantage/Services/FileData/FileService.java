@@ -21,7 +21,7 @@ public interface FileService {
     void deleteAllFiles(@NotNull final List<FileData> files) throws IOException;
     String determineContentType(@NotNull String filePath);
     FileData getFileDataById(long fileDataId);
-    ResponseEntity<byte[]> getFile(@NotNull final  FileData fileData, HttpHeaders headers) throws IOException;
+    ResponseEntity<byte[]> getFile(final Long fileId, HttpHeaders headers);
     void deleteFileFromFileSystem(@NotNull final FileData fileData) throws IOException ;
     String getFileType(String fileName);
 

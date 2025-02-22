@@ -1,4 +1,4 @@
-package com.MarketingMVP.AllVantage.Services.Token;
+package com.MarketingMVP.AllVantage.Services.Token.Confirmation;
 
 import com.MarketingMVP.AllVantage.Entities.Tokens.ConfirmationToken.ConfirmationToken;
 import com.MarketingMVP.AllVantage.Entities.UserEntity.UserEntity;

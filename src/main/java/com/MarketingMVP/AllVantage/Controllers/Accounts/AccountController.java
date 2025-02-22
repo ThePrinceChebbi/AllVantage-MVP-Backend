@@ -1,7 +1,6 @@
 package com.MarketingMVP.AllVantage.Controllers.Accounts;
 
 import com.MarketingMVP.AllVantage.Services.Accounts.Facebook.FacebookService;
-import org.springframework.data.repository.query.Param;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.view.RedirectView;
@@ -15,14 +14,14 @@ public class AccountController {
         this.facebookService = facebookService;
     }
 
-    @GetMapping("/code")
+    @GetMapping("/add-global-account")
     public RedirectView facebookAuth() {
-        return facebookService.getAuthenticationCode();
+        return facebookService.authenticateGlobalAccount();
     }
 
     @GetMapping("/callback")
     public ResponseEntity<Object> facebookCallback(@RequestParam("code") String code) {
-        return facebookService.exchangeCodeForToken(code);
+        return facebookService.authenticateGlobalAccountCallback(code);
     }
 
     @GetMapping("/{accountId}/user-pages")

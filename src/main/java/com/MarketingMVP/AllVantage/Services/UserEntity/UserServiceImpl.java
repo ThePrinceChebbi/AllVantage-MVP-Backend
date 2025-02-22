@@ -65,6 +65,11 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    public boolean clientExists(UUID clientId) {
+        return userRepository.clientExists(clientId);
+    }
+
+    @Override
     public ResponseEntity<Object> lockAccount(UUID id) {
         try{
             UserEntity user = getUserById(id);
@@ -86,7 +91,7 @@ public class UserServiceImpl implements UserService {
     @Override
     public ResponseEntity<Object> disableAccount(LoginDTO loginDTO) {
         try{
-            UserEntity user = getUserByEmail(loginDTO.getEmail());
+            UserEntity user = getUserByUsername(loginDTO.getEmail());
             PasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
             if (passwordEncoder.matches(passwordEncoder.encode(loginDTO.getPassword()), user.getPassword())){
                 user.setEnabled(false);
@@ -166,8 +171,14 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public UserEntity getUserByEmail(@NonNull final String userEmail) throws UnauthorizedActionException{
-        return userRepository.fetchUserWithEmail(userEmail)
-                .orElseThrow(() -> new ResourceNotFoundException(String.format("The user with email : %s could not be found.", userEmail)));
+    public UserEntity getUserByUsername(@NonNull final String username) throws UnauthorizedActionException{
+        return userRepository.findUserByUsername(username)
+                .orElseThrow(() -> new ResourceNotFoundException(String.format("The user with username : %s could not be found.", username)));
+    }
+
+    @Override
+    public Employee getEmployeeByUsername(String username) {
+        return userRepository.fetchEmployeeWithUsername(username)
+                .orElseThrow(() -> new ResourceNotFoundException(String.format("The Employee with username : %s could not be found.", username)));
     }
 }

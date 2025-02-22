@@ -20,17 +20,17 @@ public class AllVantageApplication {
 
 	}
 
-	/*@PostConstruct
+	@PostConstruct
 	private void initProject()
 	{
 		initRoles();
 	}
-	private void initRoles()
-	{
+	private void initRoles() {
+		if (!roleRepository.findAll().isEmpty()) return;
+
 		roleRepository.save(new Role("EMPLOYEE"));
 		roleRepository.save(new Role("ADMIN"));
 		roleRepository.save(new Role("CLIENT"));
 	}
-*/
 
 }

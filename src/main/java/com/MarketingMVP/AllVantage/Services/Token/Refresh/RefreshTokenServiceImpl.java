@@ -1,4 +1,4 @@
-package com.MarketingMVP.AllVantage.Services.Token;
+package com.MarketingMVP.AllVantage.Services.Token.Refresh;
 
 import com.MarketingMVP.AllVantage.Entities.Tokens.RefreshToken.RefreshToken;
 import com.MarketingMVP.AllVantage.Entities.UserEntity.UserEntity;

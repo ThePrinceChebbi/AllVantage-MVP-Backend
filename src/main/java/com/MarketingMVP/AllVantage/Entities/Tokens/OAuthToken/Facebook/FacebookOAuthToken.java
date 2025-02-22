@@ -1,6 +1,7 @@
 package com.MarketingMVP.AllVantage.Entities.Tokens.OAuthToken.Facebook;
 
 import com.MarketingMVP.AllVantage.Entities.Account.Facebook.Account.FacebookAccount;
+import com.MarketingMVP.AllVantage.Entities.Account.Facebook.Page.FacebookPage;
 import jakarta.persistence.*;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
@@ -36,10 +37,14 @@ public class FacebookOAuthToken {
     private Long id;
 
     @NotNull
+    @Column(length = 512)
     private String accessToken;
 
     @ManyToOne
     private FacebookAccount account;
+
+    @ManyToOne
+    private FacebookPage page;
 
     @NotNull
     private int expiresIn;
