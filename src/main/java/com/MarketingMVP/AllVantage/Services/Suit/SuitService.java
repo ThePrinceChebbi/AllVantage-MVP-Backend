@@ -6,8 +6,8 @@ import com.MarketingMVP.AllVantage.Exceptions.ResourceNotFoundException;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.multipart.MultipartFile;
-import org.springframework.web.servlet.view.RedirectView;
 
+import java.util.List;
 import java.util.UUID;
 
 public interface SuitService {
@@ -20,7 +20,7 @@ public interface SuitService {
     ResponseEntity<Object> addEmployeeToSuit(Long suitId, UUID employeeId);
     ResponseEntity<Object> removeEmployeeFromSuit(Long suitId, UUID employeeId);
 
-    ResponseEntity<Object> postToSuit(Long suitId, PostSendDTO postSendDTO, UserDetails employee);
+    ResponseEntity<Object> postToSuit(Long suitId, PostSendDTO postSendDTO, UserDetails employee, List<MultipartFile> files);
 
     ResponseEntity<Object> addFacebookPageToSuit(Long suitId, Long accountId, String facebookPageId);
     ResponseEntity<Object> removeFacebookPageFromSuit(Long suitId, Long accountId);
@@ -29,9 +29,7 @@ public interface SuitService {
 
     ResponseEntity<Object> getAllClientSuits(UUID clientId);
 
-    RedirectView addAccountToSuit(Long suitId);
-
     ResponseEntity<Object> getSuitById(Long suitId);
 
-    ResponseEntity<Object> addAccountToSuitCallback(Long suitId, String code);
+    String test(Long fileId, Long acountId);
 }

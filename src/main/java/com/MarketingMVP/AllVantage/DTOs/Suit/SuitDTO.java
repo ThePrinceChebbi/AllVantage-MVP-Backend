@@ -21,7 +21,6 @@ public record SuitDTO (
         ClientDTO client,
         List<EmployeeDTO> employees,
         List<FacebookPage> facebookPages,
-        List<FacebookAccountDTO> facebookAccounts,
         List<InstagramAccount> instagramAccounts,
         List<LinkedInAccount> linkedInAccounts,
         List<XAccount> xAccounts,

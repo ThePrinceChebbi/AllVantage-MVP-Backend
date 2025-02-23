@@ -114,18 +114,19 @@ public class FileServiceImpl implements FileService{
                 .orElseThrow(() -> new ResourceNotFoundException(String.format("The file with ID : %s could not be found.", fileDataId)));
     }
 
-    private ResponseEntity<byte[]> downloadImage(@NotNull final  FileData fileData) throws IOException {
-        final String filePath = fileData.getPath();
+    private ResponseEntity<byte[]> downloadImage(final @NotNull String filePath) throws IOException {
         byte[] file = Files.readAllBytes(new File(filePath).toPath());
         HttpHeaders headers = new HttpHeaders();
         String contentType = determineContentType(filePath);
-        headers.setContentDispositionFormData("attachment", fileData.getPath());
+        headers.setContentDispositionFormData("attachment", filePath);
         headers.setContentType(MediaType.parseMediaType(contentType));
 
         return new ResponseEntity<>(file, headers, HttpStatus.OK);
     }
 
-    private ResponseEntity<byte[]> getVideo(File file, HttpHeaders headers) throws IOException {
+    private ResponseEntity<byte[]> getVideo(String path, HttpHeaders headers) throws IOException {
+        final Path filePath = Paths.get(path).toAbsolutePath().normalize();
+        File file = new File(filePath.toUri());
         Resource videoResource = new InputStreamResource(new FileInputStream(file));
 
         if (videoResource.exists() && videoResource.isReadable()) {
@@ -158,12 +159,11 @@ public class FileServiceImpl implements FileService{
     public ResponseEntity<byte[]> getFile(final Long fileId, HttpHeaders headers) {
         try {
             FileData fileData = getFileDataById(fileId);
-            final Path filePath = Paths.get(fileData.getPath()).toAbsolutePath().normalize();
-            File file = new File(filePath.toUri());
+
             if (fileData.getType().equalsIgnoreCase("video")) {
-                return getVideo(file, headers);
+                return getVideo(fileData.getPath(), headers);
             }else {
-                return downloadImage(fileData);
+                return downloadImage(fileData.getPath());
             }
         } catch (IOException e) {
             return ResponseEntity.status(500).build();
@@ -224,6 +224,16 @@ public class FileServiceImpl implements FileService{
         typesMap.put("mp4", video);
 
         return typesMap.get(fileName);
+    }
+
+    @Override
+    public ResponseEntity<byte[]> getFileByName(String name) {
+        try {
+            String fullPath = FILE_SYSTEM_PATH + name;
+            return downloadImage(fullPath);
+        } catch (IOException e) {
+            return ResponseEntity.status(500).build();
+        }
     }
 
 }

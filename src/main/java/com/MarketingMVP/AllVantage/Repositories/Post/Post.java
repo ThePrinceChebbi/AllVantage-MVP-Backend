@@ -1,7 +1,6 @@
 package com.MarketingMVP.AllVantage.Repositories.Post;
 
 
-import com.MarketingMVP.AllVantage.Entities.Account.Facebook.Account.FacebookAccount;
 import com.MarketingMVP.AllVantage.Entities.Account.Facebook.Page.FacebookPage;
 import com.MarketingMVP.AllVantage.Entities.Account.Instagram.InstagramAccount;
 import com.MarketingMVP.AllVantage.Entities.Account.LinkedIn.LinkedInAccount;
@@ -62,9 +61,6 @@ public class Post {
     private List<FacebookPage> facebookPages;
 
     @OneToMany
-    private List<FacebookAccount> facebookAccounts;
-
-    @OneToMany
     private List<InstagramAccount> instagramAccounts;
 
     @OneToMany
@@ -79,7 +75,21 @@ public class Post {
     @OneToMany
     private List<TikTokAccount> tikTokAccounts;
 
-    public Post(String title, String content, List<FileData> images, Date createdAt, Date scheduledToPostAt, Date lastEditedAt, Employee employee, List<FacebookPage> facebookPages, List<FacebookAccount> facebookAccounts, List<InstagramAccount> instagramAccounts, List<LinkedInAccount> linkedInAccounts, List<XAccount> xAccounts, List<SnapchatAccount> snapchatAccounts, List<TikTokAccount> tikTokAccounts) {
+    public Post(
+            String title,
+            String content,
+            List<FileData> images,
+            Date createdAt,
+            Date scheduledToPostAt,
+            Date lastEditedAt,
+            Employee employee,
+            List<FacebookPage> facebookPages,
+            List<InstagramAccount> instagramAccounts,
+            List<LinkedInAccount> linkedInAccounts,
+            List<XAccount> xAccounts,
+            List<SnapchatAccount> snapchatAccounts,
+            List<TikTokAccount> tikTokAccounts
+    ) {
         this.title = title;
         this.content = content;
         this.images = images;
@@ -88,7 +98,6 @@ public class Post {
         this.lastEditedAt = lastEditedAt;
         this.employee = employee;
         this.facebookPages = facebookPages;
-        this.facebookAccounts = facebookAccounts;
         this.instagramAccounts = instagramAccounts;
         this.linkedInAccounts = linkedInAccounts;
         this.xAccounts = xAccounts;

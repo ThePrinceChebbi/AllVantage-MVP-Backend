@@ -1,8 +1,9 @@
-package com.MarketingMVP.AllVantage.DTOs.Facebook.OAuthToken;
+package com.MarketingMVP.AllVantage.DTOs.Facebook.PageToken;
 
 import java.util.concurrent.TimeUnit;
 
-public record FacebookOAuthTokenDTO(
+public record FacebookPageTokenDTO(
+        String facebookPageId,
         String accessToken,
         int expiresIn,
         TimeUnit expiresInTimeUnit

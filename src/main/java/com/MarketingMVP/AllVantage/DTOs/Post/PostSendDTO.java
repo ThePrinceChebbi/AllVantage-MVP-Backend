@@ -29,11 +29,7 @@ public class PostSendDTO {
 
     private Date scheduledAt;
 
-    private List<MultipartFile> files;
-
     private List<Long> facebookPageIds;
-
-    private List<Long> facebookAccountIds;
 
     private List<Long> instagramAccountIds;
 

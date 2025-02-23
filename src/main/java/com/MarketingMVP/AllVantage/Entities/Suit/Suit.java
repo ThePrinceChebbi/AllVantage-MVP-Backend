@@ -64,9 +64,6 @@ public class Suit {
     private List<FacebookPage> facebookPages;
 
     @OneToMany
-    private List<FacebookAccount> facebookAccounts;
-
-    @OneToMany
     private List<InstagramAccount> instagramAccounts;
 
     @OneToMany
@@ -84,11 +81,4 @@ public class Suit {
     @OneToMany
     private List<Post> posts;
 
-    @PrePersist
-    @PreUpdate
-    private void validateFacebookAccounts() {
-        if (facebookAccounts != null && facebookAccounts.stream().anyMatch(FacebookAccount::isGlobal)) {
-            throw new IllegalStateException("Cannot associate global Facebook accounts with specific suits.");
-        }
-    }
 }

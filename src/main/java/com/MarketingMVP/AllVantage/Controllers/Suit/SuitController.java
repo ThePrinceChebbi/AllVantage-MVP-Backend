@@ -3,7 +3,6 @@ package com.MarketingMVP.AllVantage.Controllers.Suit;
 import com.MarketingMVP.AllVantage.Services.Suit.SuitService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.servlet.view.RedirectView;
 
 import java.util.UUID;
 
@@ -31,18 +30,18 @@ public class SuitController {
         return suitService.getAllClientSuits(clientId);
     }
 
-    @GetMapping("/{suitId}/add-account")
-    public RedirectView addAccountToSuit(@PathVariable Long suitId) {
-        return suitService.addAccountToSuit(suitId);
-    }
-    @GetMapping("/{suitId}/callback")
-    public ResponseEntity<Object> addAccountToSuitCallback(@PathVariable Long suitId, @RequestParam("code") String code) {
-        return suitService.addAccountToSuitCallback(suitId, code);
-    }
-
     @PostMapping("/{suitId}/add-employee")
     public ResponseEntity<Object> addEmployeeToSuit(@PathVariable Long suitId, @RequestParam UUID employeeId) {
         return suitService.addEmployeeToSuit(suitId, employeeId);
     }
 
+    @GetMapping("/{suitId}")
+    public ResponseEntity<Object> getSuitById(@PathVariable Long suitId) {
+        return suitService.getSuitById(suitId);
+    }
+
+    @GetMapping("/test")
+    public String test(@RequestParam Long fileId, @RequestParam Long accountId) {
+        return suitService.test(fileId, accountId);
+    }
 }

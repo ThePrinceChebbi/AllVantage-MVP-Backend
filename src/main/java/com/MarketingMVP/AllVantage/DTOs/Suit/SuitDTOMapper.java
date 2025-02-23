@@ -1,10 +1,8 @@
 package com.MarketingMVP.AllVantage.DTOs.Suit;
 
-import com.MarketingMVP.AllVantage.DTOs.Facebook.Account.FacebookAccountDTOMapper;
 import com.MarketingMVP.AllVantage.DTOs.UserEntity.Client.ClientDTOMapper;
 import com.MarketingMVP.AllVantage.DTOs.UserEntity.Employee.EmployeeDTOMapper;
 import com.MarketingMVP.AllVantage.Entities.Suit.Suit;
-import com.MarketingMVP.AllVantage.Entities.UserEntity.Employee;
 import org.springframework.stereotype.Service;
 
 import java.util.function.Function;
@@ -30,7 +28,6 @@ public class SuitDTOMapper implements Function<Suit, SuitDTO> {
                 clientDTOMapper.apply(suit.getClient()),
                 suit.getEmployees().stream().map(employeeDTOMapper).toList(),
                 suit.getFacebookPages(),
-                suit.getFacebookAccounts().stream().map(new FacebookAccountDTOMapper()).toList(),
                 suit.getInstagramAccounts(),
                 suit.getLinkedInAccounts(),
                 suit.getXAccounts(),
@@ -38,4 +35,5 @@ public class SuitDTOMapper implements Function<Suit, SuitDTO> {
                 suit.getTikTokAccounts()
         );
     }
+
 }

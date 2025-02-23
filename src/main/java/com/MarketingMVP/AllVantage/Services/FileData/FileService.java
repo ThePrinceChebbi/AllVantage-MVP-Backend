@@ -25,4 +25,5 @@ public interface FileService {
     void deleteFileFromFileSystem(@NotNull final FileData fileData) throws IOException ;
     String getFileType(String fileName);
 
+    ResponseEntity<byte[]> getFileByName(String name);
 }

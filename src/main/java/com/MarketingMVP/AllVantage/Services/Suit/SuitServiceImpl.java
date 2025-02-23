@@ -2,7 +2,6 @@ package com.MarketingMVP.AllVantage.Services.Suit;
 
 import com.MarketingMVP.AllVantage.DTOs.Post.PostSendDTO;
 import com.MarketingMVP.AllVantage.DTOs.Suit.SuitDTOMapper;
-import com.MarketingMVP.AllVantage.Entities.Account.Facebook.Account.FacebookAccount;
 import com.MarketingMVP.AllVantage.Entities.Account.Facebook.Page.FacebookPage;
 import com.MarketingMVP.AllVantage.Entities.Account.Instagram.InstagramAccount;
 import com.MarketingMVP.AllVantage.Entities.Account.LinkedIn.LinkedInAccount;
@@ -27,7 +26,6 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
-import org.springframework.web.servlet.view.RedirectView;
 
 import java.io.IOException;
 import java.util.*;
@@ -149,7 +147,7 @@ public class SuitServiceImpl implements SuitService {
     //TODO: Implement the full post - platform relationship accounting for media Ids and facebook post ids
     @Transactional
     @Override
-    public ResponseEntity<Object> postToSuit(Long suitId, PostSendDTO postSendDTO, UserDetails employeeDetails) {
+    public ResponseEntity<Object> postToSuit(Long suitId, PostSendDTO postSendDTO, UserDetails employeeDetails, List<MultipartFile> files) {
         try{
             Suit suit = findSuitById(suitId);
             Employee employee = userService.getEmployeeByUsername(employeeDetails.getUsername());
@@ -157,11 +155,12 @@ public class SuitServiceImpl implements SuitService {
                 return ResponseEntity.status(401).body("Unauthorized to post to this suit");
             }
 
-            List<FileData> fileDataList = postSendDTO.getFiles().stream()
+            List<FileData> fileDataList = files.stream()
                     .map(file -> {
                         try {
                             return fileService.processUploadedFile(file, file.getContentType());
                         } catch (IOException e) {
+                            System.out.println(e.getMessage());
                             return null;
                         }
                     })
@@ -172,12 +171,6 @@ public class SuitServiceImpl implements SuitService {
                     suit.getFacebookPages(),
                     FacebookPage::getId,
                     PlatformType.FACEBOOK_PAGE
-            );
-            List<FacebookAccount> facebookAccounts = filterAccounts(
-                    postSendDTO.getFacebookAccountIds(),
-                    suit.getFacebookAccounts(),
-                    FacebookAccount::getId,
-                    PlatformType.FACEBOOK_ACCOUNT
             );
             List<InstagramAccount> instagramAccounts = filterAccounts(
                     postSendDTO.getInstagramAccountIds(),
@@ -219,7 +212,6 @@ public class SuitServiceImpl implements SuitService {
                     new Date(),
                     employee,
                     facebookPages,
-                    facebookAccounts,
                     instagramAccounts,
                     linkedInAccounts,
                     xAccounts,
@@ -251,8 +243,6 @@ public class SuitServiceImpl implements SuitService {
                 .filter(account -> requestedIds.contains(getIdFunction.apply(account)))
                 .toList();
     }
-
-
 
     @Override
     public ResponseEntity<Object> addFacebookPageToSuit(Long suitId, Long accountId, String facebookPageId) {
@@ -303,39 +293,13 @@ public class SuitServiceImpl implements SuitService {
     }
 
     @Override
-    public RedirectView addAccountToSuit(Long suitId) {
-        try{
-            findSuitById(suitId);
-            String redirectUri = "http://localhost:8080/api/v1/suit/" + suitId + "/callback";
-            return facebookService.getAuthenticationCode(redirectUri);
-        }catch (ResourceNotFoundException e){
-            return new RedirectView("/error");
-        }
-    }
-
-    @Override
     public ResponseEntity<Object> getSuitById(Long suitId) {
         return ResponseEntity.ok(suitRepository.findById(suitId).map(suitDTOMapper));
     }
 
     @Override
-    public ResponseEntity<Object> addAccountToSuitCallback(Long suitId, String code) {
-        try{
-            Suit suit = findSuitById(suitId);
-            String redirectUri = "http://localhost:8080/api/v1/suit/" + suitId + "/callback";
-            FacebookAccount facebookAccount = facebookService.exchangeCodeForToken(code, false, redirectUri);
-            List<FacebookAccount> accounts = suit.getFacebookAccounts();
-            accounts.add(facebookAccount);
-            suit.setFacebookAccounts(accounts);
-            suitRepository.save(suit);
-            return ResponseEntity.ok(suitDTOMapper.apply(suit));
-        }catch (ResourceNotFoundException e){
-            return ResponseEntity.status(404).body(e.getMessage());
-        }catch (Exception e){
-            return ResponseEntity.status(500).body(e.getMessage());
-        }
+    public String test(Long fileId, Long accountId) {
+        return facebookService.uploadMediaToFacebook(fileService.getFileDataById(fileId),accountId);
     }
-
-
 
 }
