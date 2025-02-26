@@ -29,6 +29,7 @@ public interface FacebookService {
 
     FacebookAccountTokenDTO getAccountCachedToken(Long accountId, FacebookOAuthTokenType tokenType);
     FacebookPageTokenDTO getPageCachedToken(Long pageId);
+
     JsonNode fetchUserPages(Long accountId) throws JsonProcessingException;
 
 

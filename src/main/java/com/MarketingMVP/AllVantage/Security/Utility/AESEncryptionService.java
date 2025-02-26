@@ -43,13 +43,10 @@ public class AESEncryptionService {
 
     public String decrypt(String encryptedValue) {
         try{
-            System.out.println("encrypted value " + encryptedValue);
             SecretKey key = getAESKey(this.secretKey);
             Cipher cipher = Cipher.getInstance("AES");
             cipher.init(Cipher.DECRYPT_MODE, key);
-            String decryptedValue =new String(cipher.doFinal(Base64.getDecoder().decode(encryptedValue)));
-            System.out.println("decrypted value " + decryptedValue);
-            return decryptedValue;
+            return new String(cipher.doFinal(Base64.getDecoder().decode(encryptedValue)));
 
         }catch (Exception e){
             return null;

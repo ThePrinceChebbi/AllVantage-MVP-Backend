@@ -105,38 +105,27 @@ public class FacebookServiceImpl implements FacebookService {
 
     @Override
     public String uploadMediaToFacebook(FileData fileData, Long pageId) {
-        FacebookPageTokenDTO tokenDTO = fetchPageToken(pageId); //getPageCachedToken(pageId);
+        FacebookPageTokenDTO tokenDTO = fetchPageToken(pageId);
         RestTemplate restTemplate = new RestTemplate();
 
         String metaFileType = fileData.getType().contains("image") ? "photos" : "videos";
         String url = String.format("https://graph.facebook.com/v22.0/%s/%s", tokenDTO.facebookPageId(), metaFileType);
 
         HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(metaFileType.equals("photos") ? MediaType.MULTIPART_FORM_DATA : MediaType.APPLICATION_JSON);
+        headers.setContentType(MediaType.MULTIPART_FORM_DATA);
 
         MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
-        if (fileData.getType().contains("image")) {
-            // ✅ Use "source" for images (actual file upload)
-            File file = new File(fileData.getPath());
-            FileSystemResource fileResource = new FileSystemResource(file);
-            body.add("source", fileResource);
-        } else {
-            // ✅ Use "file_url" for videos
-            String encodedFileName = URLEncoder.encode(
-                    fileData.getPath().substring(fileData.getPath().lastIndexOf("/") + 1),
-                    StandardCharsets.UTF_8
-            );
-            String videoUrl = "https://38cc-197-19-158-116.ngrok-free.app/api/v1/files/get-file?name=" + encodedFileName;
-            body.add("file_url", videoUrl);
-        }
 
-        body.add("published", "false");
-        body.add("access_token", "EAAQdStY7AO8BO2Pd4TU9v8ijVUoXgEKAqpxxKo4yrtX8O17aDET3BftMFj42ACiLEDs0ZAeYTlmMmiJvAiRcnpfBsiWOurUrsErEnywpzKXZBR2fBYZC8meWZCRL8MZCuKv4fucpkrgbK9c3WFbs9JutP0FJZBERDOmyDKYZAb62pDdLR4dmZBkDK0YLa4VZBjQYZD");
+        // 🔥 Read the file & send it directly
+        File file = new File(fileData.getPath());
+        FileSystemResource fileResource = new FileSystemResource(file);
+        body.add("source", fileResource);
 
-        try{
+        body.add("published", false);
+        body.add("access_token", tokenDTO.accessToken());
+
+        try {
             HttpEntity<MultiValueMap<String, Object>> request = new HttpEntity<>(body, headers);
-            System.out.println("Request: " + request);
-
             ResponseEntity<Map> response = restTemplate.exchange(url, HttpMethod.POST, request, Map.class);
 
             return Objects.requireNonNull(response.getBody()).get("id").toString();
@@ -144,7 +133,6 @@ public class FacebookServiceImpl implements FacebookService {
             return "Failed to upload media: " + e.getMessage();
         }
     }
-
 
 
     @Override
@@ -292,12 +280,10 @@ public class FacebookServiceImpl implements FacebookService {
 
     @Override
     public FacebookAccountTokenDTO getAccountCachedToken(Long accountId, FacebookOAuthTokenType tokenType) {
-        System.out.println("Getting cached token for account: " + accountId + " and token type: " + tokenType);
 
         String key = formulateAccountKey(accountId, tokenType);
         List<FacebookAccountTokenDTO> tokenList = redisAccountTemplate.opsForList().range(key, 0, -1);
 
-        System.out.println("Getting cached token for account: " + accountId + " and key: " + key);
 
         if (tokenList == null || tokenList.isEmpty() || tokenList.stream().allMatch((token) -> token.facebookAccountId() == null)) {
             return fetchAccountToken(accountId, tokenType);
@@ -307,14 +293,12 @@ public class FacebookServiceImpl implements FacebookService {
         FacebookAccountTokenDTO bestToken = tokenList.stream()
                 .max(Comparator.comparingInt(token -> token.expiresIn() == 0 ? Integer.MAX_VALUE : token.expiresIn()))
                 .orElseThrow(() -> new IllegalStateException("Failed to determine the best token for account: " + accountId));
-        System.out.println("Getting cached token for account: " + accountId + " and token : " + bestToken.toString());
 
         // If duplicates exist, remove all and keep only the best token
         if (tokenList.size() > 1) {
             redisAccountTemplate.delete(key);
             redisAccountTemplate.opsForList().rightPush(key, bestToken);
         }
-        System.out.println("done here");
         return bestToken;
     }
 
@@ -346,16 +330,12 @@ public class FacebookServiceImpl implements FacebookService {
     private FacebookPageTokenDTO fetchPageToken(Long pageId) {
         FacebookPageToken token;
         List<FacebookPageToken> tokens = facebookOAuthTokenService.getTokenByPageId(pageId);
-        System.out.println("Tokens found: " + tokens);
         token = tokens.stream()
-                .peek(t -> System.out.println("Checking token: " + t))
                 .filter(t -> validatePageToken(facebookPageTokenDTOMapper.apply(t)))
                 .findFirst().orElse(null);
-        System.out.println("Token found: " + token);
         if (token == null) {
             throw new ResourceNotFoundException("Token not found for page: " + pageId + ", please authenticate again.");
         }
-        System.out.println("Token found: " + token.getAccessToken());
         return cachePageToken(token);
     }
 
@@ -393,9 +373,7 @@ public class FacebookServiceImpl implements FacebookService {
     }
 
     private FacebookPageTokenDTO cachePageToken(FacebookPageToken token) {
-        System.out.println("encrypted access token: " +token.getAccessToken());
         FacebookPageTokenDTO tokenDTO = facebookPageTokenDTOMapper.apply(token);
-        System.out.println("decrypted access token: " +tokenDTO.accessToken());
 
         String key = formulatePageKey(token.getPage().getId());
 
@@ -437,7 +415,6 @@ public class FacebookServiceImpl implements FacebookService {
         if (token == null) {
             throw new ResourceNotFoundException("Token not found for account: " + accountId +  ", please authenticate again.");
         }
-        System.out.println("Token found: " + token.getAccessToken());
         return cacheAccountToken(token);
     }
 
