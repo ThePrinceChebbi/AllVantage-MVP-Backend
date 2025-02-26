@@ -18,19 +18,25 @@ import com.MarketingMVP.AllVantage.Exceptions.ResourceNotFoundException;
 import com.MarketingMVP.AllVantage.Repositories.Account.Facebook.FacebookAccountRepository;
 import com.MarketingMVP.AllVantage.Repositories.Account.Facebook.FacebookPageRepository;
 import com.MarketingMVP.AllVantage.Security.Utility.AESEncryptionService;
+import com.MarketingMVP.AllVantage.Services.FileData.FileService;
 import com.MarketingMVP.AllVantage.Services.Token.FacebookOAuthToken.FacebookOAuthTokenService;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.validation.constraints.NotNull;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.io.FileSystemResource;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.servlet.view.RedirectView;
 
+import java.io.File;
+import java.io.IOException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
@@ -39,6 +45,7 @@ import java.util.concurrent.TimeUnit;
 @Service
 public class FacebookServiceImpl implements FacebookService {
 
+    private final FileService fileService;
     @Value("${spring.security.oauth2.client.registration.facebook.client-id}")
     private String clientId;
 
@@ -56,7 +63,7 @@ public class FacebookServiceImpl implements FacebookService {
     private final FacebookPageRepository facebookPageRepository;
     private final AESEncryptionService encryptionService;
 
-    public FacebookServiceImpl(RedisTemplate<String, FacebookAccountTokenDTO> redisAccountTemplate, FacebookOAuthTokenService facebookOAuthTokenService, FacebookAccountRepository facebookAccountRepository, FacebookPageRepository facebookPageRepository, AESEncryptionService encryptionService, FacebookAccountTokenDTOMapper facebookAccountTokenDTOMapper, RedisTemplate<String, FacebookPageTokenDTO> redisPageTemplate, FacebookPageTokenDTOMapper facebookPageTokenDTOMapper) {
+    public FacebookServiceImpl(RedisTemplate<String, FacebookAccountTokenDTO> redisAccountTemplate, FacebookOAuthTokenService facebookOAuthTokenService, FacebookAccountRepository facebookAccountRepository, FacebookPageRepository facebookPageRepository, AESEncryptionService encryptionService, FacebookAccountTokenDTOMapper facebookAccountTokenDTOMapper, RedisTemplate<String, FacebookPageTokenDTO> redisPageTemplate, FacebookPageTokenDTOMapper facebookPageTokenDTOMapper, FileService fileService) {
         this.redisAccountTemplate = redisAccountTemplate;
         this.facebookOAuthTokenService = facebookOAuthTokenService;
         this.facebookAccountRepository = facebookAccountRepository;
@@ -65,6 +72,7 @@ public class FacebookServiceImpl implements FacebookService {
         this.facebookAccountTokenDTOMapper = facebookAccountTokenDTOMapper;
         this.redisPageTemplate = redisPageTemplate;
         this.facebookPageTokenDTOMapper = facebookPageTokenDTOMapper;
+        this.fileService = fileService;
     }
 
     @Override
@@ -97,32 +105,44 @@ public class FacebookServiceImpl implements FacebookService {
 
     @Override
     public String uploadMediaToFacebook(FileData fileData, Long pageId) {
-        FacebookPageTokenDTO tokenDTO = getPageCachedToken(pageId);
+        FacebookPageTokenDTO tokenDTO = fetchPageToken(pageId); //getPageCachedToken(pageId);
         RestTemplate restTemplate = new RestTemplate();
 
         String metaFileType = fileData.getType().contains("image") ? "photos" : "videos";
-
-        // ✅ Corrected URL formatting
-        String url = String.format("https://graph.facebook.com/v19.0/%s/%s", tokenDTO.facebookPageId(), metaFileType);
-
-        String fileName = fileData.getPath().substring(fileData.getPath().lastIndexOf("/") + 1);
-        String encodedFileName = URLEncoder.encode(fileName, StandardCharsets.UTF_8);
-
-        // ✅ Ensure file_url is publicly accessible
-        String videoUrl = "https://d35c-197-31-143-114.ngrok-free.app/api/v1/files/get-file?name=" + encodedFileName;
+        String url = String.format("https://graph.facebook.com/v22.0/%s/%s", tokenDTO.facebookPageId(), metaFileType);
 
         HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_JSON);
+        headers.setContentType(metaFileType.equals("photos") ? MediaType.MULTIPART_FORM_DATA : MediaType.APPLICATION_JSON);
 
-        Map<String, String> body = new HashMap<>();
-        body.put("file_url", videoUrl);
-        body.put("published", "false");
-        body.put("access_token", tokenDTO.accessToken());
+        MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
+        if (fileData.getType().contains("image")) {
+            // ✅ Use "source" for images (actual file upload)
+            File file = new File(fileData.getPath());
+            FileSystemResource fileResource = new FileSystemResource(file);
+            body.add("source", fileResource);
+        } else {
+            // ✅ Use "file_url" for videos
+            String encodedFileName = URLEncoder.encode(
+                    fileData.getPath().substring(fileData.getPath().lastIndexOf("/") + 1),
+                    StandardCharsets.UTF_8
+            );
+            String videoUrl = "https://38cc-197-19-158-116.ngrok-free.app/api/v1/files/get-file?name=" + encodedFileName;
+            body.add("file_url", videoUrl);
+        }
 
-        HttpEntity<Map<String, String>> request = new HttpEntity<>(body, headers);
-        ResponseEntity<Map> response = restTemplate.exchange(url, HttpMethod.POST, request, Map.class);
+        body.add("published", "false");
+        body.add("access_token", "EAAQdStY7AO8BO2Pd4TU9v8ijVUoXgEKAqpxxKo4yrtX8O17aDET3BftMFj42ACiLEDs0ZAeYTlmMmiJvAiRcnpfBsiWOurUrsErEnywpzKXZBR2fBYZC8meWZCRL8MZCuKv4fucpkrgbK9c3WFbs9JutP0FJZBERDOmyDKYZAb62pDdLR4dmZBkDK0YLa4VZBjQYZD");
 
-        return response.getBody().get("id").toString(); // Returns media ID
+        try{
+            HttpEntity<MultiValueMap<String, Object>> request = new HttpEntity<>(body, headers);
+            System.out.println("Request: " + request);
+
+            ResponseEntity<Map> response = restTemplate.exchange(url, HttpMethod.POST, request, Map.class);
+
+            return Objects.requireNonNull(response.getBody()).get("id").toString();
+        } catch (Exception e) {
+            return "Failed to upload media: " + e.getMessage();
+        }
     }
 
 
@@ -201,7 +221,8 @@ public class FacebookServiceImpl implements FacebookService {
                 for (JsonNode page : userPages.get("data")) {
                     FacebookPageDTO dto = new FacebookPageDTO(
                             page.get("id").asText(),
-                            page.get("name").asText()
+                            page.get("name").asText(),
+                            page.get("access_token").asText()
                     );
                     pageList.add(dto);
                 }
@@ -303,12 +324,8 @@ public class FacebookServiceImpl implements FacebookService {
     public FacebookPageTokenDTO getPageCachedToken(Long pageId)
             throws ResourceNotFoundException, IllegalStateException {
 
-        System.out.println("Getting cached token for  page: " + pageId);
-
         String key = formulatePageKey(pageId);
         List<FacebookPageTokenDTO> tokenList = redisPageTemplate.opsForList().range(key, 0, -1);
-
-        System.out.println("Getting cached token for page: " + pageId + " and key: " + key);
 
         if (tokenList == null || tokenList.isEmpty()) {
             return fetchPageToken(pageId);
@@ -323,7 +340,6 @@ public class FacebookServiceImpl implements FacebookService {
             redisPageTemplate.delete(key);
             redisPageTemplate.opsForList().rightPush(key, bestToken);
         }
-        System.out.println("done here");
         return bestToken;
     }
 
@@ -377,7 +393,10 @@ public class FacebookServiceImpl implements FacebookService {
     }
 
     private FacebookPageTokenDTO cachePageToken(FacebookPageToken token) {
+        System.out.println("encrypted access token: " +token.getAccessToken());
         FacebookPageTokenDTO tokenDTO = facebookPageTokenDTOMapper.apply(token);
+        System.out.println("decrypted access token: " +tokenDTO.accessToken());
+
         String key = formulatePageKey(token.getPage().getId());
 
         List<FacebookPageTokenDTO> existingTokens = redisPageTemplate.opsForList().range(key, 0, -1);

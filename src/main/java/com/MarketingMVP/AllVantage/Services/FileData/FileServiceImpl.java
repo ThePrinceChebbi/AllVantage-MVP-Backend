@@ -114,7 +114,8 @@ public class FileServiceImpl implements FileService{
                 .orElseThrow(() -> new ResourceNotFoundException(String.format("The file with ID : %s could not be found.", fileDataId)));
     }
 
-    private ResponseEntity<byte[]> downloadImage(final @NotNull String filePath) throws IOException {
+    @Override
+    public ResponseEntity<byte[]> downloadImage(final @NotNull String filePath) throws IOException {
         byte[] file = Files.readAllBytes(new File(filePath).toPath());
         HttpHeaders headers = new HttpHeaders();
         String contentType = determineContentType(filePath);
