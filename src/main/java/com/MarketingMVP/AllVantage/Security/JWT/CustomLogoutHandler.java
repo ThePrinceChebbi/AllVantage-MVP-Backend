@@ -16,7 +16,6 @@ public class CustomLogoutHandler implements LogoutHandler {
         this.logoutService = logoutService;
     }
 
-
     @Override
     public void logout(HttpServletRequest request, HttpServletResponse response, Authentication authentication) {
         logoutService.logout(request,response,authentication);

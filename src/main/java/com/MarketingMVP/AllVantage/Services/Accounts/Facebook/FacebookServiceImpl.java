@@ -29,6 +29,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.http.*;
+import org.springframework.social.facebook.api.Facebook;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.LinkedMultiValueMap;
@@ -46,13 +47,12 @@ import java.util.concurrent.TimeUnit;
 public class FacebookServiceImpl implements FacebookService {
 
     private final FileService fileService;
-    private final FacebookPageTokenbRepository facebookPageTokenbRepository;
     @Value("${spring.security.oauth2.client.registration.facebook.client-id}")
     private String clientId;
-
     @Value("${spring.security.oauth2.client.registration.facebook.client-secret}")
     private String clientSecret;
-
+    @Value("${spring.security.oauth2.client.registration.facebook.scope}")
+    private String scope;
     private final String redirectUri = "http://localhost:8080/api/v1/account/facebook/callback";
 
     private final RedisTemplate<String, FacebookAccountTokenDTO> redisAccountTemplate;
@@ -64,7 +64,7 @@ public class FacebookServiceImpl implements FacebookService {
     private final FacebookPageRepository facebookPageRepository;
     private final AESEncryptionService encryptionService;
 
-    public FacebookServiceImpl(RedisTemplate<String, FacebookAccountTokenDTO> redisAccountTemplate, FacebookOAuthTokenService facebookOAuthTokenService, FacebookAccountRepository facebookAccountRepository, FacebookPageRepository facebookPageRepository, AESEncryptionService encryptionService, FacebookAccountTokenDTOMapper facebookAccountTokenDTOMapper, RedisTemplate<String, FacebookPageTokenDTO> redisPageTemplate, FacebookPageTokenDTOMapper facebookPageTokenDTOMapper, FileService fileService, FacebookPageTokenbRepository facebookPageTokenbRepository) {
+    public FacebookServiceImpl(RedisTemplate<String, FacebookAccountTokenDTO> redisAccountTemplate, FacebookOAuthTokenService facebookOAuthTokenService, FacebookAccountRepository facebookAccountRepository, FacebookPageRepository facebookPageRepository, AESEncryptionService encryptionService, FacebookAccountTokenDTOMapper facebookAccountTokenDTOMapper, RedisTemplate<String, FacebookPageTokenDTO> redisPageTemplate, FacebookPageTokenDTOMapper facebookPageTokenDTOMapper, FileService fileService) {
         this.redisAccountTemplate = redisAccountTemplate;
         this.facebookOAuthTokenService = facebookOAuthTokenService;
         this.facebookAccountRepository = facebookAccountRepository;
@@ -74,7 +74,6 @@ public class FacebookServiceImpl implements FacebookService {
         this.redisPageTemplate = redisPageTemplate;
         this.facebookPageTokenDTOMapper = facebookPageTokenDTOMapper;
         this.fileService = fileService;
-        this.facebookPageTokenbRepository = facebookPageTokenbRepository;
     }
 
     @Override
@@ -82,7 +81,7 @@ public class FacebookServiceImpl implements FacebookService {
         String authUrl = "https://www.facebook.com/v19.0/dialog/oauth" +
                 "?client_id=" + clientId +
                 "&redirect_uri=" + redirectUri +
-                "&scope=pages_show_list,pages_manage_posts,pages_manage_engagement" +
+                "&scope=" + scope +
                 "&response_type=code";
         return new RedirectView(authUrl);
     }

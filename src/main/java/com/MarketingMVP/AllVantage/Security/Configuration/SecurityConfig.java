@@ -76,7 +76,7 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(List.of("http://localhost:5173"));
+        configuration.setAllowedOrigins(List.of("http://localhost:4200"));
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE"));
 
         configuration.setAllowedHeaders(Arrays.asList("Authorization", "Content-Type", "Content-Range", "Accept-Ranges"));
@@ -86,7 +86,6 @@ public class SecurityConfig {
         source.registerCorsConfiguration("/api/v1/**", configuration);
         return source;
     }
-
 
     @Bean
     PasswordEncoder passwordEncoder() {
@@ -102,4 +101,5 @@ public class SecurityConfig {
     Filter jwtAuthenticationFilter() {
         return new JWTAuthenticationFilter();
     }
+
 }
