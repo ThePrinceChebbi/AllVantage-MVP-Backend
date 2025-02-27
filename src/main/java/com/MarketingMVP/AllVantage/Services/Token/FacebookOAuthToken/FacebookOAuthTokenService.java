@@ -8,7 +8,7 @@ import java.util.List;
 
 public interface FacebookOAuthTokenService {
     FacebookAccountToken saveToken(FacebookAccountToken token);
-    FacebookAccountToken getTokensByAccountId(Long accountId);
+    List<FacebookAccountToken> getTokensByAccountId(Long accountId);
     void deleteToken(Long accountId);
     boolean isTokenValid(String accessToken);
 

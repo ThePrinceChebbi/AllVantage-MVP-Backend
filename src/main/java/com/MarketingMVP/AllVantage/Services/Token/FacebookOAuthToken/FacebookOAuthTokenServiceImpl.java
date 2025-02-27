@@ -26,7 +26,7 @@ public class FacebookOAuthTokenServiceImpl implements FacebookOAuthTokenService 
     }
 
     @Override
-    public FacebookAccountToken getTokensByAccountId(Long accountId) {
+    public List<FacebookAccountToken> getTokensByAccountId(Long accountId) {
         return facebookAccountTokenRepository.findByAccountId(accountId);
     }
 

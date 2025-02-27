@@ -1,10 +1,6 @@
 package com.MarketingMVP.AllVantage.DTOs.UserEntity;
 
-
-
-
 import com.MarketingMVP.AllVantage.Entities.Role.Role;
-
 import java.util.Date;
 import java.util.UUID;
 

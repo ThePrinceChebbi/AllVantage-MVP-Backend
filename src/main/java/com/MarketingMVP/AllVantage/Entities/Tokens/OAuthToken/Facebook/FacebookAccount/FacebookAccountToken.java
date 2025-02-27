@@ -39,6 +39,9 @@ public class FacebookAccountToken {
     private int expiresIn;
 
     @NotNull
+    private boolean isRevoked = false;
+
+    @NotNull
     private FacebookOAuthTokenType oAuthTokenType;
 
 }

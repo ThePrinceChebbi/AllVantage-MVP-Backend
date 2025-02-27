@@ -14,5 +14,5 @@ public interface FacebookAccountTokenRepository extends JpaRepository<FacebookAc
     List<FacebookAccountToken> findByAccountIdAndTokenType(@Param("accountId") Long accountId, @Param("tokenType") FacebookOAuthTokenType tokenType);
 
     @Query("SELECT f from FacebookAccountToken f where f.account.id =:accountId")
-    FacebookAccountToken findByAccountId(@Param("accountId") Long accountId);
+    List<FacebookAccountToken> findByAccountId(@Param("accountId") Long accountId);
 }

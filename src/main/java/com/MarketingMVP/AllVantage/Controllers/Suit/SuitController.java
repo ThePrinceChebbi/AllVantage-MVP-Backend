@@ -3,7 +3,10 @@ package com.MarketingMVP.AllVantage.Controllers.Suit;
 import com.MarketingMVP.AllVantage.Services.Suit.SuitService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.util.Date;
+import java.util.List;
 import java.util.UUID;
 
 @RestController
@@ -43,5 +46,17 @@ public class SuitController {
     @GetMapping("/test")
     public String test(@RequestParam Long fileId, @RequestParam Long accountId) {
         return suitService.test(fileId, accountId);
+    }
+
+    @PostMapping("/{suitId}/post")
+    public ResponseEntity<Object> postToSuit(
+            @PathVariable Long suitId,
+            @RequestParam List<MultipartFile> files,
+            @RequestParam String title,
+            @RequestParam String content,
+            @RequestParam Date scheduledAt,
+            @RequestParam Long pageId
+            ) {
+        return suitService.postToFacebook(suitId, files, title, content, scheduledAt, pageId);
     }
 }

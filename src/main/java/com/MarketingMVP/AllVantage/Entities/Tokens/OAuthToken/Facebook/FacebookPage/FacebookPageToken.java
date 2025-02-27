@@ -36,4 +36,7 @@ public class FacebookPageToken {
 
     @NotNull
     private int expiresIn;
+
+    @NotNull
+    private boolean isRevoked = false;
 }

@@ -7,6 +7,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.Date;
 import java.util.List;
 import java.util.UUID;
 
@@ -31,5 +32,7 @@ public interface SuitService {
 
     ResponseEntity<Object> getSuitById(Long suitId);
 
-    String test(Long fileId, Long acountId);
+    String test(Long fileId, Long accountId);
+
+    ResponseEntity<Object> postToFacebook(Long suitId, List<MultipartFile> files, String title, String content, Date scheduledAt, Long facebookPageId);
 }

@@ -302,4 +302,16 @@ public class SuitServiceImpl implements SuitService {
         return facebookService.uploadMediaToFacebook(fileService.getFileDataById(fileId),accountId);
     }
 
+    @Override
+    public ResponseEntity<Object> postToFacebook(Long suitId, List<MultipartFile> files, String title, String content, Date scheduledAt, Long facebookPageId) {
+        return ResponseEntity.ok(facebookService.postToFacebookPage(
+                suitId,
+                files,
+                title,
+                content,
+                scheduledAt,
+                facebookPageId
+        ));
+    }
+
 }
