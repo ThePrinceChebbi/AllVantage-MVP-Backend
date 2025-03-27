@@ -28,7 +28,7 @@ public class XAccount {
     private Long id;
 
     @NotNull
-    private String facebookId;
+    private String xId;
 
     @NotNull
     private String accountName;

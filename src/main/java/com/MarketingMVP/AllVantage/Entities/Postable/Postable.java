@@ -1,4 +1,4 @@
-package com.MarketingMVP.AllVantage.Repositories.Post;
+package com.MarketingMVP.AllVantage.Entities.Postable;
 
 
 import com.MarketingMVP.AllVantage.Entities.Account.Facebook.Page.FacebookPage;
@@ -22,8 +22,9 @@ import java.util.List;
 @Table
 @NoArgsConstructor
 @AllArgsConstructor
+@Inheritance(strategy = InheritanceType.SINGLE_TABLE)
 @Data
-public class Post {
+public class Postable {
     @GeneratedValue(
             strategy = GenerationType.SEQUENCE,
             generator = "post_sequence"
@@ -42,9 +43,6 @@ public class Post {
     @NotNull
     private String content;
 
-    @OneToMany
-    private List<FileData> images;
-
     @NotNull
     private Date createdAt;
 
@@ -57,28 +55,27 @@ public class Post {
     @ManyToOne
     private Employee employee;
 
-    @OneToMany
+    @ManyToMany
     private List<FacebookPage> facebookPages;
 
-    @OneToMany
+    @ManyToMany
     private List<InstagramAccount> instagramAccounts;
 
-    @OneToMany
+    @ManyToMany
     private List<LinkedInAccount> linkedInAccounts;
 
-    @OneToMany
+    @ManyToMany
     private List<XAccount> xAccounts;
 
-    @OneToMany
+    @ManyToMany
     private List<SnapchatAccount> snapchatAccounts;
 
-    @OneToMany
+    @ManyToMany
     private List<TikTokAccount> tikTokAccounts;
 
-    public Post(
+    public Postable(
             String title,
             String content,
-            List<FileData> images,
             Date createdAt,
             Date scheduledToPostAt,
             Date lastEditedAt,
@@ -92,7 +89,6 @@ public class Post {
     ) {
         this.title = title;
         this.content = content;
-        this.images = images;
         this.createdAt = createdAt;
         this.scheduledToPostAt = scheduledToPostAt;
         this.lastEditedAt = lastEditedAt;

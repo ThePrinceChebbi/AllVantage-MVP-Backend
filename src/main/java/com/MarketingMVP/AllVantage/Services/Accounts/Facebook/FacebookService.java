@@ -2,6 +2,7 @@ package com.MarketingMVP.AllVantage.Services.Accounts.Facebook;
 
 import com.MarketingMVP.AllVantage.DTOs.Facebook.AccountToken.FacebookAccountTokenDTO;
 import com.MarketingMVP.AllVantage.DTOs.Facebook.PageToken.FacebookPageTokenDTO;
+import com.MarketingMVP.AllVantage.DTOs.Response.PlatformPostResult;
 import com.MarketingMVP.AllVantage.Entities.Account.Facebook.Account.FacebookAccount;
 import com.MarketingMVP.AllVantage.Entities.Account.Facebook.Page.FacebookPage;
 import com.MarketingMVP.AllVantage.Entities.FileData.FileData;
@@ -14,17 +15,47 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.view.RedirectView;
 
+import java.io.File;
 import java.util.Date;
 import java.util.List;
 
-public interface FacebookService {
+public interface  FacebookService {
     RedirectView authenticateGlobalAccount();
+
     ResponseEntity<Object> authenticateGlobalAccountCallback(String authorizationCode);
 
-    String uploadMediaToFacebook(FileData fileData, Long accountId);
-    String postToFacebookPage(
-            Long suitId,
+    String uploadMediaToFacebook(FileData fileData, Long pageId);
+
+    PlatformPostResult createFacebookPostDirectly(
             List<MultipartFile> files,
+            @NotNull String title,
+            @NotNull String content,
+            Date scheduledAt,
+            Long facebookPageId
+    );
+    PlatformPostResult createFacebookPost(
+            List<FileData> files,
+            @NotNull String title,
+            @NotNull String content,
+            Date scheduledAt,
+            Long facebookPageId
+    );
+
+    PlatformPostResult createFacebookReel(
+            File video,
+            @NotNull String title,
+            @NotNull String content,
+            Date scheduledAt,
+            Long pageId
+    );
+
+    String initVideo(Long facebookPageId);
+
+    ResponseEntity<String> uploadVideoToFacebook(Long facebookPageId, MultipartFile videoFile, String videoId);
+
+    PlatformPostResult storyOnFacebookPage(
+            Long suitId,
+            FileData image,
             @NotNull String title,
             @NotNull String content,
             Date scheduledAt,
@@ -35,16 +66,20 @@ public interface FacebookService {
 
     RedirectView getAuthenticationCode(String redirectUri);
 
+    String testPostingWithMediaIds(List<String> mediaIds, Long pageId);
+
     @Transactional
     FacebookAccount exchangeCodeForToken(String authorizationCode, boolean isGlobal, String redirectUri) throws Exception;
 
     ResponseEntity<Object> getUserPages(Long accountId);
+
     FacebookPage authenticateFacebookPage(Long accountId, String pageId) throws JsonProcessingException;
 
     FacebookAccountTokenDTO getAccountCachedToken(Long accountId, FacebookOAuthTokenType tokenType);
+
     FacebookPageTokenDTO getPageCachedToken(Long pageId);
 
     JsonNode fetchUserPages(Long accountId) throws JsonProcessingException;
 
-
+    ResponseEntity<Object> getAllAccounts();
 }

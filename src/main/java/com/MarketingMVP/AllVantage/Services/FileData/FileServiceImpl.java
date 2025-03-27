@@ -237,4 +237,10 @@ public class FileServiceImpl implements FileService{
         }
     }
 
+    @Override
+    public File getFileFromFileData(FileData fileData) {
+        Path filePath = Paths.get(fileData.getPath());
+        return new File(filePath.toUri());
+    }
+
 }

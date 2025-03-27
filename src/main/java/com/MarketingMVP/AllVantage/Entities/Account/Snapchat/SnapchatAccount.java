@@ -28,7 +28,7 @@ public class SnapchatAccount {
     private Long id;
 
     @NotNull
-    private String facebookId;
+    private String snapchatId;
 
     @NotNull
     private String accountName;

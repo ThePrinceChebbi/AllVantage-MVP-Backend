@@ -7,7 +7,7 @@ import org.springframework.data.jpa.repository.Query;
 
 import java.util.List;
 
-public interface FacebookPageTokenbRepository extends JpaRepository<FacebookPageToken, Long> {
+public interface FacebookPageTokenRepository extends JpaRepository<FacebookPageToken, Long> {
     @Query("SELECT f from FacebookPageToken f where f.page.id =:pageId")
     List<FacebookPageToken> findByPageId(@Param("pageId") Long pageId);
 }

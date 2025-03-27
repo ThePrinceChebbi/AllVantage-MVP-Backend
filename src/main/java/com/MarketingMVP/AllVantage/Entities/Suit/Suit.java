@@ -1,6 +1,5 @@
 package com.MarketingMVP.AllVantage.Entities.Suit;
 
-import com.MarketingMVP.AllVantage.Entities.Account.Facebook.Account.FacebookAccount;
 import com.MarketingMVP.AllVantage.Entities.Account.Facebook.Page.FacebookPage;
 import com.MarketingMVP.AllVantage.Entities.Account.Instagram.InstagramAccount;
 import com.MarketingMVP.AllVantage.Entities.Account.LinkedIn.LinkedInAccount;
@@ -10,13 +9,12 @@ import com.MarketingMVP.AllVantage.Entities.Account.X.XAccount;
 import com.MarketingMVP.AllVantage.Entities.FileData.FileData;
 import com.MarketingMVP.AllVantage.Entities.UserEntity.Client;
 import com.MarketingMVP.AllVantage.Entities.UserEntity.Employee;
-import com.MarketingMVP.AllVantage.Repositories.Post.Post;
+import com.MarketingMVP.AllVantage.Entities.Postable.Postable;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.hibernate.annotations.Where;
 import org.springframework.lang.Nullable;
 
 import java.util.List;
@@ -79,6 +77,6 @@ public class Suit {
     private List<TikTokAccount> tikTokAccounts;
 
     @OneToMany
-    private List<Post> posts;
+    private List<Postable> posts;
 
 }

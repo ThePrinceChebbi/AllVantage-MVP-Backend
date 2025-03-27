@@ -7,6 +7,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.List;
@@ -29,4 +30,5 @@ public interface FileService {
     String getFileType(String fileName);
 
     ResponseEntity<byte[]> getFileByName(String name);
+    File getFileFromFileData(FileData fileData);
 }

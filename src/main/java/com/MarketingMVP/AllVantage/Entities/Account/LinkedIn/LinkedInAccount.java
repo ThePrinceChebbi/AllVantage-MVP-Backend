@@ -29,7 +29,7 @@ public class LinkedInAccount {
     private Long id;
 
     @NotNull
-    private String facebookId;
+    private String linkedinId;
 
     @NotNull
     private String accountName;

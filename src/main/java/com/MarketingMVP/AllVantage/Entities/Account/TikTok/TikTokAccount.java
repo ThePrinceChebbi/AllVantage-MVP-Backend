@@ -27,7 +27,7 @@ public class TikTokAccount {
     private Long id;
 
     @NotNull
-    private String facebookId;
+    private String tiktokId;
 
     @NotNull
     private String accountName;

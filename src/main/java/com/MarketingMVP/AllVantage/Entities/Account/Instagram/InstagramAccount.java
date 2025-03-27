@@ -28,7 +28,7 @@ public class InstagramAccount {
 
 
     @NotNull
-    private String facebookId;
+    private String instagramId;
 
     @NotNull
     private String accountName;

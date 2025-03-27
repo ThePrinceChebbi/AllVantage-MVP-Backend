@@ -12,12 +12,13 @@ import com.MarketingMVP.AllVantage.Entities.UserEntity.Employee;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
 import jakarta.validation.constraints.NotNull;
+import lombok.Builder;
 import lombok.Getter;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.Date;
 import java.util.List;
-
+@Builder
 @Getter
 public class PostSendDTO {
 

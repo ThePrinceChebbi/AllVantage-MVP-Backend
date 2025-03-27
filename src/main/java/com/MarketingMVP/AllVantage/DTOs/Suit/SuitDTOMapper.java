@@ -35,5 +35,4 @@ public class SuitDTOMapper implements Function<Suit, SuitDTO> {
                 suit.getTikTokAccounts()
         );
     }
-
 }

@@ -1,4 +1,4 @@
-package com.MarketingMVP.AllVantage.Repositories.Post;
+package com.MarketingMVP.AllVantage.Entities.Postable;
 
 import com.MarketingMVP.AllVantage.Entities.FileData.FileData;
 import com.MarketingMVP.AllVantage.Repositories.Account.PlatformType;

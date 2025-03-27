@@ -4,7 +4,7 @@ import com.MarketingMVP.AllVantage.Entities.Tokens.OAuthToken.Facebook.FacebookA
 import com.MarketingMVP.AllVantage.Entities.Tokens.OAuthToken.Facebook.FacebookAccount.FacebookOAuthTokenType;
 import com.MarketingMVP.AllVantage.Entities.Tokens.OAuthToken.Facebook.FacebookPage.FacebookPageToken;
 import com.MarketingMVP.AllVantage.Repositories.Token.OAuthToken.Facebook.FacebookAccountTokenRepository;
-import com.MarketingMVP.AllVantage.Repositories.Token.OAuthToken.Facebook.FacebookPageTokenbRepository;
+import com.MarketingMVP.AllVantage.Repositories.Token.OAuthToken.Facebook.FacebookPageTokenRepository;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -13,9 +13,9 @@ import java.util.List;
 public class FacebookOAuthTokenServiceImpl implements FacebookOAuthTokenService {
 
     private final FacebookAccountTokenRepository facebookAccountTokenRepository;
-    private final FacebookPageTokenbRepository facebookPageTokenbRepository;
+    private final FacebookPageTokenRepository facebookPageTokenbRepository;
 
-    public FacebookOAuthTokenServiceImpl(FacebookAccountTokenRepository facebookOAuthTokenRepository, FacebookPageTokenbRepository facebookPageTokenbRepository) {
+    public FacebookOAuthTokenServiceImpl(FacebookAccountTokenRepository facebookOAuthTokenRepository, FacebookPageTokenRepository facebookPageTokenbRepository) {
         this.facebookAccountTokenRepository = facebookOAuthTokenRepository;
         this.facebookPageTokenbRepository = facebookPageTokenbRepository;
     }
@@ -47,7 +47,9 @@ public class FacebookOAuthTokenServiceImpl implements FacebookOAuthTokenService 
 
     @Override
     public List<FacebookPageToken> getTokenByPageId(Long pageId) {
-        return facebookPageTokenbRepository.findByPageId(pageId);
+        List<FacebookPageToken> tokens = facebookPageTokenbRepository.findByPageId(pageId);
+        System.out.println(tokens);
+        return tokens;
     }
 
     @Override

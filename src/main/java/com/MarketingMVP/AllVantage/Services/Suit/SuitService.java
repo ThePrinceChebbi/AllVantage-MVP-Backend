@@ -21,7 +21,7 @@ public interface SuitService {
     ResponseEntity<Object> addEmployeeToSuit(Long suitId, UUID employeeId);
     ResponseEntity<Object> removeEmployeeFromSuit(Long suitId, UUID employeeId);
 
-    ResponseEntity<Object> postToSuit(Long suitId, PostSendDTO postSendDTO, UserDetails employee, List<MultipartFile> files);
+    ResponseEntity<Object> postToSuit(Long suitId, String postSendDTOJson, UserDetails employee, List<MultipartFile> files);
 
     ResponseEntity<Object> addFacebookPageToSuit(Long suitId, Long accountId, String facebookPageId);
     ResponseEntity<Object> removeFacebookPageFromSuit(Long suitId, Long accountId);
@@ -35,4 +35,6 @@ public interface SuitService {
     String test(Long fileId, Long accountId);
 
     ResponseEntity<Object> postToFacebook(Long suitId, List<MultipartFile> files, String title, String content, Date scheduledAt, Long facebookPageId);
+
+    ResponseEntity<Object> postReelToSuit(Long suitId, MultipartFile videoFile, String reelPostDTOJson);
 }

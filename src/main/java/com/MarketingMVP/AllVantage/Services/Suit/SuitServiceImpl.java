@@ -1,6 +1,7 @@
 package com.MarketingMVP.AllVantage.Services.Suit;
 
 import com.MarketingMVP.AllVantage.DTOs.Post.PostSendDTO;
+import com.MarketingMVP.AllVantage.DTOs.Response.PlatformPostResult;
 import com.MarketingMVP.AllVantage.DTOs.Suit.SuitDTOMapper;
 import com.MarketingMVP.AllVantage.Entities.Account.Facebook.Page.FacebookPage;
 import com.MarketingMVP.AllVantage.Entities.Account.Instagram.InstagramAccount;
@@ -8,18 +9,26 @@ import com.MarketingMVP.AllVantage.Entities.Account.LinkedIn.LinkedInAccount;
 import com.MarketingMVP.AllVantage.Entities.Account.Snapchat.SnapchatAccount;
 import com.MarketingMVP.AllVantage.Entities.Account.TikTok.TikTokAccount;
 import com.MarketingMVP.AllVantage.Entities.Account.X.XAccount;
+import com.MarketingMVP.AllVantage.Entities.Responses.Error.CustomErrorLog;
+import com.MarketingMVP.AllVantage.Entities.Responses.Error.ErrorType;
 import com.MarketingMVP.AllVantage.Entities.FileData.FileData;
+import com.MarketingMVP.AllVantage.Entities.Postable.Post.Post;
+import com.MarketingMVP.AllVantage.Entities.Postable.Reel.Reel;
+import com.MarketingMVP.AllVantage.Entities.Responses.Success.CustomSuccessLog;
 import com.MarketingMVP.AllVantage.Entities.Suit.Suit;
 import com.MarketingMVP.AllVantage.Entities.UserEntity.Client;
 import com.MarketingMVP.AllVantage.Entities.UserEntity.Employee;
 import com.MarketingMVP.AllVantage.Exceptions.ResourceNotFoundException;
 import com.MarketingMVP.AllVantage.Repositories.Account.PlatformType;
-import com.MarketingMVP.AllVantage.Repositories.Post.Post;
+import com.MarketingMVP.AllVantage.Entities.Postable.Postable;
+import com.MarketingMVP.AllVantage.Repositories.Post.PostableRepository;
 import com.MarketingMVP.AllVantage.Repositories.Suit.SuitRepository;
 import com.MarketingMVP.AllVantage.Services.Accounts.Facebook.FacebookService;
 import com.MarketingMVP.AllVantage.Services.FileData.FileService;
 import com.MarketingMVP.AllVantage.Services.UserEntity.UserService;
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -27,8 +36,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.*;
+import java.util.concurrent.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -40,13 +51,15 @@ public class SuitServiceImpl implements SuitService {
     private final FileService fileService;
     private final SuitDTOMapper suitDTOMapper;
     private final FacebookService facebookService;
+    private final PostableRepository postableRepository;
 
-    public SuitServiceImpl(SuitRepository suitRepository, UserService userService, FileService fileService, SuitDTOMapper suitDTOMapper, FacebookService facebookService) {
+    public SuitServiceImpl(SuitRepository suitRepository, UserService userService, FileService fileService, SuitDTOMapper suitDTOMapper, FacebookService facebookService, PostableRepository postableRepository) {
         this.suitRepository = suitRepository;
         this.userService = userService;
         this.fileService = fileService;
         this.suitDTOMapper = suitDTOMapper;
         this.facebookService = facebookService;
+        this.postableRepository = postableRepository;
     }
 
     @Override
@@ -147,13 +160,26 @@ public class SuitServiceImpl implements SuitService {
     //TODO: Implement the full post - platform relationship accounting for media Ids and facebook post ids
     @Transactional
     @Override
-    public ResponseEntity<Object> postToSuit(Long suitId, PostSendDTO postSendDTO, UserDetails employeeDetails, List<MultipartFile> files) {
+    public ResponseEntity<Object> postToSuit(Long suitId, String postSendDTOJson, UserDetails employeeDetails, List<MultipartFile> files) {
         try{
+            JsonNode jsonNode = new ObjectMapper().readTree(postSendDTOJson);
+            PostSendDTO postSendDTO = PostSendDTO.builder()
+                    .title(jsonNode.get("title").asText())
+                    .content(jsonNode.get("content").asText())
+                    .scheduledAt(jsonNode.get("scheduledAt").asText().isEmpty() ? null : new Date(jsonNode.get("scheduledAt").asLong()))
+                    .facebookPageIds(jsonNode.get("facebookPageIds").findValuesAsText("id").stream().map(Long::parseLong).toList())
+                    .instagramAccountIds(jsonNode.get("instagramAccountIds").findValuesAsText("id").stream().map(Long::parseLong).toList())
+                    .linkedInAccountIds(jsonNode.get("linkedInAccountIds").findValuesAsText("id").stream().map(Long::parseLong).toList())
+                    .xAccountIds(jsonNode.get("xAccountIds").findValuesAsText("id").stream().map(Long::parseLong).toList())
+                    .snapchatAccountIds(jsonNode.get("snapchatAccountIds").findValuesAsText("id").stream().map(Long::parseLong).toList())
+                    .tikTokAccountIds(jsonNode.get("tikTokAccountIds").findValuesAsText("id").stream().map(Long::parseLong).toList())
+                    .build();
+
             Suit suit = findSuitById(suitId);
-            Employee employee = userService.getEmployeeByUsername(employeeDetails.getUsername());
+            /*Employee employee = userService.getEmployeeByUsername(employeeDetails.getUsername());
             if (!suit.getEmployees().contains(employee)){
                 return ResponseEntity.status(401).body("Unauthorized to post to this suit");
-            }
+            }*/
 
             List<FileData> fileDataList = files.stream()
                     .map(file -> {
@@ -166,12 +192,14 @@ public class SuitServiceImpl implements SuitService {
                     })
                     .toList();
 
+
             List<FacebookPage> facebookPages = filterAccounts(
                     postSendDTO.getFacebookPageIds(),
                     suit.getFacebookPages(),
                     FacebookPage::getId,
                     PlatformType.FACEBOOK_PAGE
             );
+
             List<InstagramAccount> instagramAccounts = filterAccounts(
                     postSendDTO.getInstagramAccountIds(),
                     suit.getInstagramAccounts(),
@@ -203,30 +231,98 @@ public class SuitServiceImpl implements SuitService {
                     PlatformType.TIKTOK
             );
 
+
             Post post = new Post(
                     postSendDTO.getTitle(),
                     postSendDTO.getContent(),
-                    fileDataList,
                     new Date(),
                     postSendDTO.getScheduledAt(),
                     new Date(),
-                    employee,
+                    //employee,
+                    null,
                     facebookPages,
                     instagramAccounts,
                     linkedInAccounts,
                     xAccounts,
                     snapchatAccounts,
-                    tikTokAccounts
+                    tikTokAccounts,
+                    fileDataList
             );
-            suit.getPosts().add(post);
+
+            int threadNumber = facebookPages.size() + instagramAccounts.size() + xAccounts.size() + linkedInAccounts.size() + snapchatAccounts.size() + tikTokAccounts.size();
+            ExecutorService executor = Executors.newFixedThreadPool(threadNumber); // Adjust pool size as needed
+            List<Callable<PlatformPostResult>> tasks = new ArrayList<>();
+            // Add tasks for each platform
+            if (!facebookPages.isEmpty()) {
+                for (FacebookPage facebookPage : facebookPages) {
+                    tasks.add(() -> facebookService.createFacebookPost(
+                            fileDataList,
+                            postSendDTO.getTitle(),
+                            postSendDTO.getContent(),
+                            postSendDTO.getScheduledAt(),
+                            facebookPage.getId()
+                    ));
+                }
+            }
+            /*if (!instagramAccounts.isEmpty()) {
+                tasks.add(() -> instagramService.postToInstagram(post, instagramAccounts));
+            }
+            if (!xAccounts.isEmpty()) {
+                tasks.add(() -> xService.postToX(post, xAccounts));
+            }
+            if (!linkedInAccounts.isEmpty()) {
+                tasks.add(() -> linkedInService.postToLinkedIn(post, linkedInAccounts));
+            }*/
+            List<Future<PlatformPostResult>> futures = executor.invokeAll(tasks);
+            List<CustomErrorLog> errors = new ArrayList<>();
+            for (Future<PlatformPostResult> future : futures) {
+                try {
+                    PlatformPostResult result = future.get();
+                    if (!result.isSuccess()) {
+                        CustomErrorLog error = new CustomErrorLog(
+                                new Date(),
+                                result.getMessage(),
+                                //employee,
+                                null,
+                                ErrorType.POST_ERROR,
+                                result.getPlatform()
+                        );
+                        errors.add(error);
+                    }
+                } catch (Exception e) {
+                    CustomErrorLog error = new CustomErrorLog(
+                            new Date(),
+                            e.getMessage(),
+                            null,
+                            //employee,
+                            ErrorType.UNEXPECTED_ERROR,
+                            null
+                    );
+                    errors.add(error);
+                }
+            }
+
+            executor.shutdown();
+            List<Postable> posts= suit.getPosts();
+            posts.add(postableRepository.save(post));
+            suit.setPosts(posts);
             suitRepository.save(suit);
-            return ResponseEntity.ok(suitDTOMapper.apply(suit));
+            Map<String, Object> response = new HashMap<>();
+            response.put("suit", suitDTOMapper.apply(suit));
+            response.put("errors", errors);
+            return ResponseEntity.ok(response);
         }catch (ResourceNotFoundException e){
             return ResponseEntity.status(404).body(e.getMessage());
+        }catch (Exception e){
+            return ResponseEntity.status(500).body(e.getMessage());
         }
     }
 
     public <T> List<T> filterAccounts(List<Long> requestedIds, List<T> accounts, Function<T, Long> getIdFunction, PlatformType platformName) {
+        if (requestedIds.isEmpty() || accounts.isEmpty()){
+            return new ArrayList<>();
+        }
+
         Set<Long> existingIds = accounts.stream()
                 .map(getIdFunction)
                 .collect(Collectors.toSet());
@@ -304,8 +400,7 @@ public class SuitServiceImpl implements SuitService {
 
     @Override
     public ResponseEntity<Object> postToFacebook(Long suitId, List<MultipartFile> files, String title, String content, Date scheduledAt, Long facebookPageId) {
-        return ResponseEntity.ok(facebookService.postToFacebookPage(
-                suitId,
+        return ResponseEntity.ok(facebookService.createFacebookPostDirectly(
                 files,
                 title,
                 content,
@@ -314,4 +409,176 @@ public class SuitServiceImpl implements SuitService {
         ));
     }
 
+    @Override
+    public ResponseEntity<Object> postReelToSuit(Long suitId, MultipartFile videoFile, String reelPostDTOJson) {
+        try{
+            JsonNode jsonNode = new ObjectMapper().readTree(reelPostDTOJson);
+            PostSendDTO postSendDTO = PostSendDTO.builder()
+                    .title(jsonNode.get("title").asText())
+                    .content(jsonNode.get("content").asText())
+                    .scheduledAt(jsonNode.get("scheduledAt").asText().isEmpty() ? null : new Date(jsonNode.get("scheduledAt").asLong()))
+                    .facebookPageIds(jsonNode.get("facebookPageIds").findValuesAsText("id").stream().map(Long::parseLong).toList())
+                    .instagramAccountIds(jsonNode.get("instagramAccountIds").findValuesAsText("id").stream().map(Long::parseLong).toList())
+                    .linkedInAccountIds(jsonNode.get("linkedInAccountIds").findValuesAsText("id").stream().map(Long::parseLong).toList())
+                    .xAccountIds(jsonNode.get("xAccountIds").findValuesAsText("id").stream().map(Long::parseLong).toList())
+                    .snapchatAccountIds(jsonNode.get("snapchatAccountIds").findValuesAsText("id").stream().map(Long::parseLong).toList())
+                    .tikTokAccountIds(jsonNode.get("tikTokAccountIds").findValuesAsText("id").stream().map(Long::parseLong).toList())
+                    .build();
+
+            Suit suit = findSuitById(suitId);
+            /*Employee employee = userService.getEmployeeByUsername(employeeDetails.getUsername());
+            if (!suit.getEmployees().contains(employee)){
+                return ResponseEntity.status(401).body("Unauthorized to post to this suit");
+            }*/
+
+            FileData fileData = fileService.processUploadedFile(videoFile, videoFile.getContentType());
+            List<FacebookPage> facebookPages = filterAccounts(
+                    postSendDTO.getFacebookPageIds(),
+                    suit.getFacebookPages(),
+                    FacebookPage::getId,
+                    PlatformType.FACEBOOK_PAGE
+            );
+            List<InstagramAccount> instagramAccounts = filterAccounts(
+                    postSendDTO.getInstagramAccountIds(),
+                    suit.getInstagramAccounts(),
+                    InstagramAccount::getId,
+                    PlatformType.INSTAGRAM
+            );
+            List<LinkedInAccount> linkedInAccounts = filterAccounts(
+                    postSendDTO.getLinkedInAccountIds(),
+                    suit.getLinkedInAccounts(),
+                    LinkedInAccount::getId,
+                    PlatformType.LINKEDIN
+            );
+            List<XAccount> xAccounts = filterAccounts(
+                    postSendDTO.getXAccountIds(),
+                    suit.getXAccounts(),
+                    XAccount::getId,
+                    PlatformType.X
+            );
+            List<SnapchatAccount> snapchatAccounts = filterAccounts(
+                    postSendDTO.getSnapchatAccountIds(),
+                    suit.getSnapchatAccounts(),
+                    SnapchatAccount::getId,
+                    PlatformType.SNAPCHAT
+            );
+            List<TikTokAccount> tikTokAccounts = filterAccounts(
+                    postSendDTO.getTikTokAccountIds(),
+                    suit.getTikTokAccounts(),
+                    TikTokAccount::getId,
+                    PlatformType.TIKTOK
+            );
+
+            Reel reel = new Reel(
+                    postSendDTO.getTitle(),
+                    postSendDTO.getContent(),
+                    new Date(),
+                    postSendDTO.getScheduledAt(),
+                    new Date(),
+                    //employee,
+                    null,
+                    facebookPages,
+                    instagramAccounts,
+                    linkedInAccounts,
+                    xAccounts,
+                    snapchatAccounts,
+                    tikTokAccounts,
+                    fileData
+            );
+
+            int threadNumber = facebookPages.size() +
+                    instagramAccounts.size() +
+                    xAccounts.size() +
+                    linkedInAccounts.size() +
+                    snapchatAccounts.size() +
+                    tikTokAccounts.size();
+
+            int maxThreads = Math.min(threadNumber, 20);
+
+            /*File tempVideoFile = File.createTempFile("upload_" + videoFile.getOriginalFilename(), ".tmp");
+            videoFile.transferTo(tempVideoFile);*/
+            File savedVideoFile = fileService.getFileFromFileData(fileData);
+            ExecutorService executor = Executors.newFixedThreadPool(maxThreads);
+
+            List<Callable<PlatformPostResult>> tasks = new ArrayList<>();
+            // Add tasks for each platform
+            if (!facebookPages.isEmpty()) {
+                for (FacebookPage facebookPage : facebookPages) {
+                    tasks.add(() -> facebookService.createFacebookReel(
+                            savedVideoFile,
+                            postSendDTO.getTitle(),
+                            postSendDTO.getContent(),
+                            postSendDTO.getScheduledAt(),
+                            facebookPage.getId()
+                    ));
+                }
+            }
+            /*if (!instagramAccounts.isEmpty()) {
+                tasks.add(() -> instagramService.postToInstagram(post, instagramAccounts));
+            }
+            if (!xAccounts.isEmpty()) {
+                tasks.add(() -> xService.postToX(post, xAccounts));
+            }
+            if (!linkedInAccounts.isEmpty()) {
+                tasks.add(() -> linkedInService.postToLinkedIn(post, linkedInAccounts));
+            }*/
+            List<Future<PlatformPostResult>> futures = executor.invokeAll(tasks, 5, TimeUnit.MINUTES);
+            List<CustomErrorLog> errors = new ArrayList<>();
+            List<CustomSuccessLog> successLogs = new ArrayList<>();
+            for (Future<PlatformPostResult> future : futures) {
+                try {
+                    PlatformPostResult result = future.get();
+                    if (!result.isSuccess()) {
+                        CustomErrorLog error = new CustomErrorLog(
+                                new Date(),
+                                result.getMessage(),
+                                //employee,
+                                null,
+                                ErrorType.POST_ERROR,
+                                result.getPlatform()
+                        );
+                        errors.add(error);
+                    }else {
+                        CustomSuccessLog success = new CustomSuccessLog(
+                                new Date(),
+                                result.getMessage(),
+                                //employee,
+                                null,
+                                result.getPlatform()
+                        );
+                        successLogs.add(success);
+                    }
+                } catch (Exception e) {
+                    CustomErrorLog error = new CustomErrorLog(
+                            new Date(),
+                            e.getMessage(),
+                            null,
+                            //employee,
+                            ErrorType.UNEXPECTED_ERROR,
+                            null
+                    );
+                    errors.add(error);
+                }
+            }
+
+            executor.shutdown();
+            if (!executor.awaitTermination(5, TimeUnit.MINUTES)) {
+                executor.shutdownNow();
+            }
+
+            List<Postable> posts= suit.getPosts();
+            posts.add(postableRepository.save(reel));
+            suit.setPosts(posts);
+            suitRepository.save(suit);
+            Map<String, Object> response = new HashMap<>();
+            response.put("post", reel);
+            response.put("success", successLogs);
+            response.put("errors", errors);
+            return ResponseEntity.ok(response);
+        }catch (ResourceNotFoundException e){
+            return ResponseEntity.status(404).body(e.getMessage());
+        }catch (Exception e){
+            return ResponseEntity.status(500).body(e.getMessage());
+        }
+    }
 }
