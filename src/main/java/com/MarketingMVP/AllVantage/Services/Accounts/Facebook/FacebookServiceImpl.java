@@ -1,5 +1,6 @@
 package com.MarketingMVP.AllVantage.Services.Accounts.Facebook;
 
+import com.MarketingMVP.AllVantage.Entities.PlatformContent.PlatformMediaType;
 import com.MarketingMVP.AllVantage.DTOs.Facebook.Account.FacebookAccountDTO;
 import com.MarketingMVP.AllVantage.DTOs.Facebook.Account.FacebookAccountDTOMapper;
 import com.MarketingMVP.AllVantage.DTOs.Facebook.AccountToken.FacebookAccountTokenDTO;
@@ -11,6 +12,8 @@ import com.MarketingMVP.AllVantage.DTOs.Response.PlatformPostResult;
 import com.MarketingMVP.AllVantage.Entities.Account.Facebook.Account.FacebookAccount;
 import com.MarketingMVP.AllVantage.Entities.Account.Facebook.Page.FacebookPage;
 import com.MarketingMVP.AllVantage.Entities.FileData.FileData;
+import com.MarketingMVP.AllVantage.Entities.PlatformContent.Facebook.FacebookMedia;
+import com.MarketingMVP.AllVantage.Entities.PlatformContent.Facebook.FacebookPost;
 import com.MarketingMVP.AllVantage.Entities.Tokens.OAuthToken.Facebook.FacebookAccount.FacebookAccountToken;
 import com.MarketingMVP.AllVantage.Entities.Tokens.OAuthToken.Facebook.FacebookAccount.FacebookOAuthTokenType;
 import com.MarketingMVP.AllVantage.Entities.Tokens.OAuthToken.Facebook.FacebookPage.FacebookPageToken;
@@ -27,7 +30,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.validation.constraints.NotNull;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.FileSystemResource;
-import org.springframework.core.io.InputStreamResource;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
@@ -38,10 +40,9 @@ import org.springframework.web.client.RestTemplate;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.view.RedirectView;
 
+import javax.print.attribute.standard.Media;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 
@@ -110,7 +111,7 @@ public class FacebookServiceImpl implements FacebookService {
     }
 
     @Override
-    public String uploadMediaToFacebook(FileData fileData, Long pageId) {
+    public FacebookMedia uploadMediaToFacebook(FileData fileData, Long pageId) {
         FacebookPageTokenDTO tokenDTO = getPageCachedToken(pageId);
         RestTemplate restTemplate = new RestTemplate();
 
@@ -130,14 +131,14 @@ public class FacebookServiceImpl implements FacebookService {
         body.add("published", "false");
         body.add("access_token", tokenDTO.accessToken());
 
-        try {
-            HttpEntity<MultiValueMap<String, Object>> request = new HttpEntity<>(body, headers);
-            ResponseEntity<Map> response = restTemplate.exchange(url, HttpMethod.POST, request, Map.class);
-
-            return Objects.requireNonNull(response.getBody()).get("id").toString();
-        } catch (Exception e) {
-            return "Failed to upload media: " + e.getMessage();
-        }
+        HttpEntity<MultiValueMap<String, Object>> request = new HttpEntity<>(body, headers);
+        ResponseEntity<Map> response = restTemplate.exchange(url, HttpMethod.POST, request, Map.class);
+        FacebookMedia facebookMedia = new FacebookMedia(
+                response.getBody().get("id").toString(),
+                fileData,
+                PlatformMediaType.IMAGE
+        );
+        return facebookMedia;
     }
 
     @Transactional
@@ -151,17 +152,17 @@ public class FacebookServiceImpl implements FacebookService {
 
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
-            Collection<String> mediaIds = files.stream().map(file -> {
+            List<FacebookMedia> mediaList = files.stream().map(file -> {
                 try {
                     FileData fileData = fileService.processUploadedFile(file, file.getContentType());
                     return uploadMediaToFacebook(fileData, facebookPageId);
                 } catch (IOException e) {
-                    return "Failed to upload media: " + e.getMessage();
+                    return null;
                 }
             }).toList();
 
-            List<Map<String, String>> attachedMedia = mediaIds.stream()
-                    .map(id -> Map.of("media_fbid", id))
+            List<Map<String, String>> attachedMedia = mediaList.stream()
+                    .map(media -> Map.of("media_fbid", media.getMediaId()))
                     .toList();
 
             Map<String, Object> body = new HashMap<>();
@@ -180,25 +181,25 @@ public class FacebookServiceImpl implements FacebookService {
     }
 
     @Override
-    public PlatformPostResult createFacebookPost(List<FileData> files, String title, String content, Date scheduledAt, Long facebookPageId) {
+    public PlatformPostResult createFacebookPost(List<FileData> files, String title, String content, Date scheduledAt, FacebookPage facebookPage) {
         try {
-            FacebookPageTokenDTO tokenDTO = fetchPageToken(facebookPageId);
+            FacebookPageTokenDTO tokenDTO = fetchPageToken(facebookPage.getId());
             RestTemplate restTemplate = new RestTemplate();
 
             String url = String.format("https://graph.facebook.com/v22.0/%s/feed", tokenDTO.facebookPageId());
 
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
-            Collection<String> mediaIds = files.stream().map(file -> {
+            List<FacebookMedia> mediaList = files.stream().map(file -> {
                 try {
-                    return uploadMediaToFacebook(file, facebookPageId);
+                    return uploadMediaToFacebook(file, facebookPage.getId());
                 } catch (Exception e) {
-                    return "Failed to upload media: " + e.getMessage();
+                    return null;
                 }
             }).toList();
 
-            List<Map<String, String>> attachedMedia = mediaIds.stream()
-                    .map(id -> Map.of("media_fbid", id))
+            List<Map<String, String>> attachedMedia = mediaList.stream()
+                    .map(media -> Map.of("media_fbid", media.getMediaId()))
                     .toList();
 
             Map<String, Object> body = new HashMap<>();
@@ -209,8 +210,13 @@ public class FacebookServiceImpl implements FacebookService {
             HttpEntity<Map<String, Object>> request = new HttpEntity<>(body, headers);
 
             ResponseEntity<Map> response = restTemplate.exchange(url, HttpMethod.POST, request, Map.class);
-            String message = "Post Created! ID: " + Objects.requireNonNull(response.getBody());
-            return PlatformPostResult.success(PlatformType.FACEBOOK_PAGE, message);
+            FacebookPost post = new FacebookPost(
+                    Objects.requireNonNull(response.getBody()).get("id").toString(),
+                    content,
+                    mediaList,
+                    facebookPage
+            );
+            return PlatformPostResult.success(PlatformType.FACEBOOK_PAGE, post);
         } catch (Exception e) {
             return PlatformPostResult.failure(PlatformType.FACEBOOK_PAGE, "Failed to create post: " + e.getMessage());
         }

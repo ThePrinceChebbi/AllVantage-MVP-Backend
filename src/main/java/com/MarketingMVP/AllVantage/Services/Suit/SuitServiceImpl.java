@@ -9,10 +9,15 @@ import com.MarketingMVP.AllVantage.Entities.Account.LinkedIn.LinkedInAccount;
 import com.MarketingMVP.AllVantage.Entities.Account.Snapchat.SnapchatAccount;
 import com.MarketingMVP.AllVantage.Entities.Account.TikTok.TikTokAccount;
 import com.MarketingMVP.AllVantage.Entities.Account.X.XAccount;
+import com.MarketingMVP.AllVantage.Entities.PlatformContent.Facebook.FacebookMedia;
+import com.MarketingMVP.AllVantage.Entities.PlatformContent.Facebook.FacebookPost;
+import com.MarketingMVP.AllVantage.Entities.PlatformContent.Instagram.InstagramPost;
+import com.MarketingMVP.AllVantage.Entities.PlatformContent.LinkedIn.LinkedinPost;
+import com.MarketingMVP.AllVantage.Entities.PlatformContent.Snapchat.SnapchatPost;
+import com.MarketingMVP.AllVantage.Entities.PlatformContent.X.XPost;
 import com.MarketingMVP.AllVantage.Entities.Responses.Error.CustomErrorLog;
 import com.MarketingMVP.AllVantage.Entities.Responses.Error.ErrorType;
 import com.MarketingMVP.AllVantage.Entities.FileData.FileData;
-import com.MarketingMVP.AllVantage.Entities.Postable.Post.Post;
 import com.MarketingMVP.AllVantage.Entities.Postable.Reel.Reel;
 import com.MarketingMVP.AllVantage.Entities.Responses.Success.CustomSuccessLog;
 import com.MarketingMVP.AllVantage.Entities.Suit.Suit;
@@ -42,6 +47,9 @@ import java.util.*;
 import java.util.concurrent.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+
+//TODO: Finish each social media BS independently and then refactor the entire damn thing
+//FUCK ME AND MY MISCALCULATIONS
 
 @Service
 public class SuitServiceImpl implements SuitService {
@@ -232,7 +240,7 @@ public class SuitServiceImpl implements SuitService {
             );
 
 
-            Post post = new Post(
+            /*Post post = new Post(
                     postSendDTO.getTitle(),
                     postSendDTO.getContent(),
                     new Date(),
@@ -247,11 +255,17 @@ public class SuitServiceImpl implements SuitService {
                     snapchatAccounts,
                     tikTokAccounts,
                     fileDataList
-            );
+            );*/
 
             int threadNumber = facebookPages.size() + instagramAccounts.size() + xAccounts.size() + linkedInAccounts.size() + snapchatAccounts.size() + tikTokAccounts.size();
             ExecutorService executor = Executors.newFixedThreadPool(threadNumber); // Adjust pool size as needed
             List<Callable<PlatformPostResult>> tasks = new ArrayList<>();
+            List<FacebookPost> facebookPosts = new ArrayList<>();
+            List<InstagramPost> instagramPosts = new ArrayList<>();
+            List<SnapchatPost> snapchatPosts = new ArrayList<>();
+            List<XPost> xPosts = new ArrayList<>();
+            List<LinkedinPost> linkedInPosts = new ArrayList<>();
+
             // Add tasks for each platform
             if (!facebookPages.isEmpty()) {
                 for (FacebookPage facebookPage : facebookPages) {
@@ -260,7 +274,7 @@ public class SuitServiceImpl implements SuitService {
                             postSendDTO.getTitle(),
                             postSendDTO.getContent(),
                             postSendDTO.getScheduledAt(),
-                            facebookPage.getId()
+                            facebookPage
                     ));
                 }
             }
@@ -278,10 +292,10 @@ public class SuitServiceImpl implements SuitService {
             for (Future<PlatformPostResult> future : futures) {
                 try {
                     PlatformPostResult result = future.get();
-                    if (!result.isSuccess()) {
+                    if (!result.isSuccess() || result.getResult() instanceof String) {
                         CustomErrorLog error = new CustomErrorLog(
                                 new Date(),
-                                result.getMessage(),
+                                result.getResult().toString(),
                                 //employee,
                                 null,
                                 ErrorType.POST_ERROR,
@@ -303,7 +317,7 @@ public class SuitServiceImpl implements SuitService {
             }
 
             executor.shutdown();
-            List<Postable> posts= suit.getPosts();
+            /*List<Postable> posts= suit.getPosts();
             posts.add(postableRepository.save(post));
             suit.setPosts(posts);
             suitRepository.save(suit);
@@ -311,6 +325,8 @@ public class SuitServiceImpl implements SuitService {
             response.put("suit", suitDTOMapper.apply(suit));
             response.put("errors", errors);
             return ResponseEntity.ok(response);
+            */
+            return ResponseEntity.ok("Post successful");
         }catch (ResourceNotFoundException e){
             return ResponseEntity.status(404).body(e.getMessage());
         }catch (Exception e){
@@ -339,6 +355,10 @@ public class SuitServiceImpl implements SuitService {
                 .filter(account -> requestedIds.contains(getIdFunction.apply(account)))
                 .toList();
     }
+
+    /*private <T> List<T> makePostList(List<T> accounts, Function<T, Long> constructor) {
+
+    }*/
 
     @Override
     public ResponseEntity<Object> addFacebookPageToSuit(Long suitId, Long accountId, String facebookPageId) {
@@ -394,7 +414,7 @@ public class SuitServiceImpl implements SuitService {
     }
 
     @Override
-    public String test(Long fileId, Long accountId) {
+    public FacebookMedia test(Long fileId, Long accountId) {
         return facebookService.uploadMediaToFacebook(fileService.getFileDataById(fileId),accountId);
     }
 
@@ -469,7 +489,7 @@ public class SuitServiceImpl implements SuitService {
                     PlatformType.TIKTOK
             );
 
-            Reel reel = new Reel(
+          /*  Reel reel = new Reel(
                     postSendDTO.getTitle(),
                     postSendDTO.getContent(),
                     new Date(),
@@ -484,7 +504,7 @@ public class SuitServiceImpl implements SuitService {
                     snapchatAccounts,
                     tikTokAccounts,
                     fileData
-            );
+            );*/
 
             int threadNumber = facebookPages.size() +
                     instagramAccounts.size() +
@@ -528,10 +548,10 @@ public class SuitServiceImpl implements SuitService {
             for (Future<PlatformPostResult> future : futures) {
                 try {
                     PlatformPostResult result = future.get();
-                    if (!result.isSuccess()) {
+                    if (!result.isSuccess() || result.getResult() instanceof String) {
                         CustomErrorLog error = new CustomErrorLog(
                                 new Date(),
-                                result.getMessage(),
+                                result.getResult().toString(),
                                 //employee,
                                 null,
                                 ErrorType.POST_ERROR,
@@ -541,7 +561,7 @@ public class SuitServiceImpl implements SuitService {
                     }else {
                         CustomSuccessLog success = new CustomSuccessLog(
                                 new Date(),
-                                result.getMessage(),
+                                result.getResult(),
                                 //employee,
                                 null,
                                 result.getPlatform()
@@ -566,7 +586,7 @@ public class SuitServiceImpl implements SuitService {
                 executor.shutdownNow();
             }
 
-            List<Postable> posts= suit.getPosts();
+            /*List<Postable> posts= suit.getPosts();
             posts.add(postableRepository.save(reel));
             suit.setPosts(posts);
             suitRepository.save(suit);
@@ -574,7 +594,8 @@ public class SuitServiceImpl implements SuitService {
             response.put("post", reel);
             response.put("success", successLogs);
             response.put("errors", errors);
-            return ResponseEntity.ok(response);
+            return ResponseEntity.ok(response);*/
+            return ResponseEntity.ok("Reel posted successfully");
         }catch (ResourceNotFoundException e){
             return ResponseEntity.status(404).body(e.getMessage());
         }catch (Exception e){

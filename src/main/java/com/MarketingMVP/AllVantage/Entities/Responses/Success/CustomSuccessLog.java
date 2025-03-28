@@ -14,7 +14,7 @@ import java.util.Date;
 public class CustomSuccessLog {
 
     private Date date;
-    private String message;
+    private Object data;
     private UserEntity userEntity;
     private PlatformType platformType;
 }

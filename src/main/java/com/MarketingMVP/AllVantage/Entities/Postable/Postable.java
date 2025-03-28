@@ -22,7 +22,7 @@ import java.util.List;
 @Table
 @NoArgsConstructor
 @AllArgsConstructor
-@Inheritance(strategy = InheritanceType.SINGLE_TABLE)
+@Inheritance(strategy = InheritanceType.TABLE_PER_CLASS)
 @Data
 public class Postable {
     @GeneratedValue(
@@ -55,37 +55,13 @@ public class Postable {
     @ManyToOne
     private Employee employee;
 
-    @ManyToMany
-    private List<FacebookPage> facebookPages;
-
-    @ManyToMany
-    private List<InstagramAccount> instagramAccounts;
-
-    @ManyToMany
-    private List<LinkedInAccount> linkedInAccounts;
-
-    @ManyToMany
-    private List<XAccount> xAccounts;
-
-    @ManyToMany
-    private List<SnapchatAccount> snapchatAccounts;
-
-    @ManyToMany
-    private List<TikTokAccount> tikTokAccounts;
-
     public Postable(
             String title,
             String content,
             Date createdAt,
             Date scheduledToPostAt,
             Date lastEditedAt,
-            Employee employee,
-            List<FacebookPage> facebookPages,
-            List<InstagramAccount> instagramAccounts,
-            List<LinkedInAccount> linkedInAccounts,
-            List<XAccount> xAccounts,
-            List<SnapchatAccount> snapchatAccounts,
-            List<TikTokAccount> tikTokAccounts
+            Employee employee
     ) {
         this.title = title;
         this.content = content;
@@ -93,11 +69,5 @@ public class Postable {
         this.scheduledToPostAt = scheduledToPostAt;
         this.lastEditedAt = lastEditedAt;
         this.employee = employee;
-        this.facebookPages = facebookPages;
-        this.instagramAccounts = instagramAccounts;
-        this.linkedInAccounts = linkedInAccounts;
-        this.xAccounts = xAccounts;
-        this.snapchatAccounts = snapchatAccounts;
-        this.tikTokAccounts = tikTokAccounts;
     }
 }

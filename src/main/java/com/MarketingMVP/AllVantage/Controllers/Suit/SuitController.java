@@ -1,5 +1,6 @@
 package com.MarketingMVP.AllVantage.Controllers.Suit;
 
+import com.MarketingMVP.AllVantage.Entities.PlatformContent.Facebook.FacebookMedia;
 import com.MarketingMVP.AllVantage.Services.Accounts.Facebook.FacebookService;
 import com.MarketingMVP.AllVantage.Services.Suit.SuitService;
 import org.springframework.http.ResponseEntity;
@@ -49,7 +50,7 @@ public class SuitController {
     }
 
     @GetMapping("/test")
-    public String test(@RequestParam Long fileId, @RequestParam Long accountId) {
+    public FacebookMedia test(@RequestParam Long fileId, @RequestParam Long accountId) {
         return suitService.test(fileId, accountId);
     }
 

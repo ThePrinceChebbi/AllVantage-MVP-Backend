@@ -7,16 +7,16 @@ import lombok.Getter;
 public class PlatformPostResult {
     private final PlatformType platform;
     private final boolean success;
-    private final String message;
+    private final Object result;
 
-    public PlatformPostResult(PlatformType platform, boolean success, String message) {
+    public PlatformPostResult(PlatformType platform, boolean success, Object result) {
         this.platform = platform;
         this.success = success;
-        this.message = message;
+        this.result = result;
     }
 
-    public static PlatformPostResult success(PlatformType platform, String message) {
-        return new PlatformPostResult(platform, true, message);
+    public static PlatformPostResult success(PlatformType platform, Object result) {
+        return new PlatformPostResult(platform, true, result);
     }
 
     public static PlatformPostResult failure(PlatformType platform, String errorMessage) {

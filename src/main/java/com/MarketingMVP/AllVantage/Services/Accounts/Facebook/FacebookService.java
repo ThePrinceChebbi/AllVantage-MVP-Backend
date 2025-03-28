@@ -6,6 +6,8 @@ import com.MarketingMVP.AllVantage.DTOs.Response.PlatformPostResult;
 import com.MarketingMVP.AllVantage.Entities.Account.Facebook.Account.FacebookAccount;
 import com.MarketingMVP.AllVantage.Entities.Account.Facebook.Page.FacebookPage;
 import com.MarketingMVP.AllVantage.Entities.FileData.FileData;
+import com.MarketingMVP.AllVantage.Entities.PlatformContent.Facebook.FacebookMedia;
+import com.MarketingMVP.AllVantage.Entities.PlatformContent.Facebook.FacebookPost;
 import com.MarketingMVP.AllVantage.Entities.Tokens.OAuthToken.Facebook.FacebookAccount.FacebookOAuthTokenType;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -24,21 +26,21 @@ public interface  FacebookService {
 
     ResponseEntity<Object> authenticateGlobalAccountCallback(String authorizationCode);
 
-    String uploadMediaToFacebook(FileData fileData, Long pageId);
+    FacebookMedia uploadMediaToFacebook(FileData fileData, Long pageId);
 
     PlatformPostResult createFacebookPostDirectly(
             List<MultipartFile> files,
             @NotNull String title,
             @NotNull String content,
             Date scheduledAt,
-            Long facebookPageId
+            Long facebookPage
     );
     PlatformPostResult createFacebookPost(
             List<FileData> files,
             @NotNull String title,
             @NotNull String content,
             Date scheduledAt,
-            Long facebookPageId
+            FacebookPage facebookPage
     );
 
     PlatformPostResult createFacebookReel(
@@ -82,4 +84,6 @@ public interface  FacebookService {
     JsonNode fetchUserPages(Long accountId) throws JsonProcessingException;
 
     ResponseEntity<Object> getAllAccounts();
+
+
 }

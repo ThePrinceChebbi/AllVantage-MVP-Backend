@@ -1,6 +1,6 @@
 package com.MarketingMVP.AllVantage.Services.Suit;
 
-import com.MarketingMVP.AllVantage.DTOs.Post.PostSendDTO;
+import com.MarketingMVP.AllVantage.Entities.PlatformContent.Facebook.FacebookMedia;
 import com.MarketingMVP.AllVantage.Entities.Suit.Suit;
 import com.MarketingMVP.AllVantage.Exceptions.ResourceNotFoundException;
 import org.springframework.http.ResponseEntity;
@@ -32,7 +32,7 @@ public interface SuitService {
 
     ResponseEntity<Object> getSuitById(Long suitId);
 
-    String test(Long fileId, Long accountId);
+    FacebookMedia test(Long fileId, Long accountId);
 
     ResponseEntity<Object> postToFacebook(Long suitId, List<MultipartFile> files, String title, String content, Date scheduledAt, Long facebookPageId);
 

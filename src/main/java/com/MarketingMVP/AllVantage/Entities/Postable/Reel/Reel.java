@@ -8,10 +8,23 @@ import com.MarketingMVP.AllVantage.Entities.Account.Snapchat.SnapchatAccount;
 import com.MarketingMVP.AllVantage.Entities.Account.TikTok.TikTokAccount;
 import com.MarketingMVP.AllVantage.Entities.Account.X.XAccount;
 import com.MarketingMVP.AllVantage.Entities.FileData.FileData;
+import com.MarketingMVP.AllVantage.Entities.PlatformContent.Facebook.FacebookPost;
+import com.MarketingMVP.AllVantage.Entities.PlatformContent.Facebook.FacebookReel;
+import com.MarketingMVP.AllVantage.Entities.PlatformContent.Instagram.InstagramPost;
+import com.MarketingMVP.AllVantage.Entities.PlatformContent.Instagram.InstagramReel;
+import com.MarketingMVP.AllVantage.Entities.PlatformContent.LinkedIn.LinkedinPost;
+import com.MarketingMVP.AllVantage.Entities.PlatformContent.LinkedIn.LinkedinReel;
+import com.MarketingMVP.AllVantage.Entities.PlatformContent.Snapchat.SnapchatPost;
+import com.MarketingMVP.AllVantage.Entities.PlatformContent.Snapchat.SnapchatReel;
+import com.MarketingMVP.AllVantage.Entities.PlatformContent.TikTok.TikTokReel;
+import com.MarketingMVP.AllVantage.Entities.PlatformContent.X.XPost;
+import com.MarketingMVP.AllVantage.Entities.PlatformContent.X.XReel;
 import com.MarketingMVP.AllVantage.Entities.Postable.Postable;
 import com.MarketingMVP.AllVantage.Entities.UserEntity.Employee;
 import jakarta.persistence.Entity;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToMany;
+import jakarta.persistence.Table;
 import lombok.Getter;
 
 import java.io.File;
@@ -21,25 +34,45 @@ import java.util.Objects;
 
 @Getter
 @Entity
+@Table
 public class Reel extends Postable {
+    @OneToMany
+    private List<FacebookReel> facebookReels;
+    @OneToMany
+    private List<InstagramReel> instagramReels;
+    @OneToMany
+    private List<SnapchatReel> snapchatReels;
+    @OneToMany
+    private List<XReel> xReels;
+    @OneToMany
+    private List<LinkedinReel> linkedinReels;
+    @OneToMany
+    private List<TikTokReel> tikTokReels;
 
-    @ManyToOne
-    private FileData video;
+    public Reel(
+            String title,
+            String content,
+            Date createdAt,
+            Date scheduledToPostAt,
+            Date lastEditedAt,
+            Employee employee,
+            List<FacebookReel> facebookReels,
+            List<InstagramReel> instagramReels,
+            List<SnapchatReel> snapchatReels,
+            List<XReel> xReels,
+            List<LinkedinReel> linkedinReels,
+            List<TikTokReel> tikTokReels
+    ) {
+        super(title, content, createdAt, scheduledToPostAt, lastEditedAt, employee);
+        this.facebookReels = facebookReels;
+        this.instagramReels = instagramReels;
+        this.snapchatReels = snapchatReels;
+        this.xReels = xReels;
+        this.linkedinReels = linkedinReels;
+        this.tikTokReels = tikTokReels;
+    }
 
     public Reel() {
 
-    }
-
-    public void setVideo(FileData video) {
-        if (Objects.equals(video.getType(), "video")) {
-            this.video = video;
-        } else {
-            throw new IllegalArgumentException("The file is not a video");
-        }
-    }
-
-    public Reel(String title, String content, Date createdAt, Date scheduledToPostAt, Date lastEditedAt, Employee employee, List<FacebookPage> facebookPages, List<InstagramAccount> instagramAccounts, List<LinkedInAccount> linkedInAccounts, List<XAccount> xAccounts, List<SnapchatAccount> snapchatAccounts, List<TikTokAccount> tikTokAccounts, FileData video) {
-        super(title, content, createdAt, scheduledToPostAt, lastEditedAt, employee, facebookPages, instagramAccounts, linkedInAccounts, xAccounts, snapchatAccounts, tikTokAccounts);
-        this.video = video;
     }
 }
