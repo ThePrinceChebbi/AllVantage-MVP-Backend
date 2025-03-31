@@ -13,11 +13,11 @@ import java.util.List;
 public class FacebookOAuthTokenServiceImpl implements FacebookOAuthTokenService {
 
     private final FacebookAccountTokenRepository facebookAccountTokenRepository;
-    private final FacebookPageTokenRepository facebookPageTokenbRepository;
+    private final FacebookPageTokenRepository facebookPageTokenRepository;
 
-    public FacebookOAuthTokenServiceImpl(FacebookAccountTokenRepository facebookOAuthTokenRepository, FacebookPageTokenRepository facebookPageTokenbRepository) {
+    public FacebookOAuthTokenServiceImpl(FacebookAccountTokenRepository facebookOAuthTokenRepository, FacebookPageTokenRepository facebookPageTokenRepository) {
         this.facebookAccountTokenRepository = facebookOAuthTokenRepository;
-        this.facebookPageTokenbRepository = facebookPageTokenbRepository;
+        this.facebookPageTokenRepository = facebookPageTokenRepository;
     }
 
     @Override
@@ -47,13 +47,11 @@ public class FacebookOAuthTokenServiceImpl implements FacebookOAuthTokenService 
 
     @Override
     public List<FacebookPageToken> getTokenByPageId(Long pageId) {
-        List<FacebookPageToken> tokens = facebookPageTokenbRepository.findByPageId(pageId);
-        System.out.println(tokens);
-        return tokens;
+        return facebookPageTokenRepository.findByPageId(pageId);
     }
 
     @Override
     public FacebookPageToken savePageToken(FacebookPageToken oAuthToken) {
-        return facebookPageTokenbRepository.save(oAuthToken);
+        return facebookPageTokenRepository.save(oAuthToken);
     }
 }

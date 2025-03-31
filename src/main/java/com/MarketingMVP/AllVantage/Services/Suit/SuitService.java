@@ -34,7 +34,5 @@ public interface SuitService {
 
     FacebookMedia test(Long fileId, Long accountId);
 
-    ResponseEntity<Object> postToFacebook(Long suitId, List<MultipartFile> files, String title, String content, Date scheduledAt, Long facebookPageId);
-
     ResponseEntity<Object> postReelToSuit(Long suitId, MultipartFile videoFile, String reelPostDTOJson);
 }

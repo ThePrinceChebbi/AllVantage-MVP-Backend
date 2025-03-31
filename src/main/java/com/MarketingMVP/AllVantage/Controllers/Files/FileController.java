@@ -28,6 +28,6 @@ public class FileController {
 
     @PostMapping("/upload")
     public ResponseEntity<Object> uploadFile(@RequestParam("file")MultipartFile file) throws Exception {
-        return ResponseEntity.ok(fileService.processUploadedFile(file, file.getContentType()));
+        return ResponseEntity.ok(fileService.processUploadedFile(file));
     }
 }

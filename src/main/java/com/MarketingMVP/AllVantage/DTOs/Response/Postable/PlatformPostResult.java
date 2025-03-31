@@ -1,4 +1,4 @@
-package com.MarketingMVP.AllVantage.DTOs.Response;
+package com.MarketingMVP.AllVantage.DTOs.Response.Postable;
 
 import com.MarketingMVP.AllVantage.Repositories.Account.PlatformType;
 import lombok.Getter;

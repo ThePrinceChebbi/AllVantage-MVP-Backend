@@ -64,33 +64,6 @@ public class SuitController {
         return suitService.postToSuit(suitId, postSendDTOJson, null, files);
     }
 
-    @PostMapping("/{suitId}/post-facebook")
-    public ResponseEntity<Object> postToSuit(
-            @PathVariable Long suitId,
-            @RequestParam List<MultipartFile> files,
-            @RequestParam String title,
-            @RequestParam String content,
-            @RequestParam Date scheduledAt,
-            @RequestParam Long pageId
-            )
-    {
-        return suitService.postToFacebook(suitId, files, title, content, scheduledAt, pageId);
-    }
-
-    @PostMapping("/{suitId}/test-post")
-    public String testPost(@PathVariable Long suitId, @RequestParam List<String> mediaIds){
-        return facebookService.testPostingWithMediaIds(mediaIds,suitId);
-    }
-
-    @PostMapping("/test_video_init")
-    public String testVideo(@RequestParam Long pageId){
-        return facebookService.initVideo(pageId);
-    }
-
-    @PostMapping("/test_video_upload")
-    public ResponseEntity<String> testVideoUpload(@RequestParam Long pageId, @RequestParam MultipartFile video, @RequestParam String videoId){
-        return facebookService.uploadVideoToFacebook(pageId, video, videoId);
-    }
     @PostMapping("/{suitId}/reel")
     public ResponseEntity<Object> postReelToSuit(
             @PathVariable Long suitId,

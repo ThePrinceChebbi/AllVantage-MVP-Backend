@@ -1,29 +1,26 @@
 package com.MarketingMVP.AllVantage.Entities.PlatformContent.Facebook;
 
 import com.MarketingMVP.AllVantage.Entities.Account.Facebook.Page.FacebookPage;
-import com.MarketingMVP.AllVantage.Entities.FileData.FileData;
-import com.MarketingMVP.AllVantage.Entities.PlatformContent.PlatformMediaType;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+
+import java.util.List;
 
 @Entity
 @Table
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class FacebookReel {
-
+@Builder
+public class FacebookStory {
     @Id
-    private String facebookVideoId;
+    private String facebookStoryId;
 
-    private String caption;
-
-    @ManyToOne
-    private FileData file;
-
-    private PlatformMediaType mediaType;
+    @OneToOne
+    private FacebookMedia facebookMedia;
 
     @ManyToOne
     private FacebookPage page;

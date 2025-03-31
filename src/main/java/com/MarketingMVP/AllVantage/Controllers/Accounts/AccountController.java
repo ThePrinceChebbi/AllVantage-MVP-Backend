@@ -1,22 +1,29 @@
 package com.MarketingMVP.AllVantage.Controllers.Accounts;
 
-import com.MarketingMVP.AllVantage.DTOs.Response.PlatformPostResult;
+import com.MarketingMVP.AllVantage.DTOs.Response.Insights.PlatformInsightsResult;
+import com.MarketingMVP.AllVantage.DTOs.Response.Postable.PlatformPostResult;
+import com.MarketingMVP.AllVantage.Entities.FileData.FileData;
+import com.MarketingMVP.AllVantage.Repositories.Account.PlatformType;
 import com.MarketingMVP.AllVantage.Services.Accounts.Facebook.FacebookService;
+import com.MarketingMVP.AllVantage.Services.FileData.FileService;
 import org.springframework.http.ResponseEntity;
+import org.springframework.lang.Nullable;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.view.RedirectView;
 
-import java.io.File;
 import java.util.Date;
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/account/facebook")
 public class AccountController {
     private final FacebookService facebookService;
+    private final FileService fileService;
 
-    public AccountController(FacebookService facebookService) {
+    public AccountController(FacebookService facebookService, FileService fileService) {
         this.facebookService = facebookService;
+        this.fileService = fileService;
     }
 
     @GetMapping("/add-global-account")
@@ -39,15 +46,96 @@ public class AccountController {
         return facebookService.getAllAccounts();
     }
 
-/*    @PostMapping("/{pageId}/post-reel")
-    public PlatformPostResult postReel(
+    @PostMapping("/{pageId}/post")
+    public ResponseEntity<PlatformPostResult> createPost(
+            @PathVariable Long pageId,
+            @RequestParam String content,
+            @RequestParam List<MultipartFile> files,
+            @RequestParam @Nullable Date scheduledAt,
+            @RequestParam String title
+    ) {
+        try {
+            List<FileData> fileDataList = files.stream().map((file) -> {
+                try {
+                    return fileService.processUploadedFile(file);
+                } catch (Exception e) {
+                    return null;
+                }
+            }).toList();
+            PlatformPostResult result = facebookService.createFacebookPost(fileDataList, title, content, scheduledAt, pageId);
+            return result.isSuccess() ? ResponseEntity.ok(result) : ResponseEntity.internalServerError().body(result);
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body(PlatformPostResult.failure(PlatformType.FACEBOOK_PAGE, e.getMessage()));
+        }
+    }
+
+    @PostMapping("/{pageId}/reel")
+    public ResponseEntity<PlatformPostResult> postReel(
             @PathVariable Long pageId,
             @RequestParam String content,
             @RequestParam MultipartFile video,
-            @RequestParam Date scheduledAt,
+            @RequestParam @Nullable Date scheduledAt,
             @RequestParam String title
-
     ) {
-        return facebookService.createFacebookReel(, title, content, scheduledAt, pageId);
-    }*/
+        try {
+            FileData fileData = fileService.processUploadedFile(video);
+            PlatformPostResult result = facebookService.createFacebookReel(fileData, title, content, scheduledAt, pageId);
+            return result.isSuccess() ? ResponseEntity.ok(result) : ResponseEntity.internalServerError().body(result);
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body(PlatformPostResult.failure(PlatformType.FACEBOOK_PAGE, e.getMessage()));
+        }
+    }
+
+    @PostMapping("/{pageId}/story")
+    public ResponseEntity<PlatformPostResult> postStory(
+            @PathVariable Long pageId,
+            @RequestParam String content,
+            @RequestParam MultipartFile story,
+            @RequestParam @Nullable Date scheduledAt,
+            @RequestParam String title
+    ) {
+        try {
+            FileData fileData = fileService.processUploadedFile(story);
+            PlatformPostResult result = facebookService.storyOnFacebookPage(fileData, title, content, scheduledAt, pageId);
+            return result.isSuccess() ? ResponseEntity.ok(result) : ResponseEntity.internalServerError().body(result);
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body(PlatformPostResult.failure(PlatformType.FACEBOOK_PAGE, e.getMessage()));
+        }
+    }
+
+    @GetMapping("/{pageId}/insights")
+    public ResponseEntity<Object> getPageInsights(
+            @PathVariable Long pageId,
+            @RequestParam String metricName
+    ) {
+        try {
+            PlatformInsightsResult result = facebookService.getFacebookPageInsights(pageId, metricName);
+            return result.isSuccess() ? ResponseEntity.ok(result) : ResponseEntity.internalServerError().body(result);
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body(PlatformPostResult.failure(PlatformType.FACEBOOK_PAGE, e.getMessage()));
+        }
+    }
+
+    @GetMapping("/{pageId}/{postId}/insights")
+    public ResponseEntity<Object> getPostInsights(
+            @PathVariable Long pageId,
+            @PathVariable String postId,
+            @RequestParam String metricList
+    ) {
+        try {
+            PlatformInsightsResult result = facebookService.getFacebookPostInsights(pageId, postId, metricList);
+            return result.isSuccess() ? ResponseEntity.ok(result) : ResponseEntity.internalServerError().body(result);
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body(PlatformPostResult.failure(PlatformType.FACEBOOK_PAGE, e.getMessage()));
+        }
+    }
+
+    @GetMapping("/{pageId}/posts")
+    public ResponseEntity<Object> getPosts(@PathVariable Long pageId) {
+        try {
+            return facebookService.getAllPosts(pageId);
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body(PlatformPostResult.failure(PlatformType.FACEBOOK_PAGE, e.getMessage()));
+        }
+    }
 }

@@ -1,5 +1,8 @@
 package com.MarketingMVP.AllVantage.Services.Accounts.Facebook;
 
+import com.MarketingMVP.AllVantage.DTOs.Response.Insights.PlatformInsightsResult;
+import com.MarketingMVP.AllVantage.Entities.PlatformContent.Facebook.FacebookReel;
+import com.MarketingMVP.AllVantage.Entities.PlatformContent.Facebook.FacebookStory;
 import com.MarketingMVP.AllVantage.Entities.PlatformContent.PlatformMediaType;
 import com.MarketingMVP.AllVantage.DTOs.Facebook.Account.FacebookAccountDTO;
 import com.MarketingMVP.AllVantage.DTOs.Facebook.Account.FacebookAccountDTOMapper;
@@ -8,7 +11,7 @@ import com.MarketingMVP.AllVantage.DTOs.Facebook.AccountToken.FacebookAccountTok
 import com.MarketingMVP.AllVantage.DTOs.Facebook.Page.FacebookPageDTO;
 import com.MarketingMVP.AllVantage.DTOs.Facebook.PageToken.FacebookPageTokenDTO;
 import com.MarketingMVP.AllVantage.DTOs.Facebook.PageToken.FacebookPageTokenDTOMapper;
-import com.MarketingMVP.AllVantage.DTOs.Response.PlatformPostResult;
+import com.MarketingMVP.AllVantage.DTOs.Response.Postable.PlatformPostResult;
 import com.MarketingMVP.AllVantage.Entities.Account.Facebook.Account.FacebookAccount;
 import com.MarketingMVP.AllVantage.Entities.Account.Facebook.Page.FacebookPage;
 import com.MarketingMVP.AllVantage.Entities.FileData.FileData;
@@ -21,6 +24,10 @@ import com.MarketingMVP.AllVantage.Exceptions.ResourceNotFoundException;
 import com.MarketingMVP.AllVantage.Repositories.Account.Facebook.FacebookAccountRepository;
 import com.MarketingMVP.AllVantage.Repositories.Account.Facebook.FacebookPageRepository;
 import com.MarketingMVP.AllVantage.Repositories.Account.PlatformType;
+import com.MarketingMVP.AllVantage.Repositories.PlatformContent.Facebook.FacebookMediaRepository;
+import com.MarketingMVP.AllVantage.Repositories.PlatformContent.Facebook.FacebookPostRepository;
+import com.MarketingMVP.AllVantage.Repositories.PlatformContent.Facebook.FacebookReelRepository;
+import com.MarketingMVP.AllVantage.Repositories.PlatformContent.Facebook.FacebookStoryRepository;
 import com.MarketingMVP.AllVantage.Security.Utility.AESEncryptionService;
 import com.MarketingMVP.AllVantage.Services.FileData.FileService;
 import com.MarketingMVP.AllVantage.Services.Token.FacebookOAuthToken.FacebookOAuthTokenService;
@@ -32,32 +39,44 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.http.*;
+import org.springframework.lang.Nullable;
+import org.springframework.social.facebook.api.Facebook;
+import org.springframework.social.facebook.api.impl.FacebookTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
-import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.view.RedirectView;
 
-import javax.print.attribute.standard.Media;
 import java.io.File;
 import java.io.IOException;
 import java.util.*;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 
+@SuppressWarnings({"rawtypes", "CallToPrintStackTrace", "unchecked"})
 @Service
 public class FacebookServiceImpl implements FacebookService {
 
     private final FileService fileService;
+    private final FacebookMediaRepository facebookMediaRepository;
+    private final FacebookStoryRepository facebookStoryRepository;
+    private final FacebookReelRepository facebookReelRepository;
+    private final FacebookPostRepository facebookPostRepository;
     @Value("${spring.security.oauth2.client.registration.facebook.client-id}")
     private String clientId;
 
     @Value("${spring.security.oauth2.client.registration.facebook.client-secret}")
     private String clientSecret;
 
-    @Value("${spring.security.oauth2.client.registration.facebook.scope}")
-    private String scope;
+    private final String scope =  "publish_video,pages_show_list," +
+            "read_insights," +
+            "pages_read_engagement," +
+            "pages_manage_metadata," +
+            "pages_read_user_content," +
+            "pages_manage_ads," +
+            "pages_manage_posts," +
+            "pages_manage_engagement";
 
     private final String redirectUri = "http://localhost:8080/api/v1/account/facebook/callback";
 
@@ -70,7 +89,7 @@ public class FacebookServiceImpl implements FacebookService {
     private final FacebookPageRepository facebookPageRepository;
     private final AESEncryptionService encryptionService;
 
-    public FacebookServiceImpl(RedisTemplate<String, FacebookAccountTokenDTO> redisAccountTemplate, FacebookOAuthTokenService facebookOAuthTokenService, FacebookAccountRepository facebookAccountRepository, FacebookPageRepository facebookPageRepository, AESEncryptionService encryptionService, FacebookAccountTokenDTOMapper facebookAccountTokenDTOMapper, RedisTemplate<String, FacebookPageTokenDTO> redisPageTemplate, FacebookPageTokenDTOMapper facebookPageTokenDTOMapper, FileService fileService) {
+    public FacebookServiceImpl(RedisTemplate<String, FacebookAccountTokenDTO> redisAccountTemplate, FacebookOAuthTokenService facebookOAuthTokenService, FacebookAccountRepository facebookAccountRepository, FacebookPageRepository facebookPageRepository, AESEncryptionService encryptionService, FacebookAccountTokenDTOMapper facebookAccountTokenDTOMapper, RedisTemplate<String, FacebookPageTokenDTO> redisPageTemplate, FacebookPageTokenDTOMapper facebookPageTokenDTOMapper, FileService fileService, FacebookMediaRepository facebookMediaRepository, FacebookStoryRepository facebookStoryRepository, FacebookReelRepository facebookReelRepository, FacebookPostRepository facebookPostRepository) {
         this.redisAccountTemplate = redisAccountTemplate;
         this.facebookOAuthTokenService = facebookOAuthTokenService;
         this.facebookAccountRepository = facebookAccountRepository;
@@ -80,10 +99,15 @@ public class FacebookServiceImpl implements FacebookService {
         this.redisPageTemplate = redisPageTemplate;
         this.facebookPageTokenDTOMapper = facebookPageTokenDTOMapper;
         this.fileService = fileService;
+        this.facebookMediaRepository = facebookMediaRepository;
+        this.facebookStoryRepository = facebookStoryRepository;
+        this.facebookReelRepository = facebookReelRepository;
+        this.facebookPostRepository = facebookPostRepository;
     }
 
     @Override
     public RedirectView getAuthenticationCode(String redirectUri) {
+
         String authUrl = "https://www.facebook.com/v19.0/dialog/oauth" +
                 "?client_id=" + clientId +
                 "&redirect_uri=" + redirectUri +
@@ -115,8 +139,7 @@ public class FacebookServiceImpl implements FacebookService {
         FacebookPageTokenDTO tokenDTO = getPageCachedToken(pageId);
         RestTemplate restTemplate = new RestTemplate();
 
-        String metaFileType = fileData.getType().contains("image") ? "photos" : "videos";
-        String url = String.format("https://graph.facebook.com/v22.0/%s/%s", tokenDTO.facebookPageId(), metaFileType);
+        String url = String.format("https://graph.facebook.com/v22.0/%s/photos", tokenDTO.facebookPageId());
 
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.MULTIPART_FORM_DATA);
@@ -127,120 +150,68 @@ public class FacebookServiceImpl implements FacebookService {
         File file = new File(fileData.getPath());
         FileSystemResource fileResource = new FileSystemResource(file);
         body.add("source", fileResource);
-
         body.add("published", "false");
         body.add("access_token", tokenDTO.accessToken());
 
         HttpEntity<MultiValueMap<String, Object>> request = new HttpEntity<>(body, headers);
         ResponseEntity<Map> response = restTemplate.exchange(url, HttpMethod.POST, request, Map.class);
+        System.out.println("media response: " + response.getBody());
         FacebookMedia facebookMedia = new FacebookMedia(
-                response.getBody().get("id").toString(),
+                Objects.requireNonNull(response.getBody()).get("id").toString(),
                 fileData,
                 PlatformMediaType.IMAGE
         );
-        return facebookMedia;
+
+        return facebookMediaRepository.save(facebookMedia);
     }
 
-    @Transactional
     @Override
-    public PlatformPostResult createFacebookPostDirectly(List<MultipartFile> files, String title, String content, Date scheduledAt, Long facebookPageId) {
+    public PlatformPostResult createFacebookPost(List<FileData> files, String title, String content, Date scheduledAt, Long pageId) {
         try {
-            FacebookPageTokenDTO tokenDTO = fetchPageToken(facebookPageId);
-            RestTemplate restTemplate = new RestTemplate();
+            FacebookPage facebookPage = facebookPageRepository.findById(pageId)
+                    .orElseThrow(() -> new ResourceNotFoundException("Facebook page not found with ID: " + pageId));
+            List<FileData> videoFiles = files.stream().filter(fileData -> fileData.getType().equals("video")).toList();
+            List<FileData> imageFiles = files.stream().filter(fileData -> fileData.getType().equals("image")).toList();
+            if (videoFiles.size()==1 && imageFiles.isEmpty()){
+                return postVideo(videoFiles.get(0), title, content, scheduledAt, facebookPage);
+            } else if (videoFiles.isEmpty()) {
+                return makePostWithImages(imageFiles, title, content, scheduledAt, facebookPage);
+            }else {
+                return PlatformPostResult.failure(PlatformType.FACEBOOK_PAGE, "Either one video, one or more images, or no media is allowed");
+            }
 
-            String url = String.format("https://graph.facebook.com/v22.0/%s/feed", tokenDTO.facebookPageId());
-
-            HttpHeaders headers = new HttpHeaders();
-            headers.setContentType(MediaType.APPLICATION_JSON);
-            List<FacebookMedia> mediaList = files.stream().map(file -> {
-                try {
-                    FileData fileData = fileService.processUploadedFile(file, file.getContentType());
-                    return uploadMediaToFacebook(fileData, facebookPageId);
-                } catch (IOException e) {
-                    return null;
-                }
-            }).toList();
-
-            List<Map<String, String>> attachedMedia = mediaList.stream()
-                    .map(media -> Map.of("media_fbid", media.getMediaId()))
-                    .toList();
-
-            Map<String, Object> body = new HashMap<>();
-            body.put("message", content);
-            body.put("attached_media", attachedMedia);
-            body.put("access_token", tokenDTO.accessToken());  // Use the correct Page Access Token
-
-            HttpEntity<Map<String, Object>> request = new HttpEntity<>(body, headers);
-
-            ResponseEntity<Map> response = restTemplate.exchange(url, HttpMethod.POST, request, Map.class);
-            String message = "Post Created! ID: " + Objects.requireNonNull(response.getBody());
-            return PlatformPostResult.success(PlatformType.FACEBOOK_PAGE, message);
         } catch (Exception e) {
-            return PlatformPostResult.failure(PlatformType.FACEBOOK_PAGE, "Failed to create post: " + e.getMessage());
-        }
-    }
-
-    @Override
-    public PlatformPostResult createFacebookPost(List<FileData> files, String title, String content, Date scheduledAt, FacebookPage facebookPage) {
-        try {
-            FacebookPageTokenDTO tokenDTO = fetchPageToken(facebookPage.getId());
-            RestTemplate restTemplate = new RestTemplate();
-
-            String url = String.format("https://graph.facebook.com/v22.0/%s/feed", tokenDTO.facebookPageId());
-
-            HttpHeaders headers = new HttpHeaders();
-            headers.setContentType(MediaType.APPLICATION_JSON);
-            List<FacebookMedia> mediaList = files.stream().map(file -> {
-                try {
-                    return uploadMediaToFacebook(file, facebookPage.getId());
-                } catch (Exception e) {
-                    return null;
+                files.forEach(file -> {
+                    try {
+                        fileService.deleteFileFromFileSystem(file);
+                    } catch (IOException ex) {
+                        System.out.println("Failed to delete video file: " + ex.getMessage());
+                    }
                 }
-            }).toList();
-
-            List<Map<String, String>> attachedMedia = mediaList.stream()
-                    .map(media -> Map.of("media_fbid", media.getMediaId()))
-                    .toList();
-
-            Map<String, Object> body = new HashMap<>();
-            body.put("message", content);
-            body.put("attached_media", attachedMedia);
-            body.put("access_token", tokenDTO.accessToken());  // Use the correct Page Access Token
-
-            HttpEntity<Map<String, Object>> request = new HttpEntity<>(body, headers);
-
-            ResponseEntity<Map> response = restTemplate.exchange(url, HttpMethod.POST, request, Map.class);
-            FacebookPost post = new FacebookPost(
-                    Objects.requireNonNull(response.getBody()).get("id").toString(),
-                    content,
-                    mediaList,
-                    facebookPage
             );
-            return PlatformPostResult.success(PlatformType.FACEBOOK_PAGE, post);
-        } catch (Exception e) {
-            return PlatformPostResult.failure(PlatformType.FACEBOOK_PAGE, "Failed to create post: " + e.getMessage());
+                System.out.println(e.getMessage());
+            return PlatformPostResult.failure(PlatformType.FACEBOOK_PAGE, e.getMessage());
         }
     }
 
     @Override
-    public PlatformPostResult createFacebookReel(File videoFile, String title, String content, Date scheduledAt, Long pageId) {
+    public PlatformPostResult createFacebookReel(FileData videoFile, String title, String content, Date scheduledAt, Long pageId) {
         try {
-            String filename = videoFile.getName();
+            FacebookPage facebookPage = facebookPageRepository.findById(pageId)
+                    .orElseThrow( () -> new ResourceNotFoundException("Facebook page not found with ID: " + pageId));
+
+            String filename = videoFile.getPrefix();
             if (!filename.matches(".*\\.(mp4|avi|mov|mkv|webm|flv|wmv|mpeg|3gp)$")) {
                 return PlatformPostResult.failure(PlatformType.FACEBOOK_PAGE, "Video file is required for Reel post.");
             }
-            FacebookPageTokenDTO tokenDTO = fetchPageToken(pageId);
-            RestTemplate restTemplate = new RestTemplate();
+            FacebookPageTokenDTO tokenDTO = getPageCachedToken(pageId);
 
-            System.out.println("ready to initiate video");
-            String videoId = initiateVideo(tokenDTO);
-
-            System.out.println("ready to upload video");
-            // Step 2: Upload the video
-            ResponseEntity<String> uploadResponse = uploadVideo(videoFile, tokenDTO, videoId);
+            String videoId = initiateVideo(tokenDTO, false);
+            File file = fileService.getFileFromFileData(videoFile);
+            ResponseEntity<String> uploadResponse = uploadVideo(file, tokenDTO, videoId);
             if (!uploadResponse.getStatusCode().is2xxSuccessful()) return PlatformPostResult.failure(PlatformType.FACEBOOK_PAGE, "Failed to upload video." + uploadResponse.getBody());
 
-            System.out.println("ready to publish reel");
+            RestTemplate restTemplate = new RestTemplate();
             // Step 2: Post the uploaded video as a Reel
             String reelUrl = String.format("https://graph.facebook.com/v22.0/%s/video_reels", tokenDTO.facebookPageId());
             Map<String, Object> reelBody = new HashMap<>();
@@ -255,97 +226,157 @@ public class FacebookServiceImpl implements FacebookService {
             HttpEntity<Map<String, Object>> reelRequest = new HttpEntity<>(reelBody, headers);
             ResponseEntity<Map> reelResponse = restTemplate.exchange(reelUrl, HttpMethod.POST, reelRequest, Map.class);
 
-            System.out.println("ready to validate result");
             if (!reelResponse.getStatusCode().is2xxSuccessful()) {
-                throw new RuntimeException("Failed to create reel post: " + reelResponse);
+                throw new RuntimeException(Objects.requireNonNull(reelResponse.getBody()).toString());
             }
 
-            System.out.println("Reel posted successfully");
-
-            return PlatformPostResult.success(PlatformType.FACEBOOK_PAGE, "Reel posted successfully! ID: " + reelResponse.getBody());
+            FacebookReel facebookReel = new FacebookReel(
+                    videoId,
+                    content,
+                    videoFile,
+                    PlatformMediaType.VIDEO,
+                    facebookPage
+            );
+            facebookReelRepository.save(facebookReel);
+            return PlatformPostResult.success(PlatformType.FACEBOOK_PAGE, facebookReel);
         } catch (Exception e) {
+            try {
+                fileService.deleteFileFromFileSystem(videoFile);
+            } catch (IOException ex) {
+                System.out.println("Failed to delete video file: " + ex.getMessage());
+            }
             return PlatformPostResult.failure(PlatformType.FACEBOOK_PAGE, "Failed to post Reel: " + e.getMessage());
         }
     }
 
     @Override
-    public String initVideo(Long facebookPageId) {
-        FacebookPageTokenDTO tokenDTO = getPageCachedToken(facebookPageId);
-        return initiateVideo(tokenDTO);
-    }
-
-    @Override
-    public ResponseEntity<String> uploadVideoToFacebook(Long facebookPageId, MultipartFile videoFile, String videoId) {
-        try{
-            FacebookPageTokenDTO tokenDTO = getPageCachedToken(facebookPageId);
-            File tempVideoFile = File.createTempFile("upload_" + videoId, ".tmp");
-            videoFile.transferTo(tempVideoFile);
-            ResponseEntity<String> response = uploadVideo(tempVideoFile, tokenDTO, videoId);
-            boolean delete = tempVideoFile.delete();
-            if (delete && response.getStatusCode().is2xxSuccessful()) {
-                return ResponseEntity.ok("Video uploaded successfully!");
-            }
-            return response;
-        }catch (Exception e){
-            return ResponseEntity.badRequest().body("Failed to upload video: " + e.getMessage());
-        }
-    }
-
-    private String initiateVideo(FacebookPageTokenDTO tokenDTO){
+    public PlatformPostResult storyOnFacebookPage(FileData story, String title, String content, Date scheduledAt, Long facebookPageId) {
         try {
+            if (story == null) {
+                return PlatformPostResult.failure(PlatformType.FACEBOOK_PAGE, "Story file is required for Story post.");
+            }
+
+            boolean isImage = story.getType().contains("image");
+
+            FacebookPageTokenDTO tokenDTO = getPageCachedToken(facebookPageId);
+            FacebookMedia facebookMedia;
+            if (!isImage){
+                String videoId = initiateVideo(tokenDTO, true);
+                File file = fileService.getFileFromFileData(story);
+
+                ResponseEntity<String> uploadResponse = uploadVideo(file, tokenDTO, videoId);
+                if (!uploadResponse.getStatusCode().is2xxSuccessful())
+                    return PlatformPostResult.failure(PlatformType.FACEBOOK_PAGE, "Failed to upload video." + uploadResponse.getBody());
+                facebookMedia = new FacebookMedia(
+                        videoId,
+                        story,
+                        PlatformMediaType.VIDEO
+                );
+            }else {
+                facebookMedia = uploadMediaToFacebook(story, facebookPageId);
+            }
             RestTemplate restTemplate = new RestTemplate();
-            String uploadUrl = String.format("https://graph.facebook.com/v22.0/%s/videos", tokenDTO.facebookPageId());
+            String urlEnding = isImage ? "photo_stories" : "video_stories";
+            String storyUrl = String.format("https://graph.facebook.com/v22.0/%s/%s", tokenDTO.facebookPageId(), urlEnding);
+            MultiValueMap<String, Object> storyBody = new LinkedMultiValueMap<>();
+            storyBody.add("access_token", tokenDTO.accessToken());
+            if (!isImage){
+                storyBody.add("upload_phase", "finish");
+                storyBody.add("video_id", facebookMedia.getMediaId());
+            }else {
+                storyBody.add("photo_id",facebookMedia.getMediaId());
+            }
+
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.MULTIPART_FORM_DATA);
 
-            MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
-            body.add("access_token", tokenDTO.accessToken());
-            body.add("upload_phase", "start");
+            HttpEntity<MultiValueMap<String, Object>> requestEntity = new HttpEntity<>(storyBody, headers);
+            ResponseEntity<Map> response = restTemplate.exchange(storyUrl, HttpMethod.POST, requestEntity, Map.class);
 
-            HttpEntity<MultiValueMap<String, Object>> request = new HttpEntity<>(body, headers);
-            ResponseEntity<Map> uploadResponse = restTemplate.exchange(uploadUrl, HttpMethod.POST, request, Map.class);
-            return uploadResponse.getBody().get("video_id").toString();
-        }catch (Exception e){
-            System.out.println("error: " + e.getMessage()); // Consider proper logging
-            return "error initiating video";
-        }
-    }
+            if (!response.getStatusCode().is2xxSuccessful()) {
+                throw new RuntimeException("Failed to create story post: " + response);
+            }
 
-    private ResponseEntity<String> uploadVideo(File videoFile, FacebookPageTokenDTO tokenDTO, String videoId) {
-        try {
-            RestTemplate restTemplate = new RestTemplate();
-            HttpHeaders headers = new HttpHeaders();
-            headers.setContentType(MediaType.APPLICATION_OCTET_STREAM);
-            headers.add("Authorization", "OAuth " + tokenDTO.accessToken());
-            headers.add("offset", "0");
-            headers.add("file_size", String.valueOf(videoFile.length()));
-
-            // Ensure Content-Length is set
-            headers.setContentLength(videoFile.length());
-
-            HttpEntity<FileSystemResource> request = new HttpEntity<>(new FileSystemResource(videoFile), headers);
-
-            ResponseEntity<String> uploadResponse = restTemplate.exchange(
-                    String.format("https://rupload.facebook.com/video-upload/v22.0/%s", videoId),
-                    HttpMethod.POST,
-                    request,
-                    String.class
+            facebookMediaRepository.save(facebookMedia);
+            FacebookPage facebookPage = facebookPageRepository.findById(facebookPageId)
+                    .orElseThrow( () -> new ResourceNotFoundException("Facebook page not found with ID: " + facebookPageId));
+            FacebookStory facebookStory = new FacebookStory(
+                    Objects.requireNonNull(response.getBody()).get("post_id").toString(),
+                    facebookMedia,
+                    facebookPage
             );
+            facebookStoryRepository.save(facebookStory);
 
-            // Optional: Delete file after upload
-            videoFile.delete();
-            return uploadResponse;
+            return PlatformPostResult.success(PlatformType.FACEBOOK_PAGE, facebookStory);
         } catch (Exception e) {
-            e.printStackTrace();
-            return ResponseEntity.badRequest().body("Failed to upload video: " + e.getMessage());
+            try {
+                fileService.deleteFileFromFileSystem(story);
+            } catch (IOException ex) {
+                System.out.println("Failed to delete video file: " + ex.getMessage());
+            }
+            return PlatformPostResult.failure(PlatformType.FACEBOOK_PAGE, "Failed to post Story: " + e.getMessage());
         }
     }
-
-
 
     @Override
-    public PlatformPostResult storyOnFacebookPage(Long suitId, FileData image, String title, String content, Date scheduledAt, Long facebookPageId) {
-        return null;
+    public PlatformInsightsResult getFacebookPageInsights(Long pageId, String metricName) {
+        try {
+            FacebookPageTokenDTO tokenDTO = getPageCachedToken(pageId);
+
+            String insightsUrl = String.format(
+                    "https://graph.facebook.com/v22.0/%s/insights/%s?access_token=%s",
+                    tokenDTO.facebookPageId(),
+                    metricName,
+                    tokenDTO.accessToken()
+            );
+
+            RestTemplate restTemplate = new RestTemplate();
+            ResponseEntity<Map> response = restTemplate.exchange(insightsUrl, HttpMethod.GET, null, Map.class);
+
+            if (!response.getStatusCode().is2xxSuccessful()) {
+                throw new RuntimeException("Failed to fetch insights: " + response.getBody());
+            }
+            System.out.println(response.getBody());
+            return PlatformInsightsResult.success(PlatformType.FACEBOOK_PAGE, Objects.requireNonNull(response.getBody()));
+        } catch (Exception e) {
+            return PlatformInsightsResult.failure(PlatformType.FACEBOOK_PAGE, "Failed to fetch insights: " + e.getMessage());
+        }
+    }
+
+    @Override
+    public PlatformInsightsResult getFacebookPostInsights(Long pageId, String facebookPostId, String metricList) {
+        try {
+
+            FacebookPost facebookPost = facebookPostRepository.findById(facebookPostId)
+                    .orElseThrow(() -> new ResourceNotFoundException("Facebook post not found with ID: " + facebookPostId));
+
+            FacebookPageTokenDTO tokenDTO = getPageCachedToken(pageId);
+            String insightsUrl = String.format(
+                    "https://graph.facebook.com/v22.0/%s/insights/?access_token=%s&metric=%s",
+                    facebookPostId,
+                    tokenDTO.accessToken(),
+                    metricList
+            );
+            System.out.println(insightsUrl);
+
+            RestTemplate restTemplate = new RestTemplate();
+            ResponseEntity<Map> response = restTemplate.exchange(insightsUrl, HttpMethod.GET, null, Map.class);
+            System.out.println(response.getBody());
+            if (!response.getStatusCode().is2xxSuccessful()) {
+                throw new RuntimeException("Failed to fetch insights: " + response.getBody());
+            }
+            Map<String, Object> insights = new HashMap<>();
+            insights.put("post", facebookPost);
+            insights.put("insights", response.getBody());
+            return PlatformInsightsResult.success(PlatformType.FACEBOOK_PAGE, insights);
+        } catch (Exception e) {
+            return PlatformInsightsResult.failure(PlatformType.FACEBOOK_PAGE, e.getMessage());
+        }
+    }
+
+    @Override
+    public ResponseEntity<Object> getAllPosts(Long pageId){
+        return ResponseEntity.ok(facebookPostRepository.findAllByPageId(pageId));
     }
 
     @Override
@@ -383,35 +414,6 @@ public class FacebookServiceImpl implements FacebookService {
 
     //Utility public methods -------------------------------------------------------------------------------------------------------------------------------
 
-    @Override
-    public String testPostingWithMediaIds(List<String> mediaIds, Long pageId){
-        try {
-            FacebookPageTokenDTO tokenDTO = fetchPageToken(pageId);
-            RestTemplate restTemplate = new RestTemplate();
-
-            String url = String.format("https://graph.facebook.com/v22.0/%s/feed", tokenDTO.facebookPageId());
-
-            HttpHeaders headers = new HttpHeaders();
-            headers.setContentType(MediaType.APPLICATION_JSON);
-
-            List<Map<String, String>> attachedMedia = mediaIds.stream()
-                    .map(id -> Map.of("media_fbid", id))
-                    .toList();
-
-            Map<String, Object> body = new HashMap<>();
-            body.put("message", "bjeh rabi e5dim");
-            body.put("attached_media", attachedMedia);
-            body.put("access_token", tokenDTO.accessToken());  // Use the correct Page Access Token
-
-            HttpEntity<Map<String, Object>> request = new HttpEntity<>(body, headers);
-
-            ResponseEntity<Map> response = restTemplate.exchange(url, HttpMethod.POST, request, Map.class);
-            return "Post Created! ID: " + Objects.requireNonNull(response.getBody()).toString();
-        } catch (Exception e) {
-            return "Failed to create post: " + e.getMessage();
-        }
-    }
-
     @Transactional
     @Override
     public FacebookAccount exchangeCodeForToken(String authorizationCode, boolean isGlobal, String redirectUri) throws Exception {
@@ -439,8 +441,8 @@ public class FacebookServiceImpl implements FacebookService {
         FacebookAccount savedAccount = facebookAccountRepository.findFacebookAccountByFacebookId(userInfo.get("id").asText())
                 .orElseGet(() -> {
                     FacebookAccount newAccount = new FacebookAccount(
-                            userInfo.get("name").asText(),
                             userInfo.get("id").asText(),
+                            userInfo.get("name").asText(),
                             new Date(),
                             new Date(),
                             isGlobal
@@ -468,7 +470,7 @@ public class FacebookServiceImpl implements FacebookService {
 
         if (longLivedToken == null) throw new RuntimeException("Long-lived token is missing. Full response: " + jsonNode);
 
-        FacebookAccountToken savedToken = generateAndSaveAccountToken(longLivedToken, expiresIn, savedAccount, FacebookOAuthTokenType.FACEBOOK_LONG_LIVED);
+        FacebookAccountToken savedToken = generateAndSaveAccountToken(longLivedToken, expiresIn, savedAccount);
 
         cacheAccountToken(savedToken);
 
@@ -552,7 +554,6 @@ public class FacebookServiceImpl implements FacebookService {
         FacebookPageTokenDTO bestToken = tokenList.stream()
                 .max(Comparator.comparingInt(token -> token.expiresIn() == 0 ? Integer.MAX_VALUE : token.expiresIn()))
                 .orElseThrow(() -> new IllegalStateException("Failed to determine the best token for page: " + pageId));
-        // If duplicates exist, remove all and keep only the best token
         if (tokenList.size() > 1) {
             redisPageTemplate.delete(key);
             redisPageTemplate.opsForList().rightPush(key, bestToken);
@@ -614,17 +615,17 @@ public class FacebookServiceImpl implements FacebookService {
             ResponseEntity<Map> response = restTemplate.postForEntity(url, request, Map.class);
 
             if (response.getBody() != null) {
-                Map<String, Object> responseBody = response.getBody();
+                Map responseBody = response.getBody();
 
                 if (responseBody.containsKey("access_token")) {
                     String newAccessToken = responseBody.get("access_token").toString();
 
-                    Integer expiresIn = responseBody.containsKey("expires_in")
+                    int expiresIn = responseBody.containsKey("expires_in")
                             ? Integer.parseInt(responseBody.get("expires_in").toString())
                             : 0; // Assume long-lived if not provided
 
                     FacebookAccount facebookAccount = getFacebookAccountByFacebookId(accountToken.facebookAccountId());
-                    FacebookAccountToken newAccountToken = generateAndSaveAccountToken(newAccessToken, expiresIn, facebookAccount, FacebookOAuthTokenType.FACEBOOK_LONG_LIVED);
+                    FacebookAccountToken newAccountToken = generateAndSaveAccountToken(newAccessToken, expiresIn, facebookAccount);
 
                     FacebookAccountTokenDTO accountTokenDTO = cacheAccountToken(newAccountToken);
 
@@ -663,6 +664,153 @@ public class FacebookServiceImpl implements FacebookService {
         }
     }
 
+    private String initiateVideo(FacebookPageTokenDTO tokenDTO, boolean isStory){
+        try {
+            RestTemplate restTemplate = new RestTemplate();
+            String uploadUrl = isStory ?
+                    String.format("https://graph.facebook.com/v22.0/%s/video_stories", tokenDTO.facebookPageId())
+                    : String.format("https://graph.facebook.com/v22.0/%s/videos", tokenDTO.facebookPageId());
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.MULTIPART_FORM_DATA);
+
+            MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
+            body.add("access_token", tokenDTO.accessToken());
+            body.add("upload_phase", "start");
+
+            HttpEntity<MultiValueMap<String, Object>> request = new HttpEntity<>(body, headers);
+            ResponseEntity<Map> uploadResponse = restTemplate.exchange(uploadUrl, HttpMethod.POST, request, Map.class);
+            return Objects.requireNonNull(uploadResponse.getBody()).get("video_id").toString();
+        }catch (Exception e){
+            System.out.println("error: " + e.getMessage()); // Consider proper logging
+            return "error initiating video";
+        }
+    }
+
+    private ResponseEntity<String> uploadVideo(File videoFile, FacebookPageTokenDTO tokenDTO, String videoId) {
+        try {
+            RestTemplate restTemplate = new RestTemplate();
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_OCTET_STREAM);
+            headers.add("Authorization", "OAuth " + tokenDTO.accessToken());
+            headers.add("offset", "0");
+            headers.add("file_size", String.valueOf(videoFile.length()));
+
+            // Ensure Content-Length is set
+            headers.setContentLength(videoFile.length());
+
+            HttpEntity<FileSystemResource> request = new HttpEntity<>(new FileSystemResource(videoFile), headers);
+
+            // Optional: Delete file after upload
+            return restTemplate.exchange(
+                    String.format("https://rupload.facebook.com/video-upload/v22.0/%s", videoId),
+                    HttpMethod.POST,
+                    request,
+                    String.class
+            );
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.badRequest().body("Failed to upload video: " + e.getMessage());
+        }
+    }
+
+    private PlatformPostResult postVideo(FileData fileData, String title, String content, @Nullable Date scheduledAt, FacebookPage facebookPage) {
+        try {
+            FacebookPageTokenDTO tokenDTO = getPageCachedToken(facebookPage.getId());
+            RestTemplate restTemplate = new RestTemplate();
+            String url = String.format("https://graph.facebook.com/v22.0/%s/videos", tokenDTO.facebookPageId());
+
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.MULTIPART_FORM_DATA);
+
+            FileSystemResource resource = new FileSystemResource(fileData.getPath());
+
+            MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
+            body.add("access_token", tokenDTO.accessToken());
+            body.add("title", title);
+            body.add("description", content);
+            body.add("resource", resource);
+            if (scheduledAt != null) {
+                body.add("scheduled_publish_time", String.valueOf(scheduledAt.getTime() / 1000));
+                body.add("published", "false");
+            } else {
+                body.add("published", "true");
+            }
+
+            HttpEntity<MultiValueMap<String, Object>> request = new HttpEntity<>(body, headers);
+            ResponseEntity<Map> response = restTemplate.exchange(url, HttpMethod.POST, request, Map.class);
+            if (!response.getStatusCode().is2xxSuccessful()) {
+                throw new RuntimeException("Failed to create video post: " + response.getBody());
+            }
+            System.out.println(response.getBody());
+            FacebookMedia media = new FacebookMedia(
+                    Objects.requireNonNull(response.getBody()).get("id").toString(),
+                    fileData,
+                    PlatformMediaType.VIDEO
+            );
+            FacebookPost post = new FacebookPost(
+                    Objects.requireNonNull(response.getBody()).get("post_id").toString(),
+                    content,
+                    List.of(facebookMediaRepository.save(media)),
+                    facebookPage
+            );
+            return PlatformPostResult.success(PlatformType.FACEBOOK_PAGE, facebookPostRepository.save(post));
+        } catch (Exception e) {
+            return PlatformPostResult.failure(PlatformType.FACEBOOK_PAGE, e.getMessage());
+        }
+    }
+
+    private PlatformPostResult makePostWithImages(List<FileData> files, String title, String content, Date scheduledAt, FacebookPage facebookPage) {
+        try {
+            FacebookPageTokenDTO tokenDTO = getPageCachedToken(facebookPage.getId());
+            RestTemplate restTemplate = new RestTemplate();
+            String url = String.format("https://graph.facebook.com/v22.0/%s/feed", tokenDTO.facebookPageId());
+
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+            ExecutorService executor = Executors.newFixedThreadPool(files.size()); // Adjust pool size as needed
+            List<Callable<FacebookMedia>> tasks = new ArrayList<>();
+            List<FacebookMedia> mediaList = new ArrayList<>();
+            for (FileData fileData : files) {
+                tasks.add(() ->
+                        uploadMediaToFacebook(fileData, facebookPage.getId())
+                );
+            }
+            List<Future<FacebookMedia>> futures = executor.invokeAll(tasks);
+            for (Future<FacebookMedia> future : futures) {
+                try {
+                    mediaList.add(future.get());
+                } catch (ExecutionException e) {
+                    System.out.println(e.getMessage());
+                }
+            }
+
+            executor.shutdown();
+
+            List<Map<String, String>> attachedMedia = mediaList.stream()
+                    .map(media -> Map.of("media_fbid", media.getMediaId()))
+                    .toList();
+
+            Map<String, Object> body = new HashMap<>();
+            body.put("title", title);
+            body.put("message", content);
+            body.put("attached_media", attachedMedia);
+            body.put("access_token", tokenDTO.accessToken());  // Use the correct Page Access Token
+
+            HttpEntity<Map<String, Object>> request = new HttpEntity<>(body, headers);
+
+            ResponseEntity<Map> response = restTemplate.exchange(url, HttpMethod.POST, request, Map.class);
+            FacebookPost post = new FacebookPost(
+                    Objects.requireNonNull(response.getBody()).get("id").toString().split("_")[1],
+                    content,
+                    mediaList,
+                    facebookPage
+            );
+            return PlatformPostResult.success(PlatformType.FACEBOOK_PAGE, facebookPostRepository.save(post));
+        }catch (Exception e){
+            return PlatformPostResult.failure(PlatformType.FACEBOOK_PAGE, e.getMessage());
+        }
+    }
+
     private List<FacebookPageTokenDTO> refreshPageTokens(FacebookAccountTokenDTO accountToken) {
         try {
             RestTemplate restTemplate = new RestTemplate();
@@ -675,20 +823,16 @@ public class FacebookServiceImpl implements FacebookService {
                 List<FacebookPageTokenDTO> newPageTokens = new ArrayList<>();
 
                 for (Map<String, Object> page : pages) {
-                    try{
-                        FacebookPage facebookPage = getPageByFacebookId(page.get("id").toString());
-                        String pageAccessToken = page.get("access_token").toString();
+                    FacebookPage facebookPage = getPageByFacebookId(page.get("id").toString());
+                    String pageAccessToken = page.get("access_token").toString();
 
-                        Integer expiresIn = page.containsKey("expires_in")
-                                ? Integer.parseInt(page.get("expires_in").toString())
-                                : 0; // Assume long-lived if not provided
+                    int expiresIn = page.containsKey("expires_in")
+                            ? Integer.parseInt(page.get("expires_in").toString())
+                            : 0; // Assume long-lived if not provided
 
-                        newPageTokens.add(facebookPageTokenDTOMapper.apply(
-                                generateAndSavePageToken(pageAccessToken, expiresIn, facebookPage)
-                        ));
-                    }catch (ResourceNotFoundException e){
-                        continue;
-                    }
+                    newPageTokens.add(facebookPageTokenDTOMapper.apply(
+                            generateAndSavePageToken(pageAccessToken, expiresIn, facebookPage)
+                    ));
                 }
                 return newPageTokens;
             } else {
@@ -749,7 +893,7 @@ public class FacebookServiceImpl implements FacebookService {
         return tokenDTO;
     }
 
-    private FacebookAccountToken generateAndSaveAccountToken(String longLivedToken, int expiresIn, FacebookAccount facebookAccount, FacebookOAuthTokenType tokenType) {
+    private FacebookAccountToken generateAndSaveAccountToken(String longLivedToken, int expiresIn, FacebookAccount facebookAccount) {
 
         FacebookAccountToken oAuthToken = new FacebookAccountToken();
         String encryptedToken;
@@ -761,7 +905,7 @@ public class FacebookServiceImpl implements FacebookService {
         oAuthToken.setAccessToken(encryptedToken);
         oAuthToken.setExpiresIn(expiresIn); //remember to account for that 0 possibility being non expiry
         oAuthToken.setAccount(facebookAccount);
-        oAuthToken.setOAuthTokenType(tokenType);
+        oAuthToken.setOAuthTokenType(FacebookOAuthTokenType.FACEBOOK_LONG_LIVED);
 
         revokeAllAccountTokens(facebookAccount);
 
@@ -818,5 +962,4 @@ public class FacebookServiceImpl implements FacebookService {
     private String formulatePageKey(Long id) {
         return "pageId_"+ id.toString();
     }
-
 }

@@ -19,6 +19,7 @@ import java.io.IOException;
 import java.nio.file.*;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
 
 @Service
@@ -46,7 +47,8 @@ public class FileServiceImpl implements FileService{
     private final String  FILE_SYSTEM_PATH= Paths.get("").toAbsolutePath().resolve("src").resolve("main").resolve("resources").resolve("FileSystem").toString() + "/";
 
     @Override
-    public FileData processUploadedFile(@NotNull final MultipartFile file, String type) throws IOException {
+    public FileData processUploadedFile(@NotNull final MultipartFile file) throws IOException {
+        String type = Objects.requireNonNull(file.getContentType()).contains("video") ? "video" : "image";
         var originalFileName = file.getOriginalFilename();
         assert originalFileName != null;
         var fileName = originalFileName.substring(0, originalFileName.indexOf('.'));

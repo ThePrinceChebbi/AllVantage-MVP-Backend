@@ -1,7 +1,7 @@
 package com.MarketingMVP.AllVantage.Services.Suit;
 
 import com.MarketingMVP.AllVantage.DTOs.Post.PostSendDTO;
-import com.MarketingMVP.AllVantage.DTOs.Response.PlatformPostResult;
+import com.MarketingMVP.AllVantage.DTOs.Response.Postable.PlatformPostResult;
 import com.MarketingMVP.AllVantage.DTOs.Suit.SuitDTOMapper;
 import com.MarketingMVP.AllVantage.Entities.Account.Facebook.Page.FacebookPage;
 import com.MarketingMVP.AllVantage.Entities.Account.Instagram.InstagramAccount;
@@ -18,14 +18,12 @@ import com.MarketingMVP.AllVantage.Entities.PlatformContent.X.XPost;
 import com.MarketingMVP.AllVantage.Entities.Responses.Error.CustomErrorLog;
 import com.MarketingMVP.AllVantage.Entities.Responses.Error.ErrorType;
 import com.MarketingMVP.AllVantage.Entities.FileData.FileData;
-import com.MarketingMVP.AllVantage.Entities.Postable.Reel.Reel;
 import com.MarketingMVP.AllVantage.Entities.Responses.Success.CustomSuccessLog;
 import com.MarketingMVP.AllVantage.Entities.Suit.Suit;
 import com.MarketingMVP.AllVantage.Entities.UserEntity.Client;
 import com.MarketingMVP.AllVantage.Entities.UserEntity.Employee;
 import com.MarketingMVP.AllVantage.Exceptions.ResourceNotFoundException;
 import com.MarketingMVP.AllVantage.Repositories.Account.PlatformType;
-import com.MarketingMVP.AllVantage.Entities.Postable.Postable;
 import com.MarketingMVP.AllVantage.Repositories.Post.PostableRepository;
 import com.MarketingMVP.AllVantage.Repositories.Suit.SuitRepository;
 import com.MarketingMVP.AllVantage.Services.Accounts.Facebook.FacebookService;
@@ -41,7 +39,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.File;
 import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.*;
@@ -74,7 +71,7 @@ public class SuitServiceImpl implements SuitService {
     public ResponseEntity<Object> addNewSuit(String name, String description, UUID clientId, MultipartFile file) {
         try{
             Client client = userService.getClientById(clientId);
-            FileData fileData = fileService.processUploadedFile(file,"image");
+            FileData fileData = fileService.processUploadedFile(file);
 
             Suit suit = new Suit();
             suit.setName(name);
@@ -116,7 +113,7 @@ public class SuitServiceImpl implements SuitService {
         try{
             Suit suit = findSuitById(suitId);
             FileData originalFile = suit.getImage();
-            FileData fileData = fileService.processUploadedFile(file, file.getContentType());
+            FileData fileData = fileService.processUploadedFile(file);
             suit.setImage(fileData);
             Suit updatedSuit = suitRepository.save(suit);
             fileService.deleteFileFromFileSystem(originalFile);
@@ -192,7 +189,7 @@ public class SuitServiceImpl implements SuitService {
             List<FileData> fileDataList = files.stream()
                     .map(file -> {
                         try {
-                            return fileService.processUploadedFile(file, file.getContentType());
+                            return fileService.processUploadedFile(file);
                         } catch (IOException e) {
                             System.out.println(e.getMessage());
                             return null;
@@ -274,7 +271,7 @@ public class SuitServiceImpl implements SuitService {
                             postSendDTO.getTitle(),
                             postSendDTO.getContent(),
                             postSendDTO.getScheduledAt(),
-                            facebookPage
+                            facebookPage.getId()
                     ));
                 }
             }
@@ -419,17 +416,6 @@ public class SuitServiceImpl implements SuitService {
     }
 
     @Override
-    public ResponseEntity<Object> postToFacebook(Long suitId, List<MultipartFile> files, String title, String content, Date scheduledAt, Long facebookPageId) {
-        return ResponseEntity.ok(facebookService.createFacebookPostDirectly(
-                files,
-                title,
-                content,
-                scheduledAt,
-                facebookPageId
-        ));
-    }
-
-    @Override
     public ResponseEntity<Object> postReelToSuit(Long suitId, MultipartFile videoFile, String reelPostDTOJson) {
         try{
             JsonNode jsonNode = new ObjectMapper().readTree(reelPostDTOJson);
@@ -451,7 +437,7 @@ public class SuitServiceImpl implements SuitService {
                 return ResponseEntity.status(401).body("Unauthorized to post to this suit");
             }*/
 
-            FileData fileData = fileService.processUploadedFile(videoFile, videoFile.getContentType());
+            FileData fileData = fileService.processUploadedFile(videoFile);
             List<FacebookPage> facebookPages = filterAccounts(
                     postSendDTO.getFacebookPageIds(),
                     suit.getFacebookPages(),
@@ -517,7 +503,6 @@ public class SuitServiceImpl implements SuitService {
 
             /*File tempVideoFile = File.createTempFile("upload_" + videoFile.getOriginalFilename(), ".tmp");
             videoFile.transferTo(tempVideoFile);*/
-            File savedVideoFile = fileService.getFileFromFileData(fileData);
             ExecutorService executor = Executors.newFixedThreadPool(maxThreads);
 
             List<Callable<PlatformPostResult>> tasks = new ArrayList<>();
@@ -525,7 +510,7 @@ public class SuitServiceImpl implements SuitService {
             if (!facebookPages.isEmpty()) {
                 for (FacebookPage facebookPage : facebookPages) {
                     tasks.add(() -> facebookService.createFacebookReel(
-                            savedVideoFile,
+                            fileData,
                             postSendDTO.getTitle(),
                             postSendDTO.getContent(),
                             postSendDTO.getScheduledAt(),
