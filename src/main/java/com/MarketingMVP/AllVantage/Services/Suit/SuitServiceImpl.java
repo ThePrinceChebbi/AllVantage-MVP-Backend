@@ -202,7 +202,7 @@ public class SuitServiceImpl implements SuitService {
                     postSendDTO.getFacebookPageIds(),
                     suit.getFacebookPages(),
                     FacebookPage::getId,
-                    PlatformType.FACEBOOK_PAGE
+                    PlatformType.FACEBOOK
             );
 
             List<InstagramAccount> instagramAccounts = filterAccounts(
@@ -442,7 +442,7 @@ public class SuitServiceImpl implements SuitService {
                     postSendDTO.getFacebookPageIds(),
                     suit.getFacebookPages(),
                     FacebookPage::getId,
-                    PlatformType.FACEBOOK_PAGE
+                    PlatformType.FACEBOOK
             );
             List<InstagramAccount> instagramAccounts = filterAccounts(
                     postSendDTO.getInstagramAccountIds(),

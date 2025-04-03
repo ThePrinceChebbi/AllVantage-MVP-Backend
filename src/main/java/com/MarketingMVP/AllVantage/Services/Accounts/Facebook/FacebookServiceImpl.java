@@ -40,8 +40,6 @@ import org.springframework.core.io.FileSystemResource;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.http.*;
 import org.springframework.lang.Nullable;
-import org.springframework.social.facebook.api.Facebook;
-import org.springframework.social.facebook.api.impl.FacebookTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.LinkedMultiValueMap;
@@ -177,7 +175,7 @@ public class FacebookServiceImpl implements FacebookService {
             } else if (videoFiles.isEmpty()) {
                 return makePostWithImages(imageFiles, title, content, scheduledAt, facebookPage);
             }else {
-                return PlatformPostResult.failure(PlatformType.FACEBOOK_PAGE, "Either one video, one or more images, or no media is allowed");
+                return PlatformPostResult.failure(PlatformType.FACEBOOK, "Either one video, one or more images, or no media is allowed");
             }
 
         } catch (Exception e) {
@@ -190,7 +188,7 @@ public class FacebookServiceImpl implements FacebookService {
                 }
             );
                 System.out.println(e.getMessage());
-            return PlatformPostResult.failure(PlatformType.FACEBOOK_PAGE, e.getMessage());
+            return PlatformPostResult.failure(PlatformType.FACEBOOK, e.getMessage());
         }
     }
 
@@ -202,14 +200,14 @@ public class FacebookServiceImpl implements FacebookService {
 
             String filename = videoFile.getPrefix();
             if (!filename.matches(".*\\.(mp4|avi|mov|mkv|webm|flv|wmv|mpeg|3gp)$")) {
-                return PlatformPostResult.failure(PlatformType.FACEBOOK_PAGE, "Video file is required for Reel post.");
+                return PlatformPostResult.failure(PlatformType.FACEBOOK, "Video file is required for Reel post.");
             }
             FacebookPageTokenDTO tokenDTO = getPageCachedToken(pageId);
 
             String videoId = initiateVideo(tokenDTO, false);
             File file = fileService.getFileFromFileData(videoFile);
             ResponseEntity<String> uploadResponse = uploadVideo(file, tokenDTO, videoId);
-            if (!uploadResponse.getStatusCode().is2xxSuccessful()) return PlatformPostResult.failure(PlatformType.FACEBOOK_PAGE, "Failed to upload video." + uploadResponse.getBody());
+            if (!uploadResponse.getStatusCode().is2xxSuccessful()) return PlatformPostResult.failure(PlatformType.FACEBOOK, "Failed to upload video." + uploadResponse.getBody());
 
             RestTemplate restTemplate = new RestTemplate();
             // Step 2: Post the uploaded video as a Reel
@@ -238,14 +236,14 @@ public class FacebookServiceImpl implements FacebookService {
                     facebookPage
             );
             facebookReelRepository.save(facebookReel);
-            return PlatformPostResult.success(PlatformType.FACEBOOK_PAGE, facebookReel);
+            return PlatformPostResult.success(PlatformType.FACEBOOK, facebookReel);
         } catch (Exception e) {
             try {
                 fileService.deleteFileFromFileSystem(videoFile);
             } catch (IOException ex) {
                 System.out.println("Failed to delete video file: " + ex.getMessage());
             }
-            return PlatformPostResult.failure(PlatformType.FACEBOOK_PAGE, "Failed to post Reel: " + e.getMessage());
+            return PlatformPostResult.failure(PlatformType.FACEBOOK, "Failed to post Reel: " + e.getMessage());
         }
     }
 
@@ -253,7 +251,7 @@ public class FacebookServiceImpl implements FacebookService {
     public PlatformPostResult storyOnFacebookPage(FileData story, String title, String content, Date scheduledAt, Long facebookPageId) {
         try {
             if (story == null) {
-                return PlatformPostResult.failure(PlatformType.FACEBOOK_PAGE, "Story file is required for Story post.");
+                return PlatformPostResult.failure(PlatformType.FACEBOOK, "Story file is required for Story post.");
             }
 
             boolean isImage = story.getType().contains("image");
@@ -266,7 +264,7 @@ public class FacebookServiceImpl implements FacebookService {
 
                 ResponseEntity<String> uploadResponse = uploadVideo(file, tokenDTO, videoId);
                 if (!uploadResponse.getStatusCode().is2xxSuccessful())
-                    return PlatformPostResult.failure(PlatformType.FACEBOOK_PAGE, "Failed to upload video." + uploadResponse.getBody());
+                    return PlatformPostResult.failure(PlatformType.FACEBOOK, "Failed to upload video." + uploadResponse.getBody());
                 facebookMedia = new FacebookMedia(
                         videoId,
                         story,
@@ -307,14 +305,14 @@ public class FacebookServiceImpl implements FacebookService {
             );
             facebookStoryRepository.save(facebookStory);
 
-            return PlatformPostResult.success(PlatformType.FACEBOOK_PAGE, facebookStory);
+            return PlatformPostResult.success(PlatformType.FACEBOOK, facebookStory);
         } catch (Exception e) {
             try {
                 fileService.deleteFileFromFileSystem(story);
             } catch (IOException ex) {
                 System.out.println("Failed to delete video file: " + ex.getMessage());
             }
-            return PlatformPostResult.failure(PlatformType.FACEBOOK_PAGE, "Failed to post Story: " + e.getMessage());
+            return PlatformPostResult.failure(PlatformType.FACEBOOK, "Failed to post Story: " + e.getMessage());
         }
     }
 
@@ -337,9 +335,9 @@ public class FacebookServiceImpl implements FacebookService {
                 throw new RuntimeException("Failed to fetch insights: " + response.getBody());
             }
             System.out.println(response.getBody());
-            return PlatformInsightsResult.success(PlatformType.FACEBOOK_PAGE, Objects.requireNonNull(response.getBody()));
+            return PlatformInsightsResult.success(PlatformType.FACEBOOK, Objects.requireNonNull(response.getBody()));
         } catch (Exception e) {
-            return PlatformInsightsResult.failure(PlatformType.FACEBOOK_PAGE, "Failed to fetch insights: " + e.getMessage());
+            return PlatformInsightsResult.failure(PlatformType.FACEBOOK, "Failed to fetch insights: " + e.getMessage());
         }
     }
 
@@ -368,9 +366,9 @@ public class FacebookServiceImpl implements FacebookService {
             Map<String, Object> insights = new HashMap<>();
             insights.put("post", facebookPost);
             insights.put("insights", response.getBody());
-            return PlatformInsightsResult.success(PlatformType.FACEBOOK_PAGE, insights);
+            return PlatformInsightsResult.success(PlatformType.FACEBOOK, insights);
         } catch (Exception e) {
-            return PlatformInsightsResult.failure(PlatformType.FACEBOOK_PAGE, e.getMessage());
+            return PlatformInsightsResult.failure(PlatformType.FACEBOOK, e.getMessage());
         }
     }
 
@@ -753,9 +751,9 @@ public class FacebookServiceImpl implements FacebookService {
                     List.of(facebookMediaRepository.save(media)),
                     facebookPage
             );
-            return PlatformPostResult.success(PlatformType.FACEBOOK_PAGE, facebookPostRepository.save(post));
+            return PlatformPostResult.success(PlatformType.FACEBOOK, facebookPostRepository.save(post));
         } catch (Exception e) {
-            return PlatformPostResult.failure(PlatformType.FACEBOOK_PAGE, e.getMessage());
+            return PlatformPostResult.failure(PlatformType.FACEBOOK, e.getMessage());
         }
     }
 
@@ -805,9 +803,9 @@ public class FacebookServiceImpl implements FacebookService {
                     mediaList,
                     facebookPage
             );
-            return PlatformPostResult.success(PlatformType.FACEBOOK_PAGE, facebookPostRepository.save(post));
+            return PlatformPostResult.success(PlatformType.FACEBOOK, facebookPostRepository.save(post));
         }catch (Exception e){
-            return PlatformPostResult.failure(PlatformType.FACEBOOK_PAGE, e.getMessage());
+            return PlatformPostResult.failure(PlatformType.FACEBOOK, e.getMessage());
         }
     }
 

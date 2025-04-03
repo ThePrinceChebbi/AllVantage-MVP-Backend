@@ -65,7 +65,7 @@ public class AccountController {
             PlatformPostResult result = facebookService.createFacebookPost(fileDataList, title, content, scheduledAt, pageId);
             return result.isSuccess() ? ResponseEntity.ok(result) : ResponseEntity.internalServerError().body(result);
         } catch (Exception e) {
-            return ResponseEntity.internalServerError().body(PlatformPostResult.failure(PlatformType.FACEBOOK_PAGE, e.getMessage()));
+            return ResponseEntity.internalServerError().body(PlatformPostResult.failure(PlatformType.FACEBOOK, e.getMessage()));
         }
     }
 
@@ -82,7 +82,7 @@ public class AccountController {
             PlatformPostResult result = facebookService.createFacebookReel(fileData, title, content, scheduledAt, pageId);
             return result.isSuccess() ? ResponseEntity.ok(result) : ResponseEntity.internalServerError().body(result);
         } catch (Exception e) {
-            return ResponseEntity.internalServerError().body(PlatformPostResult.failure(PlatformType.FACEBOOK_PAGE, e.getMessage()));
+            return ResponseEntity.internalServerError().body(PlatformPostResult.failure(PlatformType.FACEBOOK, e.getMessage()));
         }
     }
 
@@ -99,7 +99,7 @@ public class AccountController {
             PlatformPostResult result = facebookService.storyOnFacebookPage(fileData, title, content, scheduledAt, pageId);
             return result.isSuccess() ? ResponseEntity.ok(result) : ResponseEntity.internalServerError().body(result);
         } catch (Exception e) {
-            return ResponseEntity.internalServerError().body(PlatformPostResult.failure(PlatformType.FACEBOOK_PAGE, e.getMessage()));
+            return ResponseEntity.internalServerError().body(PlatformPostResult.failure(PlatformType.FACEBOOK, e.getMessage()));
         }
     }
 
@@ -112,7 +112,7 @@ public class AccountController {
             PlatformInsightsResult result = facebookService.getFacebookPageInsights(pageId, metricName);
             return result.isSuccess() ? ResponseEntity.ok(result) : ResponseEntity.internalServerError().body(result);
         } catch (Exception e) {
-            return ResponseEntity.internalServerError().body(PlatformPostResult.failure(PlatformType.FACEBOOK_PAGE, e.getMessage()));
+            return ResponseEntity.internalServerError().body(PlatformPostResult.failure(PlatformType.FACEBOOK, e.getMessage()));
         }
     }
 
@@ -126,7 +126,7 @@ public class AccountController {
             PlatformInsightsResult result = facebookService.getFacebookPostInsights(pageId, postId, metricList);
             return result.isSuccess() ? ResponseEntity.ok(result) : ResponseEntity.internalServerError().body(result);
         } catch (Exception e) {
-            return ResponseEntity.internalServerError().body(PlatformPostResult.failure(PlatformType.FACEBOOK_PAGE, e.getMessage()));
+            return ResponseEntity.internalServerError().body(PlatformPostResult.failure(PlatformType.FACEBOOK, e.getMessage()));
         }
     }
 
@@ -135,7 +135,7 @@ public class AccountController {
         try {
             return facebookService.getAllPosts(pageId);
         } catch (Exception e) {
-            return ResponseEntity.internalServerError().body(PlatformPostResult.failure(PlatformType.FACEBOOK_PAGE, e.getMessage()));
+            return ResponseEntity.internalServerError().body(PlatformPostResult.failure(PlatformType.FACEBOOK, e.getMessage()));
         }
     }
 }
