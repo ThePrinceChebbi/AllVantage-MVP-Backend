@@ -18,7 +18,7 @@ import com.MarketingMVP.AllVantage.Entities.FileData.FileData;
 import com.MarketingMVP.AllVantage.Entities.PlatformContent.Facebook.FacebookMedia;
 import com.MarketingMVP.AllVantage.Entities.PlatformContent.Facebook.FacebookPost;
 import com.MarketingMVP.AllVantage.Entities.Tokens.OAuthToken.Facebook.FacebookAccount.FacebookAccountToken;
-import com.MarketingMVP.AllVantage.Entities.Tokens.OAuthToken.Facebook.FacebookAccount.FacebookOAuthTokenType;
+import com.MarketingMVP.AllVantage.Entities.Tokens.OAuthToken.MetaOAuthTokenType;
 import com.MarketingMVP.AllVantage.Entities.Tokens.OAuthToken.Facebook.FacebookPage.FacebookPageToken;
 import com.MarketingMVP.AllVantage.Exceptions.ResourceNotFoundException;
 import com.MarketingMVP.AllVantage.Repositories.Account.Facebook.FacebookAccountRepository;
@@ -106,7 +106,7 @@ public class FacebookServiceImpl implements FacebookService {
     @Override
     public RedirectView getAuthenticationCode(String redirectUri) {
 
-        String authUrl = "https://www.facebook.com/v19.0/dialog/oauth" +
+        String authUrl = "https://www.facebook.com/v22.0/dialog/oauth" +
                 "?client_id=" + clientId +
                 "&redirect_uri=" + redirectUri +
                 "&scope=" + scope +
@@ -380,7 +380,7 @@ public class FacebookServiceImpl implements FacebookService {
     @Override
     public ResponseEntity<Object> testRefreshMethod(Long accountId) {
         try{
-            return refreshAllTokens(fetchAccountToken(accountId, FacebookOAuthTokenType.FACEBOOK_LONG_LIVED));
+            return refreshAllTokens(fetchAccountToken(accountId, MetaOAuthTokenType.FACEBOOK_LONG_LIVED));
         }catch (Exception e){
             return ResponseEntity.badRequest().body("Error refreshing tokens: " + e.getMessage());
         }
@@ -477,7 +477,7 @@ public class FacebookServiceImpl implements FacebookService {
 
     @Override
     public FacebookPage authenticateFacebookPage(Long accountId, String pageId) throws ResourceNotFoundException, JsonProcessingException {
-        FacebookAccountTokenDTO userToken = getAccountCachedToken(accountId, FacebookOAuthTokenType.FACEBOOK_LONG_LIVED);
+        FacebookAccountTokenDTO userToken = getAccountCachedToken(accountId, MetaOAuthTokenType.FACEBOOK_LONG_LIVED);
 
         String url = String.format("https://graph.facebook.com/v19.0/%s?fields=id,name,access_token&access_token=%s",
                 pageId, userToken.accessToken());
@@ -515,7 +515,7 @@ public class FacebookServiceImpl implements FacebookService {
     }
 
     @Override
-    public FacebookAccountTokenDTO getAccountCachedToken(Long accountId, FacebookOAuthTokenType tokenType) {
+    public FacebookAccountTokenDTO getAccountCachedToken(Long accountId, MetaOAuthTokenType tokenType) {
 
         String key = formulateAccountKey(accountId, tokenType);
         List<FacebookAccountTokenDTO> tokenList = redisAccountTemplate.opsForList().range(key, 0, -1);
@@ -563,7 +563,7 @@ public class FacebookServiceImpl implements FacebookService {
     public JsonNode fetchUserPages(Long accountId) throws ResourceNotFoundException, JsonProcessingException {
         FacebookAccountTokenDTO token;
 
-        token = getAccountCachedToken(accountId, FacebookOAuthTokenType.FACEBOOK_LONG_LIVED);
+        token = getAccountCachedToken(accountId, MetaOAuthTokenType.FACEBOOK_LONG_LIVED);
 
         String url = "https://graph.facebook.com/v19.0/me/accounts?access_token=" + token.accessToken();
 
@@ -587,7 +587,7 @@ public class FacebookServiceImpl implements FacebookService {
     private FacebookPageTokenDTO fetchPageToken(Long pageId) {
         List<FacebookPageToken> tokens = facebookOAuthTokenService.getTokenByPageId(pageId);
         FacebookPageToken token = tokens.stream()
-                .filter(t -> validatePageToken(facebookPageTokenDTOMapper.apply(t)))
+                .filter(t -> validateToken(facebookPageTokenDTOMapper.apply(t)))
                 .findFirst().orElse(null);
         if (token == null) {
             throw new ResourceNotFoundException("Token not found for page: " + pageId + ", please authenticate again.");
@@ -903,17 +903,17 @@ public class FacebookServiceImpl implements FacebookService {
         oAuthToken.setAccessToken(encryptedToken);
         oAuthToken.setExpiresIn(expiresIn); //remember to account for that 0 possibility being non expiry
         oAuthToken.setAccount(facebookAccount);
-        oAuthToken.setOAuthTokenType(FacebookOAuthTokenType.FACEBOOK_LONG_LIVED);
+        oAuthToken.setOAuthTokenType(MetaOAuthTokenType.FACEBOOK_LONG_LIVED);
 
         revokeAllAccountTokens(facebookAccount);
 
         return facebookOAuthTokenService.saveToken(oAuthToken);
     }
 
-    private FacebookAccountTokenDTO fetchAccountToken(Long accountId, FacebookOAuthTokenType tokenType) throws ResourceNotFoundException {
+    private FacebookAccountTokenDTO fetchAccountToken(Long accountId, MetaOAuthTokenType tokenType) throws ResourceNotFoundException {
         FacebookAccountToken token;
             token = facebookOAuthTokenService.getTokenByAccountIdAndType(accountId, tokenType)
-                    .stream().filter(t -> validateAccountToken(facebookAccountTokenDTOMapper.apply(t)))
+                    .stream().filter(t -> validateToken(facebookAccountTokenDTOMapper.apply(t)))
                     .findFirst().orElse(null);
         if (token == null) {
             throw new ResourceNotFoundException("Token not found for account: " + accountId +  ", please authenticate again.");
@@ -939,21 +939,32 @@ public class FacebookServiceImpl implements FacebookService {
                 .orElseThrow(() -> new ResourceNotFoundException("Account not found with Facebook ID: " + facebookId));
     }
 
-    private boolean validateAccountToken(FacebookAccountTokenDTO token) {
+    private boolean validateToken(Object token) {
         if (token == null) return false;
-        if (token.expiresIn() == 0) return true;
-        long expirationMillis = TimeUnit.MILLISECONDS.convert(token.expiresIn(), token.expiresInTimeUnit());
-        return System.currentTimeMillis() <= expirationMillis;
+
+        if (token instanceof FacebookAccountTokenDTO || token instanceof FacebookPageTokenDTO) {
+            // Cast and handle based on type
+            long expiresIn;
+            TimeUnit timeUnit;
+
+            if (token instanceof FacebookAccountTokenDTO accountToken) {
+                expiresIn = accountToken.expiresIn();
+                timeUnit = accountToken.expiresInTimeUnit();
+            } else {
+                FacebookPageTokenDTO pageToken = (FacebookPageTokenDTO) token;
+                expiresIn = pageToken.expiresIn();
+                timeUnit = pageToken.expiresInTimeUnit();
+            }
+
+            if (expiresIn == 0) return true;
+            long expirationMillis = System.currentTimeMillis() + TimeUnit.MILLISECONDS.convert(expiresIn, timeUnit);
+            return System.currentTimeMillis() <= expirationMillis;
+        }
+
+        return false;
     }
 
-    private boolean validatePageToken(FacebookPageTokenDTO token) {
-        if (token == null) return false;
-        if (token.expiresIn() == 0) return true;
-        long expirationMillis = TimeUnit.MILLISECONDS.convert(token.expiresIn(), token.expiresInTimeUnit());
-        return System.currentTimeMillis() <= expirationMillis;
-    }
-
-    private String formulateAccountKey(Long id, FacebookOAuthTokenType tokenType) {
+    private String formulateAccountKey(Long id, MetaOAuthTokenType tokenType) {
         return tokenType.toString() + id.toString();
     }
 

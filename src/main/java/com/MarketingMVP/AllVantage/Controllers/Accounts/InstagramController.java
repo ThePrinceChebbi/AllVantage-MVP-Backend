@@ -1,49 +1,38 @@
 package com.MarketingMVP.AllVantage.Controllers.Accounts;
 
-import com.MarketingMVP.AllVantage.DTOs.Response.Insights.PlatformInsightsResult;
-import com.MarketingMVP.AllVantage.DTOs.Response.Postable.PlatformPostResult;
-import com.MarketingMVP.AllVantage.Entities.FileData.FileData;
-import com.MarketingMVP.AllVantage.Repositories.Account.PlatformType;
-import com.MarketingMVP.AllVantage.Services.Accounts.Facebook.FacebookService;
-import com.MarketingMVP.AllVantage.Services.FileData.FileService;
+
+import com.MarketingMVP.AllVantage.Services.Accounts.Instagram.InstagramService;
 import org.springframework.http.ResponseEntity;
-import org.springframework.lang.Nullable;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.view.RedirectView;
 
-import java.util.Date;
-import java.util.List;
-
 @RestController
-@RequestMapping("/api/v1/account/facebook")
-public class AccountController {
-    private final FacebookService facebookService;
-    private final FileService fileService;
+@RequestMapping("/api/v1/account/instagram")
+public class InstagramController {
+    private final InstagramService instagramService;
 
-    public AccountController(FacebookService facebookService, FileService fileService) {
-        this.facebookService = facebookService;
-        this.fileService = fileService;
+    public InstagramController(InstagramService instagramService) {
+        this.instagramService = instagramService;
     }
 
     @GetMapping("/add-global-account")
     public RedirectView facebookAuth() {
-        return facebookService.authenticateGlobalAccount();
+        return instagramService.authenticateGlobalAccount();
     }
 
     @GetMapping("/callback")
     public ResponseEntity<Object> facebookCallback(@RequestParam("code") String code) {
-        return facebookService.authenticateGlobalAccountCallback(code);
+        return instagramService.authenticateGlobalAccountCallback(code);
     }
 
-    @GetMapping("/{accountId}/user-pages")
+    /*@GetMapping("/{accountId}/user-pages")
     public ResponseEntity<Object> getUserPages(@PathVariable Long accountId) {
-        return facebookService.getUserPages(accountId);
+        return instagramService.getUserPages(accountId);
     }
 
     @GetMapping("/all")
     public ResponseEntity<Object> getAllAccounts() {
-        return facebookService.getAllAccounts();
+        return instagramService.getAllAccounts();
     }
 
     @PostMapping("/{pageId}/post")
@@ -62,7 +51,7 @@ public class AccountController {
                     return null;
                 }
             }).toList();
-            PlatformPostResult result = facebookService.createFacebookPost(fileDataList, title, content, scheduledAt, pageId);
+            PlatformPostResult result = instagramService.createFacebookPost(fileDataList, title, content, scheduledAt, pageId);
             return result.isSuccess() ? ResponseEntity.ok(result) : ResponseEntity.internalServerError().body(result);
         } catch (Exception e) {
             return ResponseEntity.internalServerError().body(PlatformPostResult.failure(PlatformType.FACEBOOK, e.getMessage()));
@@ -79,7 +68,7 @@ public class AccountController {
     ) {
         try {
             FileData fileData = fileService.processUploadedFile(video);
-            PlatformPostResult result = facebookService.createFacebookReel(fileData, title, content, scheduledAt, pageId);
+            PlatformPostResult result = instagramService.createFacebookReel(fileData, title, content, scheduledAt, pageId);
             return result.isSuccess() ? ResponseEntity.ok(result) : ResponseEntity.internalServerError().body(result);
         } catch (Exception e) {
             return ResponseEntity.internalServerError().body(PlatformPostResult.failure(PlatformType.FACEBOOK, e.getMessage()));
@@ -96,7 +85,7 @@ public class AccountController {
     ) {
         try {
             FileData fileData = fileService.processUploadedFile(story);
-            PlatformPostResult result = facebookService.storyOnFacebookPage(fileData, title, content, scheduledAt, pageId);
+            PlatformPostResult result = instagramService.storyOnFacebookPage(fileData, title, content, scheduledAt, pageId);
             return result.isSuccess() ? ResponseEntity.ok(result) : ResponseEntity.internalServerError().body(result);
         } catch (Exception e) {
             return ResponseEntity.internalServerError().body(PlatformPostResult.failure(PlatformType.FACEBOOK, e.getMessage()));
@@ -109,7 +98,7 @@ public class AccountController {
             @RequestParam String metricName
     ) {
         try {
-            PlatformInsightsResult result = facebookService.getFacebookPageInsights(pageId, metricName);
+            PlatformInsightsResult result = instagramService.getFacebookPageInsights(pageId, metricName);
             return result.isSuccess() ? ResponseEntity.ok(result) : ResponseEntity.internalServerError().body(result);
         } catch (Exception e) {
             return ResponseEntity.internalServerError().body(PlatformPostResult.failure(PlatformType.FACEBOOK, e.getMessage()));
@@ -123,7 +112,7 @@ public class AccountController {
             @RequestParam String metricList
     ) {
         try {
-            PlatformInsightsResult result = facebookService.getFacebookPostInsights(pageId, postId, metricList);
+            PlatformInsightsResult result = instagramService.getFacebookPostInsights(pageId, postId, metricList);
             return result.isSuccess() ? ResponseEntity.ok(result) : ResponseEntity.internalServerError().body(result);
         } catch (Exception e) {
             return ResponseEntity.internalServerError().body(PlatformPostResult.failure(PlatformType.FACEBOOK, e.getMessage()));
@@ -133,9 +122,9 @@ public class AccountController {
     @GetMapping("/{pageId}/posts")
     public ResponseEntity<Object> getPosts(@PathVariable Long pageId) {
         try {
-            return facebookService.getAllPosts(pageId);
+            return instagramService.getAllPosts(pageId);
         } catch (Exception e) {
             return ResponseEntity.internalServerError().body(PlatformPostResult.failure(PlatformType.FACEBOOK, e.getMessage()));
         }
-    }
+    }*/
 }

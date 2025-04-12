@@ -1,6 +1,6 @@
-package com.MarketingMVP.AllVantage.Entities.Tokens.OAuthToken.Facebook.FacebookAccount;
+package com.MarketingMVP.AllVantage.Entities.Tokens.OAuthToken.Instagram;
 
-import com.MarketingMVP.AllVantage.Entities.Account.Facebook.Account.FacebookAccount;
+import com.MarketingMVP.AllVantage.Entities.Account.Instagram.InstagramAccount;
 import com.MarketingMVP.AllVantage.Entities.Tokens.OAuthToken.MetaOAuthTokenType;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
@@ -10,20 +10,20 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 @Entity
-@Table(name = "facebook_account_token")
+@Table(name = "instagram_account_token")
 @AllArgsConstructor
 @NoArgsConstructor
 @Data
 @Builder
-public class FacebookAccountToken {
+public class InstagramToken {
 
     @GeneratedValue(
             strategy = GenerationType.SEQUENCE,
-            generator = "facebook_account_token_sequence"
+            generator = "instagram_account_token_sequence"
     )
     @SequenceGenerator(
-            name = "facebook_account_token_sequence",
-            sequenceName = "facebook_account_token_sequence",
+            name = "instagram_account_token_sequence",
+            sequenceName = "instagram_account_token_sequence",
             allocationSize = 1
     )
     @Id
@@ -34,7 +34,7 @@ public class FacebookAccountToken {
     private String accessToken;
 
     @ManyToOne
-    private FacebookAccount account;
+    private InstagramAccount account;
 
     @NotNull
     private int expiresIn;
@@ -44,5 +44,4 @@ public class FacebookAccountToken {
 
     @NotNull
     private MetaOAuthTokenType oAuthTokenType;
-
 }

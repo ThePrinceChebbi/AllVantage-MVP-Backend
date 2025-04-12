@@ -1,7 +1,7 @@
 package com.MarketingMVP.AllVantage.Services.Token.FacebookOAuthToken;
 
 import com.MarketingMVP.AllVantage.Entities.Tokens.OAuthToken.Facebook.FacebookAccount.FacebookAccountToken;
-import com.MarketingMVP.AllVantage.Entities.Tokens.OAuthToken.Facebook.FacebookAccount.FacebookOAuthTokenType;
+import com.MarketingMVP.AllVantage.Entities.Tokens.OAuthToken.MetaOAuthTokenType;
 import com.MarketingMVP.AllVantage.Entities.Tokens.OAuthToken.Facebook.FacebookPage.FacebookPageToken;
 import com.MarketingMVP.AllVantage.Repositories.Token.OAuthToken.Facebook.FacebookAccountTokenRepository;
 import com.MarketingMVP.AllVantage.Repositories.Token.OAuthToken.Facebook.FacebookPageTokenRepository;
@@ -41,7 +41,7 @@ public class FacebookOAuthTokenServiceImpl implements FacebookOAuthTokenService 
     }
 
     @Override
-    public List<FacebookAccountToken> getTokenByAccountIdAndType(Long accountId, FacebookOAuthTokenType tokenType) {
+    public List<FacebookAccountToken> getTokenByAccountIdAndType(Long accountId, MetaOAuthTokenType tokenType) {
         return facebookAccountTokenRepository.findByAccountIdAndTokenType(accountId, tokenType);
     }
 

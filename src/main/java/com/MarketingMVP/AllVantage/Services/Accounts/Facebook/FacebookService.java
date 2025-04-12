@@ -8,7 +8,7 @@ import com.MarketingMVP.AllVantage.Entities.Account.Facebook.Account.FacebookAcc
 import com.MarketingMVP.AllVantage.Entities.Account.Facebook.Page.FacebookPage;
 import com.MarketingMVP.AllVantage.Entities.FileData.FileData;
 import com.MarketingMVP.AllVantage.Entities.PlatformContent.Facebook.FacebookMedia;
-import com.MarketingMVP.AllVantage.Entities.Tokens.OAuthToken.Facebook.FacebookAccount.FacebookOAuthTokenType;
+import com.MarketingMVP.AllVantage.Entities.Tokens.OAuthToken.MetaOAuthTokenType;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import jakarta.validation.constraints.NotNull;
@@ -67,7 +67,7 @@ public interface  FacebookService {
 
     FacebookPage authenticateFacebookPage(Long accountId, String pageId) throws JsonProcessingException;
 
-    FacebookAccountTokenDTO getAccountCachedToken(Long accountId, FacebookOAuthTokenType tokenType);
+    FacebookAccountTokenDTO getAccountCachedToken(Long accountId, MetaOAuthTokenType tokenType);
 
     FacebookPageTokenDTO getPageCachedToken(Long pageId);
 
