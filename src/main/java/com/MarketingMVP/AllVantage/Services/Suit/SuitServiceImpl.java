@@ -26,7 +26,8 @@ import com.MarketingMVP.AllVantage.Exceptions.ResourceNotFoundException;
 import com.MarketingMVP.AllVantage.Repositories.Account.PlatformType;
 import com.MarketingMVP.AllVantage.Repositories.Post.PostableRepository;
 import com.MarketingMVP.AllVantage.Repositories.Suit.SuitRepository;
-import com.MarketingMVP.AllVantage.Services.Accounts.Facebook.FacebookService;
+import com.MarketingMVP.AllVantage.Services.Accounts.Meta.Facebook.FacebookService;
+import com.MarketingMVP.AllVantage.Services.Accounts.Meta.MetaAuth.MetaAuthService;
 import com.MarketingMVP.AllVantage.Services.FileData.FileService;
 import com.MarketingMVP.AllVantage.Services.UserEntity.UserService;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -57,14 +58,16 @@ public class SuitServiceImpl implements SuitService {
     private final SuitDTOMapper suitDTOMapper;
     private final FacebookService facebookService;
     private final PostableRepository postableRepository;
+    private final MetaAuthService metaAuthService;
 
-    public SuitServiceImpl(SuitRepository suitRepository, UserService userService, FileService fileService, SuitDTOMapper suitDTOMapper, FacebookService facebookService, PostableRepository postableRepository) {
+    public SuitServiceImpl(SuitRepository suitRepository, UserService userService, FileService fileService, SuitDTOMapper suitDTOMapper, FacebookService facebookService, PostableRepository postableRepository, MetaAuthService metaAuthService) {
         this.suitRepository = suitRepository;
         this.userService = userService;
         this.fileService = fileService;
         this.suitDTOMapper = suitDTOMapper;
         this.facebookService = facebookService;
         this.postableRepository = postableRepository;
+        this.metaAuthService = metaAuthService;
     }
 
     @Override
@@ -362,7 +365,7 @@ public class SuitServiceImpl implements SuitService {
         try{
             Suit suit = findSuitById(suitId);
             List<FacebookPage> facebookPages = suit.getFacebookPages();
-            FacebookPage facebookPage = facebookService.authenticateFacebookPage(accountId,facebookPageId);
+            FacebookPage facebookPage = metaAuthService.authenticateFacebookPage(accountId,facebookPageId);
             facebookPages.add(facebookPage);
             suit.setFacebookPages(facebookPages);
             suitRepository.save(suit);

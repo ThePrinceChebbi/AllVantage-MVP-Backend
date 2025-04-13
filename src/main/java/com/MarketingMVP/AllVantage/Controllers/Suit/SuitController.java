@@ -1,15 +1,12 @@
 package com.MarketingMVP.AllVantage.Controllers.Suit;
 
 import com.MarketingMVP.AllVantage.Entities.PlatformContent.Facebook.FacebookMedia;
-import com.MarketingMVP.AllVantage.Services.Accounts.Facebook.FacebookService;
+import com.MarketingMVP.AllVantage.Services.Accounts.Meta.Facebook.FacebookService;
 import com.MarketingMVP.AllVantage.Services.Suit.SuitService;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.util.Date;
 import java.util.List;
 import java.util.UUID;
 

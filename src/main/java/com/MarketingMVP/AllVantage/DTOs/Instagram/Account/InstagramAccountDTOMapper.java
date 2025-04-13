@@ -11,7 +11,8 @@ public class InstagramAccountDTOMapper implements Function<InstagramAccount, Ins
                 instagramAccount.getId(),
                 instagramAccount.getAccountName(),
                 instagramAccount.getConnectedAt(),
-                instagramAccount.getUpdatedAt()
+                instagramAccount.getUpdatedAt(),
+                instagramAccount.getFacebookPage()
         );
     }
 }

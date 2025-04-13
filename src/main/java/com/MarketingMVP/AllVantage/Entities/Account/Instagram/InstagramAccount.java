@@ -1,5 +1,6 @@
 package com.MarketingMVP.AllVantage.Entities.Account.Instagram;
 
+import com.MarketingMVP.AllVantage.Entities.Account.Facebook.Page.FacebookPage;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
@@ -38,14 +39,14 @@ public class InstagramAccount {
     @NotNull
     private Date updatedAt;
 
-    @NotNull
-    private boolean isGlobal;
+    @ManyToOne(fetch = FetchType.EAGER)
+    private FacebookPage facebookPage;
 
-    public InstagramAccount(String instagramId, String accountName, Date connectedAt, Date updatedAt, boolean isGlobal) {
+    public InstagramAccount(String instagramId, String accountName, Date connectedAt, Date updatedAt, FacebookPage facebookPage) {
         this.instagramId = instagramId;
         this.accountName = accountName;
         this.connectedAt = connectedAt;
         this.updatedAt = updatedAt;
-        this.isGlobal = isGlobal;
+        this.facebookPage = facebookPage;
     }
 }

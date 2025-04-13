@@ -1,25 +1,20 @@
-package com.MarketingMVP.AllVantage.Services.Accounts.Facebook;
+package com.MarketingMVP.AllVantage.Services.Accounts.Meta.Facebook;
 
 import com.MarketingMVP.AllVantage.DTOs.Response.Insights.PlatformInsightsResult;
 import com.MarketingMVP.AllVantage.Entities.PlatformContent.Facebook.FacebookReel;
 import com.MarketingMVP.AllVantage.Entities.PlatformContent.Facebook.FacebookStory;
 import com.MarketingMVP.AllVantage.Entities.PlatformContent.PlatformMediaType;
-import com.MarketingMVP.AllVantage.DTOs.Facebook.Account.FacebookAccountDTO;
-import com.MarketingMVP.AllVantage.DTOs.Facebook.Account.FacebookAccountDTOMapper;
 import com.MarketingMVP.AllVantage.DTOs.Facebook.AccountToken.FacebookAccountTokenDTO;
 import com.MarketingMVP.AllVantage.DTOs.Facebook.AccountToken.FacebookAccountTokenDTOMapper;
 import com.MarketingMVP.AllVantage.DTOs.Facebook.Page.FacebookPageDTO;
 import com.MarketingMVP.AllVantage.DTOs.Facebook.PageToken.FacebookPageTokenDTO;
 import com.MarketingMVP.AllVantage.DTOs.Facebook.PageToken.FacebookPageTokenDTOMapper;
 import com.MarketingMVP.AllVantage.DTOs.Response.Postable.PlatformPostResult;
-import com.MarketingMVP.AllVantage.Entities.Account.Facebook.Account.FacebookAccount;
 import com.MarketingMVP.AllVantage.Entities.Account.Facebook.Page.FacebookPage;
 import com.MarketingMVP.AllVantage.Entities.FileData.FileData;
 import com.MarketingMVP.AllVantage.Entities.PlatformContent.Facebook.FacebookMedia;
 import com.MarketingMVP.AllVantage.Entities.PlatformContent.Facebook.FacebookPost;
-import com.MarketingMVP.AllVantage.Entities.Tokens.OAuthToken.Facebook.FacebookAccount.FacebookAccountToken;
-import com.MarketingMVP.AllVantage.Entities.Tokens.OAuthToken.MetaOAuthTokenType;
-import com.MarketingMVP.AllVantage.Entities.Tokens.OAuthToken.Facebook.FacebookPage.FacebookPageToken;
+import com.MarketingMVP.AllVantage.Entities.Tokens.OAuthToken.FacebookTokenType;
 import com.MarketingMVP.AllVantage.Exceptions.ResourceNotFoundException;
 import com.MarketingMVP.AllVantage.Repositories.Account.Facebook.FacebookAccountRepository;
 import com.MarketingMVP.AllVantage.Repositories.Account.Facebook.FacebookPageRepository;
@@ -30,29 +25,25 @@ import com.MarketingMVP.AllVantage.Repositories.PlatformContent.Facebook.Faceboo
 import com.MarketingMVP.AllVantage.Repositories.PlatformContent.Facebook.FacebookStoryRepository;
 import com.MarketingMVP.AllVantage.Security.Utility.AESEncryptionService;
 import com.MarketingMVP.AllVantage.Services.FileData.FileService;
-import com.MarketingMVP.AllVantage.Services.Token.FacebookOAuthToken.FacebookOAuthTokenService;
+import com.MarketingMVP.AllVantage.Services.Accounts.Meta.MetaAuth.MetaAuthService;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import jakarta.validation.constraints.NotNull;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.http.*;
 import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
-import org.springframework.web.servlet.view.RedirectView;
 
 import java.io.File;
 import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.*;
 
-@SuppressWarnings({"rawtypes", "CallToPrintStackTrace", "unchecked"})
+@SuppressWarnings({"rawtypes", "CallToPrintStackTrace"})
 @Service
 public class FacebookServiceImpl implements FacebookService {
 
@@ -61,80 +52,24 @@ public class FacebookServiceImpl implements FacebookService {
     private final FacebookStoryRepository facebookStoryRepository;
     private final FacebookReelRepository facebookReelRepository;
     private final FacebookPostRepository facebookPostRepository;
-    @Value("${spring.security.oauth2.client.registration.facebook.client-id}")
-    private String clientId;
-
-    @Value("${spring.security.oauth2.client.registration.facebook.client-secret}")
-    private String clientSecret;
-
-    private final String scope =  "publish_video,pages_show_list," +
-            "read_insights," +
-            "pages_read_engagement," +
-            "pages_manage_metadata," +
-            "pages_read_user_content," +
-            "pages_manage_ads," +
-            "pages_manage_posts," +
-            "pages_manage_engagement";
-
-    private final String redirectUri = "http://localhost:8080/api/v1/account/facebook/callback";
-
-    private final RedisTemplate<String, FacebookAccountTokenDTO> redisAccountTemplate;
-    private final RedisTemplate<String, FacebookPageTokenDTO> redisPageTemplate;
-    private final FacebookAccountTokenDTOMapper facebookAccountTokenDTOMapper;
-    private final FacebookPageTokenDTOMapper facebookPageTokenDTOMapper;
-    private final FacebookOAuthTokenService facebookOAuthTokenService;
     private final FacebookAccountRepository facebookAccountRepository;
     private final FacebookPageRepository facebookPageRepository;
-    private final AESEncryptionService encryptionService;
+    private final MetaAuthService metaAuthService;
 
-    public FacebookServiceImpl(RedisTemplate<String, FacebookAccountTokenDTO> redisAccountTemplate, FacebookOAuthTokenService facebookOAuthTokenService, FacebookAccountRepository facebookAccountRepository, FacebookPageRepository facebookPageRepository, AESEncryptionService encryptionService, FacebookAccountTokenDTOMapper facebookAccountTokenDTOMapper, RedisTemplate<String, FacebookPageTokenDTO> redisPageTemplate, FacebookPageTokenDTOMapper facebookPageTokenDTOMapper, FileService fileService, FacebookMediaRepository facebookMediaRepository, FacebookStoryRepository facebookStoryRepository, FacebookReelRepository facebookReelRepository, FacebookPostRepository facebookPostRepository) {
-        this.redisAccountTemplate = redisAccountTemplate;
-        this.facebookOAuthTokenService = facebookOAuthTokenService;
+    public FacebookServiceImpl(RedisTemplate<String, FacebookAccountTokenDTO> redisAccountTemplate, MetaAuthService facebookOAuthTokenService, FacebookAccountRepository facebookAccountRepository, FacebookPageRepository facebookPageRepository, FileService fileService, FacebookMediaRepository facebookMediaRepository, FacebookStoryRepository facebookStoryRepository, FacebookReelRepository facebookReelRepository, FacebookPostRepository facebookPostRepository, MetaAuthService metaAuthService) {
         this.facebookAccountRepository = facebookAccountRepository;
         this.facebookPageRepository = facebookPageRepository;
-        this.encryptionService = encryptionService;
-        this.facebookAccountTokenDTOMapper = facebookAccountTokenDTOMapper;
-        this.redisPageTemplate = redisPageTemplate;
-        this.facebookPageTokenDTOMapper = facebookPageTokenDTOMapper;
         this.fileService = fileService;
         this.facebookMediaRepository = facebookMediaRepository;
         this.facebookStoryRepository = facebookStoryRepository;
         this.facebookReelRepository = facebookReelRepository;
         this.facebookPostRepository = facebookPostRepository;
-    }
-
-    @Override
-    public RedirectView getAuthenticationCode(String redirectUri) {
-
-        String authUrl = "https://www.facebook.com/v22.0/dialog/oauth" +
-                "?client_id=" + clientId +
-                "&redirect_uri=" + redirectUri +
-                "&scope=" + scope +
-                "&response_type=code";
-        return new RedirectView(authUrl);
-    }
-
-    @Override
-    public RedirectView authenticateGlobalAccount() {
-        return getAuthenticationCode(redirectUri);
-    }
-
-    @Transactional
-    @Override
-    public ResponseEntity<Object> authenticateGlobalAccountCallback(String authorizationCode) {
-        try {
-            FacebookAccountDTO account = new FacebookAccountDTOMapper().apply(exchangeCodeForToken(authorizationCode, true, redirectUri));
-            return ResponseEntity.ok(account);
-        } catch (ResourceNotFoundException e) {
-            return ResponseEntity.status(404).body(e.getMessage());
-        } catch (Exception e) {
-            return ResponseEntity.internalServerError().body(e.getMessage());
-        }
+        this.metaAuthService = metaAuthService;
     }
 
     @Override
     public FacebookMedia uploadMediaToFacebook(FileData fileData, Long pageId) {
-        FacebookPageTokenDTO tokenDTO = getPageCachedToken(pageId);
+        FacebookPageTokenDTO tokenDTO = metaAuthService.getPageCachedToken(pageId);
         RestTemplate restTemplate = new RestTemplate();
 
         String url = String.format("https://graph.facebook.com/v22.0/%s/photos", tokenDTO.facebookPageId());
@@ -153,7 +88,6 @@ public class FacebookServiceImpl implements FacebookService {
 
         HttpEntity<MultiValueMap<String, Object>> request = new HttpEntity<>(body, headers);
         ResponseEntity<Map> response = restTemplate.exchange(url, HttpMethod.POST, request, Map.class);
-        System.out.println("media response: " + response.getBody());
         FacebookMedia facebookMedia = new FacebookMedia(
                 Objects.requireNonNull(response.getBody()).get("id").toString(),
                 fileData,
@@ -202,7 +136,7 @@ public class FacebookServiceImpl implements FacebookService {
             if (!filename.matches(".*\\.(mp4|avi|mov|mkv|webm|flv|wmv|mpeg|3gp)$")) {
                 return PlatformPostResult.failure(PlatformType.FACEBOOK, "Video file is required for Reel post.");
             }
-            FacebookPageTokenDTO tokenDTO = getPageCachedToken(pageId);
+            FacebookPageTokenDTO tokenDTO = metaAuthService.getPageCachedToken(pageId);
 
             String videoId = initiateVideo(tokenDTO, false);
             File file = fileService.getFileFromFileData(videoFile);
@@ -256,7 +190,7 @@ public class FacebookServiceImpl implements FacebookService {
 
             boolean isImage = story.getType().contains("image");
 
-            FacebookPageTokenDTO tokenDTO = getPageCachedToken(facebookPageId);
+            FacebookPageTokenDTO tokenDTO = metaAuthService.getPageCachedToken(facebookPageId);
             FacebookMedia facebookMedia;
             if (!isImage){
                 String videoId = initiateVideo(tokenDTO, true);
@@ -319,7 +253,7 @@ public class FacebookServiceImpl implements FacebookService {
     @Override
     public PlatformInsightsResult getFacebookPageInsights(Long pageId, String metricName) {
         try {
-            FacebookPageTokenDTO tokenDTO = getPageCachedToken(pageId);
+            FacebookPageTokenDTO tokenDTO = metaAuthService.getPageCachedToken(pageId);
 
             String insightsUrl = String.format(
                     "https://graph.facebook.com/v22.0/%s/insights/%s?access_token=%s",
@@ -334,7 +268,6 @@ public class FacebookServiceImpl implements FacebookService {
             if (!response.getStatusCode().is2xxSuccessful()) {
                 throw new RuntimeException("Failed to fetch insights: " + response.getBody());
             }
-            System.out.println(response.getBody());
             return PlatformInsightsResult.success(PlatformType.FACEBOOK, Objects.requireNonNull(response.getBody()));
         } catch (Exception e) {
             return PlatformInsightsResult.failure(PlatformType.FACEBOOK, "Failed to fetch insights: " + e.getMessage());
@@ -348,18 +281,16 @@ public class FacebookServiceImpl implements FacebookService {
             FacebookPost facebookPost = facebookPostRepository.findById(facebookPostId)
                     .orElseThrow(() -> new ResourceNotFoundException("Facebook post not found with ID: " + facebookPostId));
 
-            FacebookPageTokenDTO tokenDTO = getPageCachedToken(pageId);
+            FacebookPageTokenDTO tokenDTO = metaAuthService.getPageCachedToken(pageId);
             String insightsUrl = String.format(
                     "https://graph.facebook.com/v22.0/%s/insights/?access_token=%s&metric=%s",
                     facebookPostId,
                     tokenDTO.accessToken(),
                     metricList
             );
-            System.out.println(insightsUrl);
 
             RestTemplate restTemplate = new RestTemplate();
             ResponseEntity<Map> response = restTemplate.exchange(insightsUrl, HttpMethod.GET, null, Map.class);
-            System.out.println(response.getBody());
             if (!response.getStatusCode().is2xxSuccessful()) {
                 throw new RuntimeException("Failed to fetch insights: " + response.getBody());
             }
@@ -380,7 +311,7 @@ public class FacebookServiceImpl implements FacebookService {
     @Override
     public ResponseEntity<Object> testRefreshMethod(Long accountId) {
         try{
-            return refreshAllTokens(fetchAccountToken(accountId, MetaOAuthTokenType.FACEBOOK_LONG_LIVED));
+            return metaAuthService.refreshAllTokens(metaAuthService.fetchAccountToken(accountId, FacebookTokenType.FACEBOOK_LONG_LIVED));
         }catch (Exception e){
             return ResponseEntity.badRequest().body("Error refreshing tokens: " + e.getMessage());
         }
@@ -412,158 +343,11 @@ public class FacebookServiceImpl implements FacebookService {
 
     //Utility public methods -------------------------------------------------------------------------------------------------------------------------------
 
-    @Transactional
-    @Override
-    public FacebookAccount exchangeCodeForToken(String authorizationCode, boolean isGlobal, String redirectUri) throws Exception {
-        //get short-lived authentication token
-        String getTokenUrl = String.format(
-                "https://graph.facebook.com/v19.0/oauth/access_token?client_id=%s&client_secret=%s&redirect_uri=%s&code=%s",
-                clientId, clientSecret, redirectUri, authorizationCode
-        );
-
-        RestTemplate authRestTemplate = new RestTemplate();
-        ResponseEntity<String> authResponse = authRestTemplate.getForEntity(getTokenUrl, String.class);
-
-        if (authResponse.getBody() == null) throw new RuntimeException("Facebook response is null.");
-
-        ObjectMapper objectMapper = new ObjectMapper();
-
-        JsonNode authJsonNode = objectMapper.readTree(authResponse.getBody());
-        String shortLivedToken = authJsonNode.has("access_token") ? authJsonNode.get("access_token").asText() : null;
-
-        if (shortLivedToken == null) throw new RuntimeException("Short-lived access token is missing. Full response: " + authResponse.getBody());
-
-        //find or create new local facebook account
-        JsonNode userInfo = fetchUserInfoFromFacebook(List.of("id", "name"), shortLivedToken);
-
-        FacebookAccount savedAccount = facebookAccountRepository.findFacebookAccountByFacebookId(userInfo.get("id").asText())
-                .orElseGet(() -> {
-                    FacebookAccount newAccount = new FacebookAccount(
-                            userInfo.get("id").asText(),
-                            userInfo.get("name").asText(),
-                            new Date(),
-                            new Date(),
-                            isGlobal
-                    );
-                    return facebookAccountRepository.save(newAccount);
-                });
-
-        //exchange short-lived token for long-lived token
-        String url = String.format(
-                "https://graph.facebook.com/v19.0/oauth/access_token" +
-                        "?grant_type=fb_exchange_token" +
-                        "&client_id=%s" +
-                        "&client_secret=%s" +
-                        "&fb_exchange_token=%s",
-                clientId, clientSecret, shortLivedToken
-        );
-
-        RestTemplate restTemplate = new RestTemplate();
-        ResponseEntity<String> response = restTemplate.getForEntity(url, String.class);
-
-        JsonNode jsonNode = objectMapper.readTree(response.getBody());
-
-        String longLivedToken = jsonNode.has("access_token") ? jsonNode.get("access_token").asText() : null;
-        int expiresIn = jsonNode.has("expires_in") ? jsonNode.get("expires_in").asInt() : 0;
-
-        if (longLivedToken == null) throw new RuntimeException("Long-lived token is missing. Full response: " + jsonNode);
-
-        FacebookAccountToken savedToken = generateAndSaveAccountToken(longLivedToken, expiresIn, savedAccount);
-
-        cacheAccountToken(savedToken);
-
-        return savedAccount;
-    }
-
-    @Override
-    public FacebookPage authenticateFacebookPage(Long accountId, String pageId) throws ResourceNotFoundException, JsonProcessingException {
-        FacebookAccountTokenDTO userToken = getAccountCachedToken(accountId, MetaOAuthTokenType.FACEBOOK_LONG_LIVED);
-
-        String url = String.format("https://graph.facebook.com/v19.0/%s?fields=id,name,access_token&access_token=%s",
-                pageId, userToken.accessToken());
-
-        RestTemplate restTemplate = new RestTemplate();
-        ResponseEntity<String> response = restTemplate.getForEntity(url, String.class);
-
-        if (!response.getStatusCode().is2xxSuccessful() || response.getBody() == null) {
-            throw new RuntimeException("Failed to fetch page details. Status: " + response.getStatusCode());
-        }
-
-        ObjectMapper objectMapper = new ObjectMapper();
-        JsonNode jsonNode= objectMapper.readTree(response.getBody());
-
-        FacebookPage facebookPage = facebookPageRepository.findFacebookPageByFacebookId(jsonNode.get("id").asText())
-                .orElseGet(()->{
-                            FacebookPage newPage = new FacebookPage();
-                            newPage.setFacebookAccount(getFacebookAccount(accountId));
-                            newPage.setPageName(jsonNode.get("name").asText());
-                            newPage.setFacebookPageId(jsonNode.get("id").asText());
-                            newPage.setConnectedAt(new Date());
-                            newPage.setUpdatedAt(new Date());
-                            return facebookPageRepository.save(newPage);
-                        }
-                );
-        String pageAccessToken = jsonNode.has("access_token") ? jsonNode.get("access_token").asText() : null;
-        int expiresIn = jsonNode.has("expires_in") ? jsonNode.get("expires_in").asInt() : 0;
-
-        if (pageAccessToken == null) throw new RuntimeException("Long-lived token is missing. Full response: " + jsonNode);
-
-        FacebookPageToken newToken = generateAndSavePageToken(pageAccessToken,expiresIn, facebookPage);
-        cachePageToken(newToken);
-
-        return facebookPage;
-    }
-
-    @Override
-    public FacebookAccountTokenDTO getAccountCachedToken(Long accountId, MetaOAuthTokenType tokenType) {
-
-        String key = formulateAccountKey(accountId, tokenType);
-        List<FacebookAccountTokenDTO> tokenList = redisAccountTemplate.opsForList().range(key, 0, -1);
-
-
-        if (tokenList == null || tokenList.isEmpty() || tokenList.stream().allMatch((token) -> token.facebookAccountId() == null)) {
-            return fetchAccountToken(accountId, tokenType);
-        }
-
-        // Identify the token with the longest expiration
-        FacebookAccountTokenDTO bestToken = tokenList.stream()
-                .max(Comparator.comparingInt(token -> token.expiresIn() == 0 ? Integer.MAX_VALUE : token.expiresIn()))
-                .orElseThrow(() -> new IllegalStateException("Failed to determine the best token for account: " + accountId));
-
-        // If duplicates exist, remove all and keep only the best token
-        if (tokenList.size() > 1) {
-            redisAccountTemplate.delete(key);
-            redisAccountTemplate.opsForList().rightPush(key, bestToken);
-        }
-        return bestToken;
-    }
-
-    @Override
-    public FacebookPageTokenDTO getPageCachedToken(Long pageId) throws ResourceNotFoundException, IllegalStateException {
-
-        String key = formulatePageKey(pageId);
-        List<FacebookPageTokenDTO> tokenList = redisPageTemplate.opsForList().range(key, 0, -1);
-
-        if (tokenList == null || tokenList.isEmpty()) {
-            return fetchPageToken(pageId);
-        }
-
-        // Identify the token with the longest expiration
-        FacebookPageTokenDTO bestToken = tokenList.stream()
-                .max(Comparator.comparingInt(token -> token.expiresIn() == 0 ? Integer.MAX_VALUE : token.expiresIn()))
-                .orElseThrow(() -> new IllegalStateException("Failed to determine the best token for page: " + pageId));
-        if (tokenList.size() > 1) {
-            redisPageTemplate.delete(key);
-            redisPageTemplate.opsForList().rightPush(key, bestToken);
-        }
-        return bestToken;
-    }
-
     @Override
     public JsonNode fetchUserPages(Long accountId) throws ResourceNotFoundException, JsonProcessingException {
         FacebookAccountTokenDTO token;
 
-        token = getAccountCachedToken(accountId, MetaOAuthTokenType.FACEBOOK_LONG_LIVED);
+        token = metaAuthService.getAccountCachedToken(accountId, FacebookTokenType.FACEBOOK_LONG_LIVED);
 
         String url = "https://graph.facebook.com/v19.0/me/accounts?access_token=" + token.accessToken();
 
@@ -583,84 +367,6 @@ public class FacebookServiceImpl implements FacebookService {
     }
 
     //Utility private methods -------------------------------------------------------------------------------------------------------------------------------
-
-    private FacebookPageTokenDTO fetchPageToken(Long pageId) {
-        List<FacebookPageToken> tokens = facebookOAuthTokenService.getTokenByPageId(pageId);
-        FacebookPageToken token = tokens.stream()
-                .filter(t -> validateToken(facebookPageTokenDTOMapper.apply(t)))
-                .findFirst().orElse(null);
-        if (token == null) {
-            throw new ResourceNotFoundException("Token not found for page: " + pageId + ", please authenticate again.");
-        }
-        return cachePageToken(token);
-    }
-
-    private ResponseEntity<Object> refreshAllTokens(FacebookAccountTokenDTO accountToken) {
-        try {
-            RestTemplate restTemplate = new RestTemplate();
-            String url = "https://graph.facebook.com/v22.0/oauth/access_token";
-
-            HttpHeaders headers = new HttpHeaders();
-            headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
-
-            MultiValueMap<String, String> body = new LinkedMultiValueMap<>();
-            body.add("grant_type", "fb_exchange_token");
-            body.add("client_id", clientId); // Replace with your App ID
-            body.add("client_secret", clientSecret); // Replace with your App Secret
-            body.add("fb_exchange_token", accountToken.accessToken());
-
-            HttpEntity<MultiValueMap<String, String>> request = new HttpEntity<>(body, headers);
-            ResponseEntity<Map> response = restTemplate.postForEntity(url, request, Map.class);
-
-            if (response.getBody() != null) {
-                Map responseBody = response.getBody();
-
-                if (responseBody.containsKey("access_token")) {
-                    String newAccessToken = responseBody.get("access_token").toString();
-
-                    int expiresIn = responseBody.containsKey("expires_in")
-                            ? Integer.parseInt(responseBody.get("expires_in").toString())
-                            : 0; // Assume long-lived if not provided
-
-                    FacebookAccount facebookAccount = getFacebookAccountByFacebookId(accountToken.facebookAccountId());
-                    FacebookAccountToken newAccountToken = generateAndSaveAccountToken(newAccessToken, expiresIn, facebookAccount);
-
-                    FacebookAccountTokenDTO accountTokenDTO = cacheAccountToken(newAccountToken);
-
-                    // Refresh page tokens
-                    List<FacebookPageTokenDTO> pageTokenDTOS = refreshPageTokens(accountToken);
-
-                    HashMap<String, Object> responseMap = new HashMap<>();
-                    responseMap.put("accountToken", accountTokenDTO);
-                    responseMap.put("pageTokens", pageTokenDTOS);
-
-                    return ResponseEntity.ok(responseMap);
-                } else {
-                    throw new RuntimeException("Failed to refresh account token: No access token returned.");
-                }
-            } else {
-                throw new RuntimeException("Failed to refresh account token: No data returned.");
-            }
-        } catch (Exception e) {
-            throw new RuntimeException("Error refreshing Facebook account token: " + e.getMessage(), e);
-        }
-    }
-
-    private void revokeAllAccountTokens(FacebookAccount account) {
-        List<FacebookAccountToken> tokens = facebookOAuthTokenService.getTokensByAccountId(account.getId());
-        for (FacebookAccountToken token : tokens) {
-            token.setRevoked(true);
-            facebookOAuthTokenService.saveToken(token);
-        }
-    }
-
-    private void revokeAllPageTokens(FacebookPage page) {
-        List<FacebookPageToken> tokens = facebookOAuthTokenService.getTokenByPageId(page.getId());
-        for (FacebookPageToken token : tokens) {
-            token.setRevoked(true);
-            facebookOAuthTokenService.savePageToken(token);
-        }
-    }
 
     private String initiateVideo(FacebookPageTokenDTO tokenDTO, boolean isStory){
         try {
@@ -713,7 +419,7 @@ public class FacebookServiceImpl implements FacebookService {
 
     private PlatformPostResult postVideo(FileData fileData, String title, String content, @Nullable Date scheduledAt, FacebookPage facebookPage) {
         try {
-            FacebookPageTokenDTO tokenDTO = getPageCachedToken(facebookPage.getId());
+            FacebookPageTokenDTO tokenDTO = metaAuthService.getPageCachedToken(facebookPage.getId());
             RestTemplate restTemplate = new RestTemplate();
             String url = String.format("https://graph.facebook.com/v22.0/%s/videos", tokenDTO.facebookPageId());
 
@@ -739,7 +445,6 @@ public class FacebookServiceImpl implements FacebookService {
             if (!response.getStatusCode().is2xxSuccessful()) {
                 throw new RuntimeException("Failed to create video post: " + response.getBody());
             }
-            System.out.println(response.getBody());
             FacebookMedia media = new FacebookMedia(
                     Objects.requireNonNull(response.getBody()).get("id").toString(),
                     fileData,
@@ -759,7 +464,7 @@ public class FacebookServiceImpl implements FacebookService {
 
     private PlatformPostResult makePostWithImages(List<FileData> files, String title, String content, Date scheduledAt, FacebookPage facebookPage) {
         try {
-            FacebookPageTokenDTO tokenDTO = getPageCachedToken(facebookPage.getId());
+            FacebookPageTokenDTO tokenDTO = metaAuthService.getPageCachedToken(facebookPage.getId());
             RestTemplate restTemplate = new RestTemplate();
             String url = String.format("https://graph.facebook.com/v22.0/%s/feed", tokenDTO.facebookPageId());
 
@@ -809,166 +514,5 @@ public class FacebookServiceImpl implements FacebookService {
         }
     }
 
-    private List<FacebookPageTokenDTO> refreshPageTokens(FacebookAccountTokenDTO accountToken) {
-        try {
-            RestTemplate restTemplate = new RestTemplate();
-            String url = String.format("https://graph.facebook.com/v22.0/me/accounts?access_token=%s", accountToken.accessToken());
 
-            ResponseEntity<Map> response = restTemplate.getForEntity(url, Map.class);
-            if (response.getBody() != null && response.getBody().containsKey("data")) {
-                List<Map<String, Object>> pages = (List<Map<String, Object>>) response.getBody().get("data");
-
-                List<FacebookPageTokenDTO> newPageTokens = new ArrayList<>();
-
-                for (Map<String, Object> page : pages) {
-                    FacebookPage facebookPage = getPageByFacebookId(page.get("id").toString());
-                    String pageAccessToken = page.get("access_token").toString();
-
-                    int expiresIn = page.containsKey("expires_in")
-                            ? Integer.parseInt(page.get("expires_in").toString())
-                            : 0; // Assume long-lived if not provided
-
-                    newPageTokens.add(facebookPageTokenDTOMapper.apply(
-                            generateAndSavePageToken(pageAccessToken, expiresIn, facebookPage)
-                    ));
-                }
-                return newPageTokens;
-            } else {
-                throw new RuntimeException("Failed to refresh page tokens: No data returned.");
-            }
-        } catch (Exception e) {
-            throw new RuntimeException("Error refreshing Facebook page tokens: " + e.getMessage(), e);
-        }
-    }
-
-    private FacebookPage getPageByFacebookId(String facebookId) {
-        return facebookPageRepository.findFacebookPageByFacebookId(facebookId)
-                .orElseThrow(() -> new ResourceNotFoundException("Page not found with Facebook ID: " + facebookId));
-    }
-
-    private FacebookPageToken generateAndSavePageToken(String pageToken, int expiresIn, FacebookPage facebookPage) {
-
-        FacebookPageToken oAuthToken = new FacebookPageToken();
-        String encryptedToken;
-        try{
-            encryptedToken= encryptionService.encrypt(pageToken);
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to encrypt token: " + e.getMessage());
-        }
-        oAuthToken.setAccessToken(encryptedToken);
-        oAuthToken.setExpiresIn(expiresIn); //remember to account for that 0 possibility being non expiry
-        oAuthToken.setPage(facebookPage);
-
-        revokeAllPageTokens(facebookPage);
-
-        return facebookOAuthTokenService.savePageToken(oAuthToken);
-    }
-
-    private FacebookAccountTokenDTO cacheAccountToken(@NotNull FacebookAccountToken token) {
-        FacebookAccountTokenDTO tokenDTO = facebookAccountTokenDTOMapper.apply(token);
-        String key = formulateAccountKey(token.getAccount().getId(), token.getOAuthTokenType());
-
-        List<FacebookAccountTokenDTO> existingTokens = redisAccountTemplate.opsForList().range(key, 0, -1);
-        if (existingTokens != null && !existingTokens.isEmpty()) {
-            redisAccountTemplate.delete(key);
-        }
-
-        redisAccountTemplate.opsForList().rightPush(key, tokenDTO);
-        return tokenDTO;
-    }
-
-    private FacebookPageTokenDTO cachePageToken(FacebookPageToken token) {
-        FacebookPageTokenDTO tokenDTO = facebookPageTokenDTOMapper.apply(token);
-
-        String key = formulatePageKey(token.getPage().getId());
-
-        List<FacebookPageTokenDTO> existingTokens = redisPageTemplate.opsForList().range(key, 0, -1);
-        if (existingTokens != null && !existingTokens.isEmpty()) {
-            redisPageTemplate.delete(key);
-        }
-
-        redisPageTemplate.opsForList().rightPush(key, tokenDTO);
-        return tokenDTO;
-    }
-
-    private FacebookAccountToken generateAndSaveAccountToken(String longLivedToken, int expiresIn, FacebookAccount facebookAccount) {
-
-        FacebookAccountToken oAuthToken = new FacebookAccountToken();
-        String encryptedToken;
-        try{
-             encryptedToken= encryptionService.encrypt(longLivedToken);
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to encrypt token: " + e.getMessage());
-        }
-        oAuthToken.setAccessToken(encryptedToken);
-        oAuthToken.setExpiresIn(expiresIn); //remember to account for that 0 possibility being non expiry
-        oAuthToken.setAccount(facebookAccount);
-        oAuthToken.setOAuthTokenType(MetaOAuthTokenType.FACEBOOK_LONG_LIVED);
-
-        revokeAllAccountTokens(facebookAccount);
-
-        return facebookOAuthTokenService.saveToken(oAuthToken);
-    }
-
-    private FacebookAccountTokenDTO fetchAccountToken(Long accountId, MetaOAuthTokenType tokenType) throws ResourceNotFoundException {
-        FacebookAccountToken token;
-            token = facebookOAuthTokenService.getTokenByAccountIdAndType(accountId, tokenType)
-                    .stream().filter(t -> validateToken(facebookAccountTokenDTOMapper.apply(t)))
-                    .findFirst().orElse(null);
-        if (token == null) {
-            throw new ResourceNotFoundException("Token not found for account: " + accountId +  ", please authenticate again.");
-        }
-        return cacheAccountToken(token);
-    }
-
-    private JsonNode fetchUserInfoFromFacebook(List<String> requestedFields, String token) throws Exception {
-        String fields = String.join(",", requestedFields);
-        String url = String.format("https://graph.facebook.com/v19.0/me?fields=%s&access_token=%s",fields, token);
-        RestTemplate restTemplate = new RestTemplate();
-        ResponseEntity<String> response = restTemplate.getForEntity(url, String.class);
-        ObjectMapper objectMapper = new ObjectMapper();
-        return objectMapper.readTree(response.getBody());
-    }
-
-    private FacebookAccount getFacebookAccount(Long accountId) {
-        return facebookAccountRepository.findById(accountId).orElseThrow(() -> new ResourceNotFoundException(String.format("Account with id :%d not found", accountId)));
-    }
-
-    private FacebookAccount getFacebookAccountByFacebookId(String facebookId) {
-        return facebookAccountRepository.findFacebookAccountByFacebookId(facebookId)
-                .orElseThrow(() -> new ResourceNotFoundException("Account not found with Facebook ID: " + facebookId));
-    }
-
-    private boolean validateToken(Object token) {
-        if (token == null) return false;
-
-        if (token instanceof FacebookAccountTokenDTO || token instanceof FacebookPageTokenDTO) {
-            // Cast and handle based on type
-            long expiresIn;
-            TimeUnit timeUnit;
-
-            if (token instanceof FacebookAccountTokenDTO accountToken) {
-                expiresIn = accountToken.expiresIn();
-                timeUnit = accountToken.expiresInTimeUnit();
-            } else {
-                FacebookPageTokenDTO pageToken = (FacebookPageTokenDTO) token;
-                expiresIn = pageToken.expiresIn();
-                timeUnit = pageToken.expiresInTimeUnit();
-            }
-
-            if (expiresIn == 0) return true;
-            long expirationMillis = System.currentTimeMillis() + TimeUnit.MILLISECONDS.convert(expiresIn, timeUnit);
-            return System.currentTimeMillis() <= expirationMillis;
-        }
-
-        return false;
-    }
-
-    private String formulateAccountKey(Long id, MetaOAuthTokenType tokenType) {
-        return tokenType.toString() + id.toString();
-    }
-
-    private String formulatePageKey(Long id) {
-        return "pageId_"+ id.toString();
-    }
 }

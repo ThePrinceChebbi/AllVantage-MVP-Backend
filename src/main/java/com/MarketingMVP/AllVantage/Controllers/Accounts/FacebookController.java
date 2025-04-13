@@ -4,7 +4,8 @@ import com.MarketingMVP.AllVantage.DTOs.Response.Insights.PlatformInsightsResult
 import com.MarketingMVP.AllVantage.DTOs.Response.Postable.PlatformPostResult;
 import com.MarketingMVP.AllVantage.Entities.FileData.FileData;
 import com.MarketingMVP.AllVantage.Repositories.Account.PlatformType;
-import com.MarketingMVP.AllVantage.Services.Accounts.Facebook.FacebookService;
+import com.MarketingMVP.AllVantage.Services.Accounts.Meta.Facebook.FacebookService;
+import com.MarketingMVP.AllVantage.Services.Accounts.Meta.MetaAuth.MetaAuthService;
 import com.MarketingMVP.AllVantage.Services.FileData.FileService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.lang.Nullable;
@@ -20,20 +21,22 @@ import java.util.List;
 public class FacebookController {
     private final FacebookService facebookService;
     private final FileService fileService;
+    private final MetaAuthService metaAuthService;
 
-    public FacebookController(FacebookService facebookService, FileService fileService) {
+    public FacebookController(FacebookService facebookService, FileService fileService, MetaAuthService metaAuthService) {
         this.facebookService = facebookService;
         this.fileService = fileService;
+        this.metaAuthService = metaAuthService;
     }
 
     @GetMapping("/add-global-account")
     public RedirectView facebookAuth() {
-        return facebookService.authenticateGlobalAccount();
+        return metaAuthService.authenticateGlobalAccount();
     }
 
     @GetMapping("/callback")
     public ResponseEntity<Object> facebookCallback(@RequestParam("code") String code) {
-        return facebookService.authenticateGlobalAccountCallback(code);
+        return metaAuthService.authenticateGlobalAccountCallback(code);
     }
 
     @GetMapping("/{accountId}/user-pages")

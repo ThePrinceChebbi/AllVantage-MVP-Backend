@@ -1,7 +1,7 @@
 package com.MarketingMVP.AllVantage.Entities.Tokens.OAuthToken.Facebook.FacebookAccount;
 
 import com.MarketingMVP.AllVantage.Entities.Account.Facebook.Account.FacebookAccount;
-import com.MarketingMVP.AllVantage.Entities.Tokens.OAuthToken.MetaOAuthTokenType;
+import com.MarketingMVP.AllVantage.Entities.Tokens.OAuthToken.FacebookTokenType;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
@@ -43,6 +43,6 @@ public class FacebookAccountToken {
     private boolean isRevoked = false;
 
     @NotNull
-    private MetaOAuthTokenType oAuthTokenType;
+    private FacebookTokenType oAuthTokenType;
 
 }

@@ -1,4 +1,4 @@
-package com.MarketingMVP.AllVantage.Services.Accounts.Facebook;
+package com.MarketingMVP.AllVantage.Services.Accounts.Meta.Facebook;
 
 import com.MarketingMVP.AllVantage.DTOs.Facebook.AccountToken.FacebookAccountTokenDTO;
 import com.MarketingMVP.AllVantage.DTOs.Facebook.PageToken.FacebookPageTokenDTO;
@@ -8,7 +8,7 @@ import com.MarketingMVP.AllVantage.Entities.Account.Facebook.Account.FacebookAcc
 import com.MarketingMVP.AllVantage.Entities.Account.Facebook.Page.FacebookPage;
 import com.MarketingMVP.AllVantage.Entities.FileData.FileData;
 import com.MarketingMVP.AllVantage.Entities.PlatformContent.Facebook.FacebookMedia;
-import com.MarketingMVP.AllVantage.Entities.Tokens.OAuthToken.MetaOAuthTokenType;
+import com.MarketingMVP.AllVantage.Entities.Tokens.OAuthToken.FacebookTokenType;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import jakarta.validation.constraints.NotNull;
@@ -20,9 +20,6 @@ import java.util.Date;
 import java.util.List;
 
 public interface  FacebookService {
-    RedirectView authenticateGlobalAccount();
-
-    ResponseEntity<Object> authenticateGlobalAccountCallback(String authorizationCode);
 
     FacebookMedia uploadMediaToFacebook(FileData fileData, Long pageId);
 
@@ -58,22 +55,9 @@ public interface  FacebookService {
 
     ResponseEntity<Object> testRefreshMethod(Long accountId);
 
-    RedirectView getAuthenticationCode(String redirectUri);
-
-    @Transactional
-    FacebookAccount exchangeCodeForToken(String authorizationCode, boolean isGlobal, String redirectUri) throws Exception;
-
     ResponseEntity<Object> getUserPages(Long accountId);
-
-    FacebookPage authenticateFacebookPage(Long accountId, String pageId) throws JsonProcessingException;
-
-    FacebookAccountTokenDTO getAccountCachedToken(Long accountId, MetaOAuthTokenType tokenType);
-
-    FacebookPageTokenDTO getPageCachedToken(Long pageId);
 
     JsonNode fetchUserPages(Long accountId) throws JsonProcessingException;
 
     ResponseEntity<Object> getAllAccounts();
-
-
 }

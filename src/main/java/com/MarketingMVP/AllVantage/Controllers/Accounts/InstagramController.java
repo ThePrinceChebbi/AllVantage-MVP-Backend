@@ -1,29 +1,10 @@
 package com.MarketingMVP.AllVantage.Controllers.Accounts;
 
-
-import com.MarketingMVP.AllVantage.Services.Accounts.Instagram.InstagramService;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.servlet.view.RedirectView;
 
 @RestController
 @RequestMapping("/api/v1/account/instagram")
 public class InstagramController {
-    private final InstagramService instagramService;
-
-    public InstagramController(InstagramService instagramService) {
-        this.instagramService = instagramService;
-    }
-
-    @GetMapping("/add-global-account")
-    public RedirectView facebookAuth() {
-        return instagramService.authenticateGlobalAccount();
-    }
-
-    @GetMapping("/callback")
-    public ResponseEntity<Object> facebookCallback(@RequestParam("code") String code) {
-        return instagramService.authenticateGlobalAccountCallback(code);
-    }
 
     /*@GetMapping("/{accountId}/user-pages")
     public ResponseEntity<Object> getUserPages(@PathVariable Long accountId) {

@@ -2,7 +2,6 @@ package com.MarketingMVP.AllVantage.Redis.Configuration;
 
 import com.MarketingMVP.AllVantage.DTOs.Facebook.AccountToken.FacebookAccountTokenDTO;
 import com.MarketingMVP.AllVantage.DTOs.Facebook.PageToken.FacebookPageTokenDTO;
-import com.MarketingMVP.AllVantage.DTOs.Instagram.AccountToken.InstagramTokenDTO;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
@@ -29,6 +28,7 @@ public class RedisConfig {
         template.afterPropertiesSet();
         return template;
     }
+
     @Bean
     public RedisTemplate<String, FacebookPageTokenDTO> redisPageTemplate(RedisConnectionFactory redisConnectionFactory) {
         RedisTemplate<String, FacebookPageTokenDTO> template = new RedisTemplate<>();
@@ -44,23 +44,6 @@ public class RedisConfig {
         template.afterPropertiesSet();
         return template;
     }
-    @Bean
-    public RedisTemplate<String, InstagramTokenDTO> redisInstagramTemplate(RedisConnectionFactory redisConnectionFactory) {
-        RedisTemplate<String, InstagramTokenDTO> template = new RedisTemplate<>();
-
-        template.setConnectionFactory(redisConnectionFactory);
-        // Use JSON serialization for values
-        template.setKeySerializer(new StringRedisSerializer());
-        template.setValueSerializer(new GenericJackson2JsonRedisSerializer());
-
-        template.setHashKeySerializer(new StringRedisSerializer());
-        template.setHashValueSerializer(new GenericJackson2JsonRedisSerializer());
-
-        template.afterPropertiesSet();
-        return template;
-    }
-
-
 
     @Bean
     public StringRedisTemplate stringRedisTemplate(RedisConnectionFactory connectionFactory) {
