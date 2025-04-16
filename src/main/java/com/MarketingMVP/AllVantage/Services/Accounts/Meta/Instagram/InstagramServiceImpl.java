@@ -10,6 +10,7 @@ import com.MarketingMVP.AllVantage.Entities.FileData.FileData;
 import com.MarketingMVP.AllVantage.Entities.PlatformContent.Instagram.InstagramMedia;
 import com.MarketingMVP.AllVantage.Entities.PlatformContent.Instagram.InstagramPost;
 import com.MarketingMVP.AllVantage.Entities.PlatformContent.Instagram.InstagramReel;
+import com.MarketingMVP.AllVantage.Entities.PlatformContent.Instagram.InstagramStory;
 import com.MarketingMVP.AllVantage.Entities.PlatformContent.PlatformMediaType;
 import com.MarketingMVP.AllVantage.Exceptions.ResourceNotFoundException;
 import com.MarketingMVP.AllVantage.Repositories.Account.Facebook.FacebookPageRepository;
@@ -18,6 +19,7 @@ import com.MarketingMVP.AllVantage.Repositories.Account.PlatformType;
 import com.MarketingMVP.AllVantage.Repositories.PlatformContent.Instagram.InstagramMediaRepository;
 import com.MarketingMVP.AllVantage.Repositories.PlatformContent.Instagram.InstagramPostRepository;
 import com.MarketingMVP.AllVantage.Repositories.PlatformContent.Instagram.InstagramReelRepository;
+import com.MarketingMVP.AllVantage.Repositories.PlatformContent.Instagram.InstagramStoryRepository;
 import com.MarketingMVP.AllVantage.Services.Accounts.Meta.MetaAuth.MetaAuthService;
 import com.MarketingMVP.AllVantage.Services.FileData.FileService;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -52,8 +54,9 @@ public class InstagramServiceImpl implements InstagramService{
     private final InstagramPostRepository instagramPostRepository;
     private final InstagramMediaRepository instagramMediaRepository;
     private final InstagramReelRepository instagramReelRepository;
+    private final InstagramStoryRepository instagramStoryRepository;
 
-    public InstagramServiceImpl(MetaAuthService metaAuthService, FacebookPageRepository facebookPageRepository, InstagramAccountRepository instagramAccountRepository, FileService fileService, InstagramPostRepository instagramPostRepository, InstagramMediaRepository instagramMediaRepository, InstagramReelRepository instagramReelRepository) {
+    public InstagramServiceImpl(MetaAuthService metaAuthService, FacebookPageRepository facebookPageRepository, InstagramAccountRepository instagramAccountRepository, FileService fileService, InstagramPostRepository instagramPostRepository, InstagramMediaRepository instagramMediaRepository, InstagramReelRepository instagramReelRepository, InstagramStoryRepository instagramStoryRepository) {
         this.metaAuthService = metaAuthService;
         this.facebookPageRepository = facebookPageRepository;
         this.instagramAccountRepository = instagramAccountRepository;
@@ -61,6 +64,7 @@ public class InstagramServiceImpl implements InstagramService{
         this.instagramPostRepository = instagramPostRepository;
         this.instagramMediaRepository = instagramMediaRepository;
         this.instagramReelRepository = instagramReelRepository;
+        this.instagramStoryRepository = instagramStoryRepository;
     }
 
     @Override
@@ -187,7 +191,6 @@ public class InstagramServiceImpl implements InstagramService{
         }
     }
 
-    //TODO : Fix this fucking method
     private PlatformPostResult postInstagramMedia(List<FileData> files, String caption, @Nullable Date scheduledAt, InstagramAccount instagramAccount) {
         try {
             if (files.size() > 10) {
@@ -326,7 +329,7 @@ public class InstagramServiceImpl implements InstagramService{
     private String buildUploadEndpoint(FileData file, InstagramAccount account, String accessToken, @Nullable String caption, boolean isStory) {
         String mediaUrl = ngrokUrl + "api/v1/files/" + file.getId() ;
         String encodedToken = URLEncoder.encode(accessToken, StandardCharsets.UTF_8);
-        String mediaType = isStory ? "REELS" : "STORY";
+        String mediaType = isStory ? "STORIES" : "REELS";
         return switch (file.getType()) {
             case "image" -> String.format(
                     "https://graph.facebook.com/v22.0/%s/media?image_url=%s&access_token=%s",
@@ -442,8 +445,62 @@ public class InstagramServiceImpl implements InstagramService{
 
 
     @Override
-    public PlatformPostResult createInstagramStory(FileData media, String caption, Date scheduledAt, Long instagramAccountId) {
-        return null;
+    public PlatformPostResult createInstagramStory(FileData media , Date scheduledAt, Long instagramAccountId) {
+        try {
+            InstagramAccount instagramAccount = instagramAccountRepository.findById(instagramAccountId)
+                    .orElseThrow(() -> new ResourceNotFoundException("Instagram account not found with ID: " + instagramAccountId));
+
+            return postInstagramStory(media, scheduledAt, instagramAccount);
+
+        } catch (Exception e) {
+            try {
+                fileService.deleteFileFromFileSystem(media);
+            } catch (IOException ex) {
+                System.out.println("Failed to delete video file: " + ex.getMessage());
+            }
+
+            return PlatformPostResult.failure(PlatformType.INSTAGRAM, e.getMessage());
+        }
+    }
+    private PlatformPostResult postInstagramStory(FileData fileData, Date scheduledAt, InstagramAccount account ){
+        try{
+            FacebookPageTokenDTO tokenDTO = metaAuthService.getPageCachedToken(account.getFacebookPage().getId());
+
+            String mediaId = uploadMediaItem(
+                    fileData,
+                    account,
+                    tokenDTO.accessToken(),
+                    null,
+                    true
+            );
+
+            // Wait for processing if needed
+            waitForVideoUpload(mediaId, tokenDTO.accessToken());
+
+            InstagramMedia media = new InstagramMedia(
+                    mediaId,
+                    fileData,
+                    PlatformMediaType.VIDEO
+            );
+            // Publish the reel
+            String publishedReelId = publishCarousel(
+                    mediaId,
+                    account,
+                    tokenDTO.accessToken(),
+                    null
+            ); // Already used for single media too
+
+            InstagramStory instagramStory = new InstagramStory(
+                    publishedReelId,
+                    instagramMediaRepository.save(media),
+                    account
+            );
+
+            return PlatformPostResult.success(PlatformType.INSTAGRAM, instagramStoryRepository.save(instagramStory));
+        }catch (Exception e){
+            System.out.println("Failed to post instagram reel: " + e.getMessage());
+            return PlatformPostResult.failure(PlatformType.INSTAGRAM, e.getMessage());
+        }
     }
 
     @Override

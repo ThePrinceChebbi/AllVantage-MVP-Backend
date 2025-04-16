@@ -83,24 +83,24 @@ public class InstagramController {
             return ResponseEntity.internalServerError().body(PlatformPostResult.failure(PlatformType.INSTAGRAM, e.getMessage()));
         }
     }
-/*
-    @PostMapping("/{pageId}/story")
+
+    @PostMapping("/{accountId}/story")
     public ResponseEntity<PlatformPostResult> postStory(
-            @PathVariable Long pageId,
-            @RequestParam String content,
+            @PathVariable Long accountId,
             @RequestParam MultipartFile story,
             @RequestParam @Nullable Date scheduledAt,
             @RequestParam String title
     ) {
         try {
             FileData fileData = fileService.processUploadedFile(story);
-            PlatformPostResult result = instagramService.storyOnFacebookPage(fileData, title, content, scheduledAt, pageId);
+            PlatformPostResult result = instagramService.createInstagramStory(fileData, scheduledAt, accountId);
             return result.isSuccess() ? ResponseEntity.ok(result) : ResponseEntity.internalServerError().body(result);
         } catch (Exception e) {
             return ResponseEntity.internalServerError().body(PlatformPostResult.failure(PlatformType.FACEBOOK, e.getMessage()));
         }
     }
 
+/*
     @GetMapping("/{pageId}/insights")
     public ResponseEntity<Object> getPageInsights(
             @PathVariable Long pageId,

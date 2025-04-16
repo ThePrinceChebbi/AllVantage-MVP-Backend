@@ -33,7 +33,6 @@ public interface InstagramService {
 
     PlatformPostResult createInstagramStory(
             FileData media, // Could be image or video
-            String caption, // Might have different limitations for stories
             Date scheduledAt,
             Long instagramAccountId
     );
