@@ -1,29 +1,58 @@
 package com.MarketingMVP.AllVantage.Controllers.Accounts;
 
+import com.MarketingMVP.AllVantage.DTOs.Response.Postable.PlatformPostResult;
+import com.MarketingMVP.AllVantage.Entities.Account.Instagram.InstagramAccount;
+import com.MarketingMVP.AllVantage.Entities.FileData.FileData;
+import com.MarketingMVP.AllVantage.Repositories.Account.PlatformType;
+import com.MarketingMVP.AllVantage.Services.Accounts.Meta.Instagram.InstagramService;
+import com.MarketingMVP.AllVantage.Services.FileData.FileService;
+import org.springframework.http.ResponseEntity;
+import org.springframework.lang.Nullable;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.util.Date;
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/account/instagram")
 public class InstagramController {
 
-    /*@GetMapping("/{accountId}/user-pages")
-    public ResponseEntity<Object> getUserPages(@PathVariable Long accountId) {
-        return instagramService.getUserPages(accountId);
+    private final InstagramService instagramService;
+    private final FileService fileService;
+
+    public InstagramController(InstagramService instagramService, FileService fileService) {
+        this.instagramService = instagramService;
+        this.fileService = fileService;
     }
 
-    @GetMapping("/all")
+    @GetMapping("/{pageId}/ig-accounts")
+    public ResponseEntity<Object> getUserPages(@PathVariable Long pageId) {
+        return instagramService.getPageInstagramAccounts(pageId);
+    }
+
+    @GetMapping("/{pageId}/{igId}")
+    public ResponseEntity<Object> getAccountDetails(@PathVariable Long pageId, @PathVariable String igId) {
+        return instagramService.getInstagramAccountDetails(igId,pageId);
+    }
+
+    @PostMapping("/{pageId}/add")
+    public ResponseEntity<Object> addAccount(@PathVariable Long pageId, @RequestParam String igId) {
+        return instagramService.addInstagramAccount(igId,pageId);
+    }
+
+    @GetMapping("/get_all")
     public ResponseEntity<Object> getAllAccounts() {
         return instagramService.getAllAccounts();
     }
 
-    @PostMapping("/{pageId}/post")
+    @PostMapping("/{accountId}/post")
     public ResponseEntity<PlatformPostResult> createPost(
-            @PathVariable Long pageId,
+            @PathVariable Long accountId,
             @RequestParam String content,
             @RequestParam List<MultipartFile> files,
             @RequestParam @Nullable Date scheduledAt,
-            @RequestParam String title
-    ) {
+            @RequestParam String title) {
         try {
             List<FileData> fileDataList = files.stream().map((file) -> {
                 try {
@@ -32,30 +61,29 @@ public class InstagramController {
                     return null;
                 }
             }).toList();
-            PlatformPostResult result = instagramService.createFacebookPost(fileDataList, title, content, scheduledAt, pageId);
+            PlatformPostResult result = instagramService.createInstagramPost(fileDataList, title, content, scheduledAt, accountId);
             return result.isSuccess() ? ResponseEntity.ok(result) : ResponseEntity.internalServerError().body(result);
         } catch (Exception e) {
             return ResponseEntity.internalServerError().body(PlatformPostResult.failure(PlatformType.FACEBOOK, e.getMessage()));
         }
     }
 
-    @PostMapping("/{pageId}/reel")
+    @PostMapping("/{accountId}/reel")
     public ResponseEntity<PlatformPostResult> postReel(
-            @PathVariable Long pageId,
+            @PathVariable Long accountId,
             @RequestParam String content,
             @RequestParam MultipartFile video,
-            @RequestParam @Nullable Date scheduledAt,
-            @RequestParam String title
+            @RequestParam @Nullable Date scheduledAt
     ) {
         try {
             FileData fileData = fileService.processUploadedFile(video);
-            PlatformPostResult result = instagramService.createFacebookReel(fileData, title, content, scheduledAt, pageId);
+            PlatformPostResult result = instagramService.createInstagramReel(fileData, content, scheduledAt, accountId);
             return result.isSuccess() ? ResponseEntity.ok(result) : ResponseEntity.internalServerError().body(result);
         } catch (Exception e) {
-            return ResponseEntity.internalServerError().body(PlatformPostResult.failure(PlatformType.FACEBOOK, e.getMessage()));
+            return ResponseEntity.internalServerError().body(PlatformPostResult.failure(PlatformType.INSTAGRAM, e.getMessage()));
         }
     }
-
+/*
     @PostMapping("/{pageId}/story")
     public ResponseEntity<PlatformPostResult> postStory(
             @PathVariable Long pageId,

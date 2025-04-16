@@ -10,10 +10,15 @@ import org.springframework.http.ResponseEntity;
 
 public interface InstagramService {
 
-    ResponseEntity<Object> getPageInstagramAccount(String pageId);
+    ResponseEntity<Object> getPageInstagramAccounts(Long pageId);
+
+    ResponseEntity<Object> getInstagramAccountDetails(String instagramId, Long pageId);
+
+    ResponseEntity<Object> addInstagramAccount(String instagramBusinessId, Long pageId);
 
     PlatformPostResult createInstagramPost(
             List<FileData> files, // Instagram might only allow single image/video per basic post through the API
+            String title,
             String caption,
             Date scheduledAt,
             Long instagramAccountId

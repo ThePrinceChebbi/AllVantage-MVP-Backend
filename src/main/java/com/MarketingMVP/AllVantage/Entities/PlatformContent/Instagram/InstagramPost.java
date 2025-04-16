@@ -1,6 +1,6 @@
 package com.MarketingMVP.AllVantage.Entities.PlatformContent.Instagram;
 
-import com.MarketingMVP.AllVantage.Entities.Account.Facebook.Page.FacebookPage;
+import com.MarketingMVP.AllVantage.Entities.Account.Instagram.InstagramAccount;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -24,6 +24,6 @@ public class InstagramPost {
     private List<InstagramMedia> instagramMediaList;
 
     @ManyToOne
-    private FacebookPage page;
+    private InstagramAccount account;
 
 }

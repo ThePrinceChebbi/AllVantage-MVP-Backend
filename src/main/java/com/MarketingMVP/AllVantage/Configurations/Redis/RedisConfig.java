@@ -1,4 +1,4 @@
-package com.MarketingMVP.AllVantage.Redis.Configuration;
+package com.MarketingMVP.AllVantage.Configurations.Redis;
 
 import com.MarketingMVP.AllVantage.DTOs.Facebook.AccountToken.FacebookAccountTokenDTO;
 import com.MarketingMVP.AllVantage.DTOs.Facebook.PageToken.FacebookPageTokenDTO;

@@ -6,6 +6,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.File;
+
 @RestController
 @RequestMapping("/api/v1/files")
 public class FileController {
@@ -19,6 +21,11 @@ public class FileController {
     @GetMapping("/{fileId}")
     public ResponseEntity<byte[]> getFileById(@PathVariable("fileId") Long fileId, @RequestHeader HttpHeaders headers) {
         return fileService.getFile(fileId, headers);
+    }
+
+    @GetMapping("/{fileId}/download")
+    public File getFile(@PathVariable("fileId") Long fileId) {
+        return fileService.getFileFromFileData(fileService.getFileDataById(fileId));
     }
 
     @GetMapping("/get-file")

@@ -1,4 +1,4 @@
-package com.MarketingMVP.AllVantage.DTOs.Instagram.Account;
+package com.MarketingMVP.AllVantage.DTOs.Instagram;
 
 import com.MarketingMVP.AllVantage.Entities.Account.Instagram.InstagramAccount;
 
@@ -9,10 +9,11 @@ public class InstagramAccountDTOMapper implements Function<InstagramAccount, Ins
     public InstagramAccountDTO apply(InstagramAccount instagramAccount) {
         return new InstagramAccountDTO(
                 instagramAccount.getId(),
+                instagramAccount.getInstagramId(),
                 instagramAccount.getAccountName(),
                 instagramAccount.getConnectedAt(),
                 instagramAccount.getUpdatedAt(),
-                instagramAccount.getFacebookPage()
+                instagramAccount.getFacebookPage().getId()
         );
     }
 }

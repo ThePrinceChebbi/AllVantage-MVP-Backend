@@ -2,8 +2,10 @@ package com.MarketingMVP.AllVantage.Entities.PlatformContent.Instagram;
 
 import com.MarketingMVP.AllVantage.Entities.Account.Facebook.Page.FacebookPage;
 import com.MarketingMVP.AllVantage.Entities.Account.Instagram.InstagramAccount;
+import com.MarketingMVP.AllVantage.Entities.PlatformContent.Facebook.FacebookMedia;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
@@ -12,12 +14,10 @@ import lombok.NoArgsConstructor;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class InstagramReel {
-
+@Builder
+public class InstagramStory {
     @Id
-    private String instagramReelId;
-
-    private String caption;
+    private String instagramStoryId;
 
     @OneToOne
     private InstagramMedia instagramMedia;
