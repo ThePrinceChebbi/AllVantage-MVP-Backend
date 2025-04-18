@@ -1,13 +1,5 @@
 package com.MarketingMVP.AllVantage.Entities.Postable;
 
-
-import com.MarketingMVP.AllVantage.Entities.Account.Facebook.Page.FacebookPage;
-import com.MarketingMVP.AllVantage.Entities.Account.Instagram.InstagramAccount;
-import com.MarketingMVP.AllVantage.Entities.Account.LinkedIn.LinkedInAccount;
-import com.MarketingMVP.AllVantage.Entities.Account.Snapchat.SnapchatAccount;
-import com.MarketingMVP.AllVantage.Entities.Account.TikTok.TikTokAccount;
-import com.MarketingMVP.AllVantage.Entities.Account.X.XAccount;
-import com.MarketingMVP.AllVantage.Entities.FileData.FileData;
 import com.MarketingMVP.AllVantage.Entities.UserEntity.Employee;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
@@ -16,7 +8,6 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.util.Date;
-import java.util.List;
 
 @Entity
 @Table

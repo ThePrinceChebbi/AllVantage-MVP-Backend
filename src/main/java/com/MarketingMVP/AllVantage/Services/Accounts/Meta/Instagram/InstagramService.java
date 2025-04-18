@@ -32,18 +32,22 @@ public interface InstagramService {
     );
 
     PlatformPostResult createInstagramStory(
-            FileData media, // Could be image or video
+            FileData media,
             Date scheduledAt,
             Long instagramAccountId
     );
 
-    PlatformInsightsResult getInstagramAccountInsights(Long instagramAccountId, List<String> metrics, String period); // Period can be day, week, month, lifetime
+    PlatformInsightsResult getInstagramAccountInsights(Long instagramAccountId, List<String> metrics, String period);
 
-    PlatformInsightsResult getInstagramMediaInsights(String mediaId, List<String> metrics);
+    PlatformInsightsResult getInstagramPostInsights(Long accountId, String mediaId, List<String> metrics);
+
+    PlatformInsightsResult getInstagramReelsInsights(Long accountId, String mediaId, List<String> metricList);
 
     ResponseEntity<Object> getAllPosts(Long accountId); // Or perhaps get media
 
     ResponseEntity<Object> getInstagramAccountInfo(Long accountId);
 
     ResponseEntity<Object> getAllAccounts();
+
+    ResponseEntity<Object> getAllReels(Long accountId);
 }

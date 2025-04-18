@@ -1,7 +1,7 @@
 package com.MarketingMVP.AllVantage.Controllers.Accounts;
 
+import com.MarketingMVP.AllVantage.DTOs.Response.Insights.PlatformInsightsResult;
 import com.MarketingMVP.AllVantage.DTOs.Response.Postable.PlatformPostResult;
-import com.MarketingMVP.AllVantage.Entities.Account.Instagram.InstagramAccount;
 import com.MarketingMVP.AllVantage.Entities.FileData.FileData;
 import com.MarketingMVP.AllVantage.Repositories.Account.PlatformType;
 import com.MarketingMVP.AllVantage.Services.Accounts.Meta.Instagram.InstagramService;
@@ -64,7 +64,7 @@ public class InstagramController {
             PlatformPostResult result = instagramService.createInstagramPost(fileDataList, title, content, scheduledAt, accountId);
             return result.isSuccess() ? ResponseEntity.ok(result) : ResponseEntity.internalServerError().body(result);
         } catch (Exception e) {
-            return ResponseEntity.internalServerError().body(PlatformPostResult.failure(PlatformType.FACEBOOK, e.getMessage()));
+            return ResponseEntity.internalServerError().body(PlatformPostResult.failure(PlatformType.INSTAGRAM, e.getMessage()));
         }
     }
 
@@ -96,44 +96,67 @@ public class InstagramController {
             PlatformPostResult result = instagramService.createInstagramStory(fileData, scheduledAt, accountId);
             return result.isSuccess() ? ResponseEntity.ok(result) : ResponseEntity.internalServerError().body(result);
         } catch (Exception e) {
-            return ResponseEntity.internalServerError().body(PlatformPostResult.failure(PlatformType.FACEBOOK, e.getMessage()));
+            return ResponseEntity.internalServerError().body(PlatformPostResult.failure(PlatformType.INSTAGRAM, e.getMessage()));
         }
     }
 
-/*
+
     @GetMapping("/{pageId}/insights")
     public ResponseEntity<Object> getPageInsights(
             @PathVariable Long pageId,
-            @RequestParam String metricName
+            @RequestParam List<String> metricList,
+            @RequestParam String period
     ) {
         try {
-            PlatformInsightsResult result = instagramService.getFacebookPageInsights(pageId, metricName);
+            PlatformInsightsResult result = instagramService.getInstagramAccountInsights(pageId, metricList, period);
             return result.isSuccess() ? ResponseEntity.ok(result) : ResponseEntity.internalServerError().body(result);
         } catch (Exception e) {
-            return ResponseEntity.internalServerError().body(PlatformPostResult.failure(PlatformType.FACEBOOK, e.getMessage()));
+            return ResponseEntity.internalServerError().body(PlatformPostResult.failure(PlatformType.INSTAGRAM, e.getMessage()));
         }
     }
 
-    @GetMapping("/{pageId}/{postId}/insights")
+    @GetMapping("/{accountId}/posts/{postId}/insights")
     public ResponseEntity<Object> getPostInsights(
-            @PathVariable Long pageId,
+            @PathVariable Long accountId,
             @PathVariable String postId,
-            @RequestParam String metricList
+            @RequestParam List<String> metricList
     ) {
         try {
-            PlatformInsightsResult result = instagramService.getFacebookPostInsights(pageId, postId, metricList);
+            PlatformInsightsResult result = instagramService.getInstagramPostInsights(accountId, postId, metricList);
             return result.isSuccess() ? ResponseEntity.ok(result) : ResponseEntity.internalServerError().body(result);
         } catch (Exception e) {
-            return ResponseEntity.internalServerError().body(PlatformPostResult.failure(PlatformType.FACEBOOK, e.getMessage()));
+            return ResponseEntity.internalServerError().body(PlatformPostResult.failure(PlatformType.INSTAGRAM, e.getMessage()));
+        }
+    }
+    @GetMapping("/{accountId}/reels/{reelId}/insights")
+    public ResponseEntity<Object> getReelInsights(
+            @PathVariable Long accountId,
+            @PathVariable String reelId,
+            @RequestParam List<String> metricList
+    ) {
+        try {
+            PlatformInsightsResult result = instagramService.getInstagramReelsInsights(accountId, reelId, metricList);
+            return result.isSuccess() ? ResponseEntity.ok(result) : ResponseEntity.internalServerError().body(result);
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body(PlatformPostResult.failure(PlatformType.INSTAGRAM, e.getMessage()));
         }
     }
 
-    @GetMapping("/{pageId}/posts")
-    public ResponseEntity<Object> getPosts(@PathVariable Long pageId) {
+    @GetMapping("/{accountId}/posts")
+    public ResponseEntity<Object> getPosts(@PathVariable Long accountId) {
         try {
-            return instagramService.getAllPosts(pageId);
+            return instagramService.getAllPosts(accountId);
         } catch (Exception e) {
-            return ResponseEntity.internalServerError().body(PlatformPostResult.failure(PlatformType.FACEBOOK, e.getMessage()));
+            return ResponseEntity.internalServerError().body(PlatformPostResult.failure(PlatformType.INSTAGRAM, e.getMessage()));
         }
-    }*/
+    }
+
+    @GetMapping("/{accountId}/reels")
+    public ResponseEntity<Object> getReels(@PathVariable Long accountId) {
+        try {
+            return instagramService.getAllReels(accountId);
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body(PlatformPostResult.failure(PlatformType.INSTAGRAM, e.getMessage()));
+        }
+    }
 }

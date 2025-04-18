@@ -36,7 +36,6 @@ import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.function.Supplier;
@@ -45,7 +44,7 @@ import java.util.function.Supplier;
 @Service
 public class InstagramServiceImpl implements InstagramService{
 
-    private final String ngrokUrl = "https://99bf-197-19-175-124.ngrok-free.app/";
+    private final String ngrokUrl = "https://80aa-41-224-35-242.ngrok-free.app/";
 
     private final MetaAuthService metaAuthService;
     private final FacebookPageRepository facebookPageRepository;
@@ -310,12 +309,13 @@ public class InstagramServiceImpl implements InstagramService{
         String url = String.format("https://graph.facebook.com/v22.0/%s?fields=status_code&access_token=%s", creationId, accessToken);
         RestTemplate restTemplate = new RestTemplate();
 
-        boolean isFinished = false;
-        while (!isFinished) {
+        String status = "IN_PROGRESS";
+        while (status.equals("IN_PROGRESS")) {
             ResponseEntity<Map> response = restTemplate.getForEntity(url, Map.class);
-            String status = (String) ((Map) response.getBody()).get("status_code");
+            status = (String) ((Map) response.getBody()).get("status_code");
             System.out.println(creationId + ": " + status);
-            if ("FINISHED".equals(status)) isFinished = true;
+            if ("FINISHED".equals(status)) return;
+            if (status.equals("ERROR")) throw new RuntimeException("Video upload failed for ID: " + creationId);
 
             Thread.sleep(3000); // wait 1 second
         }
@@ -504,18 +504,81 @@ public class InstagramServiceImpl implements InstagramService{
     }
 
     @Override
-    public PlatformInsightsResult getInstagramAccountInsights(Long instagramAccountId, List<String> metrics, String period) {
-        return null;
+    public PlatformInsightsResult getInstagramAccountInsights(Long instagramAccountId, List<String> metricList, String period) {
+        try {
+            InstagramAccount instagramAccount = instagramAccountRepository.findById(instagramAccountId)
+                    .orElseThrow(() -> new ResourceNotFoundException("Instagram account not found with ID: " + instagramAccountId));
+            FacebookPageTokenDTO tokenDTO = metaAuthService.getPageCachedToken(instagramAccount.getFacebookPage().getId());
+            String metrics ="metric=" + String.join(",", metricList);
+            String insightsUrl = String.format(
+                    "https://graph.facebook.com/v22.0/%s/insights?%s&period=%s&access_token=%s",
+                    instagramAccount.getInstagramId(),
+                    metrics,
+                    period,
+                    tokenDTO.accessToken()
+            );
+            RestTemplate restTemplate = new RestTemplate();
+            ResponseEntity<Map> response = restTemplate.exchange(insightsUrl, HttpMethod.GET, null, Map.class);
+            if (!response.getStatusCode().is2xxSuccessful()) {
+                throw new RuntimeException("Failed to fetch insights: " + response.getBody());
+            }
+            return PlatformInsightsResult.success(PlatformType.INSTAGRAM, Objects.requireNonNull(response.getBody()));
+        } catch (Exception e) {
+            return PlatformInsightsResult.failure(PlatformType.INSTAGRAM, "Failed to fetch insights: " + e.getMessage());
+        }
     }
 
     @Override
-    public PlatformInsightsResult getInstagramMediaInsights(String mediaId, List<String> metrics) {
-        return null;
+    public PlatformInsightsResult getInstagramPostInsights(Long accountId, String mediaId, List<String> metricList) {
+        try {
+            InstagramPost instagramPost = instagramPostRepository.findById(mediaId)
+                    .orElseThrow(() -> new ResourceNotFoundException("Instagram post not found with ID: " + mediaId));
+            if (!Objects.equals(instagramPost.getAccount().getId(), accountId)) {
+                throw new IllegalArgumentException("Media ID does not belong to the specified account.");
+            }
+            FacebookPageTokenDTO tokenDTO = metaAuthService.getPageCachedToken(instagramPost.getAccount().getFacebookPage().getId());
+            return fetchInsights(mediaId,tokenDTO.accessToken(),metricList);
+        } catch (Exception e) {
+            return PlatformInsightsResult.failure(PlatformType.INSTAGRAM, e.getMessage());
+        }
+    }
+
+    @Override
+    public PlatformInsightsResult getInstagramReelsInsights(Long accountId, String mediaId, List<String> metricList) {
+        try {
+            InstagramReel instagramReel = instagramReelRepository.findById(mediaId)
+                    .orElseThrow(() -> new ResourceNotFoundException("Instagram reel not found with ID: " + mediaId));
+            if (!Objects.equals(instagramReel.getAccount().getId(), accountId)) {
+                throw new IllegalArgumentException("Media ID does not belong to the specified account.");
+            }
+            FacebookPageTokenDTO tokenDTO = metaAuthService.getPageCachedToken(instagramReel.getAccount().getFacebookPage().getId());
+            return fetchInsights(mediaId,tokenDTO.accessToken(),metricList);
+        } catch (Exception e) {
+            return PlatformInsightsResult.failure(PlatformType.INSTAGRAM, e.getMessage());
+        }
+    }
+
+    private PlatformInsightsResult fetchInsights(String mediaId, String accessToken, List<String> metricList) {
+        String metrics =String.join(",", metricList);
+
+        String insightsUrl = String.format(
+                "https://graph.facebook.com/v22.0/%s/insights/?access_token=%s&metric=%s",
+                mediaId,
+                accessToken,
+                metrics
+        );
+
+        RestTemplate restTemplate = new RestTemplate();
+        ResponseEntity<Map> response = restTemplate.exchange(insightsUrl, HttpMethod.GET, null, Map.class);
+        if (!response.getStatusCode().is2xxSuccessful()) {
+            throw new RuntimeException("Failed to fetch insights: " + response.getBody());
+        }
+        return PlatformInsightsResult.success(PlatformType.INSTAGRAM, response.getBody());
     }
 
     @Override
     public ResponseEntity<Object> getAllPosts(Long accountId) {
-        return null;
+        return ResponseEntity.ok(instagramPostRepository.findAllByAccountId(accountId));
     }
 
     @Override
@@ -526,6 +589,11 @@ public class InstagramServiceImpl implements InstagramService{
     @Override
     public ResponseEntity<Object> getAllAccounts() {
         return ResponseEntity.ok().body(instagramAccountRepository.findAll());
+    }
+
+    @Override
+    public ResponseEntity<Object> getAllReels(Long accountId) {
+        return ResponseEntity.ok(instagramReelRepository.findAllByAccountId(accountId));
     }
 
     private <T> T withRetry(Supplier<T> action, int maxAttempts, long initialDelayMillis, String taskDescription) throws Exception {

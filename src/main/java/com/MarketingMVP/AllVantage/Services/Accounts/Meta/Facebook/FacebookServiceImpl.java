@@ -274,7 +274,6 @@ public class FacebookServiceImpl implements FacebookService {
     @Override
     public PlatformInsightsResult getFacebookPostInsights(Long pageId, String facebookPostId, String metricList) {
         try {
-
             FacebookPost facebookPost = facebookPostRepository.findById(facebookPostId)
                     .orElseThrow(() -> new ResourceNotFoundException("Facebook post not found with ID: " + facebookPostId));
 
@@ -510,6 +509,4 @@ public class FacebookServiceImpl implements FacebookService {
             return PlatformPostResult.failure(PlatformType.FACEBOOK, e.getMessage());
         }
     }
-
-
 }

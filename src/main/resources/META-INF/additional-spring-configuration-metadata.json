@@ -1,0 +1,24 @@
+{
+  "properties": [
+    {
+      "name": "linkedin.client.secret",
+      "type": "java.lang.String",
+      "description": "Description for linkedin.client.secret."
+    },
+    {
+      "name": "linkedin.client.id",
+      "type": "java.lang.String",
+      "description": "Description for linkedin.client.id."
+    },
+    {
+      "name": "jwt.access.secret",
+      "type": "java.lang.String",
+      "description": "Description for jwt.access.secret."
+    },
+    {
+      "name": "jwt.refresh.secret",
+      "type": "java.lang.String",
+      "description": "Description for jwt.refresh.secret."
+    }
+  ]
+}
