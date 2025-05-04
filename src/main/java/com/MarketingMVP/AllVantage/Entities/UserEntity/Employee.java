@@ -4,6 +4,7 @@ import com.MarketingMVP.AllVantage.Entities.Suit.Suit;
 import jakarta.persistence.*;
 import lombok.Data;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Entity
@@ -11,12 +12,7 @@ import java.util.List;
 @DiscriminatorValue("Employee")
 public class Employee extends UserEntity{
 
-    @ManyToMany
-    @JoinTable(
-            name = "employee_suits",
-            joinColumns = @JoinColumn(name = "employee_id"),
-            inverseJoinColumns = @JoinColumn(name = "suit_id")
-    )
-    private List<Suit> suits;
+    @ManyToMany(mappedBy = "employees")
+    private List<Suit> suits = new ArrayList<>();
 
 }

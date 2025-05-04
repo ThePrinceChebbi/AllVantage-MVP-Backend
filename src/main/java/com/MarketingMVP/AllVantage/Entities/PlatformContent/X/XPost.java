@@ -1,7 +1,6 @@
 package com.MarketingMVP.AllVantage.Entities.PlatformContent.X;
 
-import com.MarketingMVP.AllVantage.Entities.Account.TikTok.TikTokAccount;
-import com.MarketingMVP.AllVantage.Entities.Account.X.XAccount;
+import com.MarketingMVP.AllVantage.Entities.Platform_Specific.X.XAccount;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;

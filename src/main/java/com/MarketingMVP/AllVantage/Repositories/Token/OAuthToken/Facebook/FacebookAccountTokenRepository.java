@@ -1,7 +1,7 @@
 package com.MarketingMVP.AllVantage.Repositories.Token.OAuthToken.Facebook;
 
 import com.MarketingMVP.AllVantage.Entities.Tokens.OAuthToken.Facebook.FacebookAccount.FacebookAccountToken;
-import com.MarketingMVP.AllVantage.Entities.Tokens.OAuthToken.FacebookTokenType;
+import com.MarketingMVP.AllVantage.Entities.Tokens.OAuthToken.Facebook.FacebookTokenType;
 import io.lettuce.core.dynamic.annotation.Param;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;

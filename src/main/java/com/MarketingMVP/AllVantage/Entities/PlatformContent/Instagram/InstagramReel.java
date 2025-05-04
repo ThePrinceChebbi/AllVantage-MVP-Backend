@@ -1,7 +1,6 @@
 package com.MarketingMVP.AllVantage.Entities.PlatformContent.Instagram;
 
-import com.MarketingMVP.AllVantage.Entities.Account.Facebook.Page.FacebookPage;
-import com.MarketingMVP.AllVantage.Entities.Account.Instagram.InstagramAccount;
+import com.MarketingMVP.AllVantage.Entities.Platform_Specific.Instagram.InstagramAccount;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;

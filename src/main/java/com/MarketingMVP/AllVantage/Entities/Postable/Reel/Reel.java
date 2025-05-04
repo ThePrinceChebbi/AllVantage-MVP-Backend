@@ -1,36 +1,21 @@
 package com.MarketingMVP.AllVantage.Entities.Postable.Reel;
 
 
-import com.MarketingMVP.AllVantage.Entities.Account.Facebook.Page.FacebookPage;
-import com.MarketingMVP.AllVantage.Entities.Account.Instagram.InstagramAccount;
-import com.MarketingMVP.AllVantage.Entities.Account.LinkedIn.LinkedInAccount;
-import com.MarketingMVP.AllVantage.Entities.Account.Snapchat.SnapchatAccount;
-import com.MarketingMVP.AllVantage.Entities.Account.TikTok.TikTokAccount;
-import com.MarketingMVP.AllVantage.Entities.Account.X.XAccount;
-import com.MarketingMVP.AllVantage.Entities.FileData.FileData;
-import com.MarketingMVP.AllVantage.Entities.PlatformContent.Facebook.FacebookPost;
 import com.MarketingMVP.AllVantage.Entities.PlatformContent.Facebook.FacebookReel;
-import com.MarketingMVP.AllVantage.Entities.PlatformContent.Instagram.InstagramPost;
 import com.MarketingMVP.AllVantage.Entities.PlatformContent.Instagram.InstagramReel;
-import com.MarketingMVP.AllVantage.Entities.PlatformContent.LinkedIn.LinkedinPost;
 import com.MarketingMVP.AllVantage.Entities.PlatformContent.LinkedIn.LinkedinReel;
-import com.MarketingMVP.AllVantage.Entities.PlatformContent.Snapchat.SnapchatPost;
 import com.MarketingMVP.AllVantage.Entities.PlatformContent.Snapchat.SnapchatReel;
 import com.MarketingMVP.AllVantage.Entities.PlatformContent.TikTok.TikTokReel;
-import com.MarketingMVP.AllVantage.Entities.PlatformContent.X.XPost;
 import com.MarketingMVP.AllVantage.Entities.PlatformContent.X.XReel;
 import com.MarketingMVP.AllVantage.Entities.Postable.Postable;
 import com.MarketingMVP.AllVantage.Entities.UserEntity.Employee;
 import jakarta.persistence.Entity;
-import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import lombok.Getter;
 
-import java.io.File;
 import java.util.Date;
 import java.util.List;
-import java.util.Objects;
 
 @Getter
 @Entity

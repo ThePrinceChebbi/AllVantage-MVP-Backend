@@ -31,4 +31,6 @@ public interface FileService {
 
     ResponseEntity<byte[]> getFileByName(String name);
     File getFileFromFileData(FileData fileData);
+
+    byte[] getFileBytesByFileData(FileData fileData) throws IOException;
 }

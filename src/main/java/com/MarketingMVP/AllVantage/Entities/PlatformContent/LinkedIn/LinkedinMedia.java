@@ -1,6 +1,7 @@
 package com.MarketingMVP.AllVantage.Entities.PlatformContent.LinkedIn;
 
 import com.MarketingMVP.AllVantage.Entities.FileData.FileData;
+import com.MarketingMVP.AllVantage.Entities.PlatformContent.PlatformMediaType;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.ManyToOne;
@@ -23,6 +24,6 @@ public class LinkedinMedia {
     @ManyToOne
     private FileData file;
 
-    private MediaType mediaType;
+    private PlatformMediaType mediaType; //IMAGE or VIDEO
 
 }

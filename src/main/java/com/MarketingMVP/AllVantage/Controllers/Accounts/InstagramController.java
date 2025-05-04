@@ -4,7 +4,7 @@ import com.MarketingMVP.AllVantage.DTOs.Response.Insights.PlatformInsightsResult
 import com.MarketingMVP.AllVantage.DTOs.Response.Postable.PlatformPostResult;
 import com.MarketingMVP.AllVantage.Entities.FileData.FileData;
 import com.MarketingMVP.AllVantage.Repositories.Account.PlatformType;
-import com.MarketingMVP.AllVantage.Services.Accounts.Meta.Instagram.InstagramService;
+import com.MarketingMVP.AllVantage.Services.Platform_Specific.Meta.Instagram.InstagramService;
 import com.MarketingMVP.AllVantage.Services.FileData.FileService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.lang.Nullable;

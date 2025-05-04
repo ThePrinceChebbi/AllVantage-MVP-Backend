@@ -245,4 +245,9 @@ public class FileServiceImpl implements FileService{
         return new File(filePath.toUri());
     }
 
+    @Override
+    public byte[] getFileBytesByFileData(FileData fileData) throws IOException {
+        return Files.readAllBytes(new File(fileData.getPath()).toPath());
+    }
+
 }

@@ -1,6 +1,6 @@
 package com.MarketingMVP.AllVantage.Repositories.Account.Facebook;
 
-import com.MarketingMVP.AllVantage.Entities.Account.Facebook.Page.FacebookPage;
+import com.MarketingMVP.AllVantage.Entities.Platform_Specific.Facebook.Page.FacebookPage;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;

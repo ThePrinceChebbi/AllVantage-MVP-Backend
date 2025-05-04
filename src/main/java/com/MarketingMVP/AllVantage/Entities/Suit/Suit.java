@@ -1,11 +1,11 @@
 package com.MarketingMVP.AllVantage.Entities.Suit;
 
-import com.MarketingMVP.AllVantage.Entities.Account.Facebook.Page.FacebookPage;
-import com.MarketingMVP.AllVantage.Entities.Account.Instagram.InstagramAccount;
-import com.MarketingMVP.AllVantage.Entities.Account.LinkedIn.LinkedInAccount;
-import com.MarketingMVP.AllVantage.Entities.Account.Snapchat.SnapchatAccount;
-import com.MarketingMVP.AllVantage.Entities.Account.TikTok.TikTokAccount;
-import com.MarketingMVP.AllVantage.Entities.Account.X.XAccount;
+import com.MarketingMVP.AllVantage.Entities.Platform_Specific.Facebook.Page.FacebookPage;
+import com.MarketingMVP.AllVantage.Entities.Platform_Specific.Instagram.InstagramAccount;
+import com.MarketingMVP.AllVantage.Entities.Platform_Specific.LinkedIn.Account.LinkedInAccount;
+import com.MarketingMVP.AllVantage.Entities.Platform_Specific.Snapchat.SnapchatAccount;
+import com.MarketingMVP.AllVantage.Entities.Platform_Specific.TikTok.TikTokAccount;
+import com.MarketingMVP.AllVantage.Entities.Platform_Specific.X.XAccount;
 import com.MarketingMVP.AllVantage.Entities.FileData.FileData;
 import com.MarketingMVP.AllVantage.Entities.UserEntity.Client;
 import com.MarketingMVP.AllVantage.Entities.UserEntity.Employee;
@@ -17,6 +17,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.springframework.lang.Nullable;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Entity
@@ -56,7 +57,7 @@ public class Suit {
             joinColumns = @JoinColumn(name = "suit_id"),
             inverseJoinColumns = @JoinColumn(name = "employee_id")
     )
-    private List<Employee> employees;
+    private List<Employee> employees = new ArrayList<>();
 
     @OneToMany
     private List<FacebookPage> facebookPages;

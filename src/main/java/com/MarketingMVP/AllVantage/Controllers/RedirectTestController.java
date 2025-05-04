@@ -1,17 +1,10 @@
 package com.MarketingMVP.AllVantage.Controllers;
 
-import com.MarketingMVP.AllVantage.Entities.FileData.FileData;
-import com.MarketingMVP.AllVantage.Services.Accounts.Meta.Facebook.FacebookService;
-import com.MarketingMVP.AllVantage.Services.Accounts.Meta.MetaAuth.MetaAuthService;
-import com.MarketingMVP.AllVantage.Services.FileData.FileService;
+import com.MarketingMVP.AllVantage.Services.Platform_Specific.Meta.Facebook.FacebookService;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.core.io.FileSystemResource;
-import org.springframework.core.io.Resource;
 import org.springframework.http.ResponseEntity;
 
-import org.springframework.social.facebook.api.impl.FacebookTemplate;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.multipart.MultipartFile;
 
 @RestController
 @RequestMapping("/api/v1/home")

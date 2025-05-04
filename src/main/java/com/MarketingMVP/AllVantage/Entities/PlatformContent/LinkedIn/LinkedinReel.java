@@ -1,6 +1,7 @@
 package com.MarketingMVP.AllVantage.Entities.PlatformContent.LinkedIn;
 
-import com.MarketingMVP.AllVantage.Entities.Account.Facebook.Page.FacebookPage;
+import com.MarketingMVP.AllVantage.Entities.Platform_Specific.Facebook.Page.FacebookPage;
+import com.MarketingMVP.AllVantage.Entities.Platform_Specific.LinkedIn.Organization.LinkedInOrganization;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -22,5 +23,5 @@ public class LinkedinReel {
     private LinkedinMedia linkedinMedia;
 
     @ManyToOne
-    private FacebookPage page;
+    private LinkedInOrganization organization;
 }

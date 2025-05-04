@@ -1,7 +1,7 @@
 package com.MarketingMVP.AllVantage.Controllers.Suit;
 
 import com.MarketingMVP.AllVantage.Entities.PlatformContent.Facebook.FacebookMedia;
-import com.MarketingMVP.AllVantage.Services.Accounts.Meta.Facebook.FacebookService;
+import com.MarketingMVP.AllVantage.Services.Platform_Specific.Meta.Facebook.FacebookService;
 import com.MarketingMVP.AllVantage.Services.Suit.SuitService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;

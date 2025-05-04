@@ -4,8 +4,8 @@ import com.MarketingMVP.AllVantage.DTOs.Response.Insights.PlatformInsightsResult
 import com.MarketingMVP.AllVantage.DTOs.Response.Postable.PlatformPostResult;
 import com.MarketingMVP.AllVantage.Entities.FileData.FileData;
 import com.MarketingMVP.AllVantage.Repositories.Account.PlatformType;
-import com.MarketingMVP.AllVantage.Services.Accounts.Meta.Facebook.FacebookService;
-import com.MarketingMVP.AllVantage.Services.Accounts.Meta.MetaAuth.MetaAuthService;
+import com.MarketingMVP.AllVantage.Services.Platform_Specific.Meta.Facebook.FacebookService;
+import com.MarketingMVP.AllVantage.Services.Platform_Specific.Meta.MetaAuth.MetaAuthService;
 import com.MarketingMVP.AllVantage.Services.FileData.FileService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.lang.Nullable;

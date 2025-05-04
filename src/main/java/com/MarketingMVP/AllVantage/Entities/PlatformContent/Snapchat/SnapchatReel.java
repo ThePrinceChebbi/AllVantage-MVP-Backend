@@ -1,7 +1,6 @@
 package com.MarketingMVP.AllVantage.Entities.PlatformContent.Snapchat;
 
-import com.MarketingMVP.AllVantage.Entities.Account.Facebook.Page.FacebookPage;
-import com.MarketingMVP.AllVantage.Entities.Account.Snapchat.SnapchatAccount;
+import com.MarketingMVP.AllVantage.Entities.Platform_Specific.Snapchat.SnapchatAccount;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;

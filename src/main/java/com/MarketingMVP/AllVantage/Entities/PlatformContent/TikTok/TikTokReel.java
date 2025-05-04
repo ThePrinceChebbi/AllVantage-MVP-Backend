@@ -1,7 +1,6 @@
 package com.MarketingMVP.AllVantage.Entities.PlatformContent.TikTok;
 
-import com.MarketingMVP.AllVantage.Entities.Account.Facebook.Page.FacebookPage;
-import com.MarketingMVP.AllVantage.Entities.Account.TikTok.TikTokAccount;
+import com.MarketingMVP.AllVantage.Entities.Platform_Specific.TikTok.TikTokAccount;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;

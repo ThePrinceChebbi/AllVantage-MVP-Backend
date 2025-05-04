@@ -1,14 +1,13 @@
 package com.MarketingMVP.AllVantage.DTOs.Suit;
 
-import com.MarketingMVP.AllVantage.DTOs.Facebook.Account.FacebookAccountDTO;
 import com.MarketingMVP.AllVantage.DTOs.UserEntity.Client.ClientDTO;
 import com.MarketingMVP.AllVantage.DTOs.UserEntity.Employee.EmployeeDTO;
-import com.MarketingMVP.AllVantage.Entities.Account.Facebook.Page.FacebookPage;
-import com.MarketingMVP.AllVantage.Entities.Account.Instagram.InstagramAccount;
-import com.MarketingMVP.AllVantage.Entities.Account.LinkedIn.LinkedInAccount;
-import com.MarketingMVP.AllVantage.Entities.Account.Snapchat.SnapchatAccount;
-import com.MarketingMVP.AllVantage.Entities.Account.TikTok.TikTokAccount;
-import com.MarketingMVP.AllVantage.Entities.Account.X.XAccount;
+import com.MarketingMVP.AllVantage.Entities.Platform_Specific.Facebook.Page.FacebookPage;
+import com.MarketingMVP.AllVantage.Entities.Platform_Specific.Instagram.InstagramAccount;
+import com.MarketingMVP.AllVantage.Entities.Platform_Specific.LinkedIn.Account.LinkedInAccount;
+import com.MarketingMVP.AllVantage.Entities.Platform_Specific.Snapchat.SnapchatAccount;
+import com.MarketingMVP.AllVantage.Entities.Platform_Specific.TikTok.TikTokAccount;
+import com.MarketingMVP.AllVantage.Entities.Platform_Specific.X.XAccount;
 import com.MarketingMVP.AllVantage.Entities.FileData.FileData;
 
 import java.util.List;

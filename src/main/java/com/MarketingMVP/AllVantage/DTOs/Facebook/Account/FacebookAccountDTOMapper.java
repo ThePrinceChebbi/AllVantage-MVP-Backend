@@ -1,6 +1,6 @@
 package com.MarketingMVP.AllVantage.DTOs.Facebook.Account;
 
-import com.MarketingMVP.AllVantage.Entities.Account.Facebook.Account.FacebookAccount;
+import com.MarketingMVP.AllVantage.Entities.Platform_Specific.Facebook.Account.FacebookAccount;
 
 import java.util.function.Function;
 

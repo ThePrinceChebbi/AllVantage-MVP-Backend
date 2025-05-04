@@ -1,7 +1,7 @@
 package com.MarketingMVP.AllVantage.Entities.Tokens.OAuthToken.Facebook.FacebookAccount;
 
-import com.MarketingMVP.AllVantage.Entities.Account.Facebook.Account.FacebookAccount;
-import com.MarketingMVP.AllVantage.Entities.Tokens.OAuthToken.FacebookTokenType;
+import com.MarketingMVP.AllVantage.Entities.Platform_Specific.Facebook.Account.FacebookAccount;
+import com.MarketingMVP.AllVantage.Entities.Tokens.OAuthToken.Facebook.FacebookTokenType;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;

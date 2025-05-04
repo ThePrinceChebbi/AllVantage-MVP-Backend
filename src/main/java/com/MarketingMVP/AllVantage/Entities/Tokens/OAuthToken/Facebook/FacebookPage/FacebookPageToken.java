@@ -1,6 +1,6 @@
 package com.MarketingMVP.AllVantage.Entities.Tokens.OAuthToken.Facebook.FacebookPage;
 
-import com.MarketingMVP.AllVantage.Entities.Account.Facebook.Page.FacebookPage;
+import com.MarketingMVP.AllVantage.Entities.Platform_Specific.Facebook.Page.FacebookPage;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
