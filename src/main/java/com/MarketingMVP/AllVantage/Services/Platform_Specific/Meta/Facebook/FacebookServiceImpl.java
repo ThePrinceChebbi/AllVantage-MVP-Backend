@@ -102,9 +102,9 @@ public class FacebookServiceImpl implements FacebookService {
             List<FileData> videoFiles = files.stream().filter(fileData -> fileData.getType().equals("video")).toList();
             List<FileData> imageFiles = files.stream().filter(fileData -> fileData.getType().equals("image")).toList();
             if (videoFiles.size()==1 && imageFiles.isEmpty()){
-                return postVideo(videoFiles.get(0), title, content, scheduledAt, facebookPage);
+                return postVideo(videoFiles.get(0), title, content, facebookPage);
             } else if (videoFiles.isEmpty()) {
-                return makePostWithImages(imageFiles, title, content, scheduledAt, facebookPage);
+                return makePostWithImages(imageFiles, title, content, facebookPage);
             }else {
                 return PlatformPostResult.failure(PlatformType.FACEBOOK, "Either one video, one or more images, or no media is allowed");
             }
@@ -362,6 +362,11 @@ public class FacebookServiceImpl implements FacebookService {
         return ResponseEntity.ok(facebookAccountRepository.findAll());
     }
 
+    @Override
+    public PlatformInsightsResult getFacebookInsights(Long id, Date startDate, Date endDate) {
+        return null;
+    }
+
     //Utility private methods -------------------------------------------------------------------------------------------------------------------------------
 
     private String initiateVideo(FacebookPageTokenDTO tokenDTO, boolean isStory){
@@ -413,9 +418,12 @@ public class FacebookServiceImpl implements FacebookService {
         }
     }
 
-    private PlatformPostResult postVideo(FileData fileData, String title, String content, @Nullable Date scheduledAt, FacebookPage facebookPage) {
+    private PlatformPostResult postVideo(FileData fileData, String title, String content, FacebookPage facebookPage) {
         try {
             FacebookPageTokenDTO tokenDTO = metaAuthService.getPageCachedToken(facebookPage.getId());
+
+            System.out.println(tokenDTO.accessToken());
+
             RestTemplate restTemplate = new RestTemplate();
             String url = String.format("https://graph.facebook.com/v22.0/%s/videos", tokenDTO.facebookPageId());
 
@@ -429,15 +437,16 @@ public class FacebookServiceImpl implements FacebookService {
             body.add("title", title);
             body.add("description", content);
             body.add("resource", resource);
-            if (scheduledAt != null) {
+            /*if (scheduledAt != null) {
                 body.add("scheduled_publish_time", String.valueOf(scheduledAt.getTime() / 1000));
                 body.add("published", "false");
-            } else {
+            } else {*/
                 body.add("published", "true");
-            }
+
 
             HttpEntity<MultiValueMap<String, Object>> request = new HttpEntity<>(body, headers);
             ResponseEntity<Map> response = restTemplate.exchange(url, HttpMethod.POST, request, Map.class);
+            System.out.println(response.getBody());
             if (!response.getStatusCode().is2xxSuccessful()) {
                 throw new RuntimeException("Failed to create video post: " + response.getBody());
             }
@@ -447,7 +456,7 @@ public class FacebookServiceImpl implements FacebookService {
                     PlatformMediaType.VIDEO
             );
             FacebookPost post = new FacebookPost(
-                    Objects.requireNonNull(response.getBody()).get("post_id").toString(),
+                    Objects.requireNonNull(response.getBody()).get("id").toString(),
                     content,
                     List.of(facebookMediaRepository.save(media)),
                     facebookPage
@@ -458,9 +467,11 @@ public class FacebookServiceImpl implements FacebookService {
         }
     }
 
-    private PlatformPostResult makePostWithImages(List<FileData> files, String title, String content, Date scheduledAt, FacebookPage facebookPage) {
+    private PlatformPostResult makePostWithImages(List<FileData> files, String title, String content, FacebookPage facebookPage) {
         try {
             FacebookPageTokenDTO tokenDTO = metaAuthService.getPageCachedToken(facebookPage.getId());
+
+            System.out.println(tokenDTO.accessToken());
             RestTemplate restTemplate = new RestTemplate();
             String url = String.format("https://graph.facebook.com/v22.0/%s/feed", tokenDTO.facebookPageId());
 

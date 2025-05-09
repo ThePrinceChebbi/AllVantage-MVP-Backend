@@ -2,7 +2,7 @@ package com.MarketingMVP.AllVantage.Entities.Suit;
 
 import com.MarketingMVP.AllVantage.Entities.Platform_Specific.Facebook.Page.FacebookPage;
 import com.MarketingMVP.AllVantage.Entities.Platform_Specific.Instagram.InstagramAccount;
-import com.MarketingMVP.AllVantage.Entities.Platform_Specific.LinkedIn.Account.LinkedInAccount;
+import com.MarketingMVP.AllVantage.Entities.Platform_Specific.LinkedIn.Organization.LinkedInOrganization;
 import com.MarketingMVP.AllVantage.Entities.Platform_Specific.Snapchat.SnapchatAccount;
 import com.MarketingMVP.AllVantage.Entities.Platform_Specific.TikTok.TikTokAccount;
 import com.MarketingMVP.AllVantage.Entities.Platform_Specific.X.XAccount;
@@ -66,9 +66,9 @@ public class Suit {
     private List<InstagramAccount> instagramAccounts;
 
     @OneToMany
-    private List<LinkedInAccount> linkedInAccounts;
+    private List<LinkedInOrganization> linkedInOrganizations;
 
-    @OneToMany
+   /* @OneToMany
     private List<XAccount> xAccounts;
 
     @OneToMany
@@ -76,7 +76,7 @@ public class Suit {
 
     @OneToMany
     private List<TikTokAccount> tikTokAccounts;
-
+*/
     @OneToMany
     private List<Postable> posts;
 

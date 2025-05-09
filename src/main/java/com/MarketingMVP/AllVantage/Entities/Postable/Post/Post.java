@@ -29,12 +29,10 @@ public class Post extends Postable {
 
     @OneToMany
     private List<FacebookPost> facebookPosts;
+
     @OneToMany
     private List<InstagramPost> instagramPosts;
-    @OneToMany
-    private List<SnapchatPost> snapchatPosts;
-    @OneToMany
-    private List<XPost> xPosts;
+
     @OneToMany
     private List<LinkedinPost> linkedinPosts;
 
@@ -47,15 +45,11 @@ public class Post extends Postable {
             Employee employee,
             List<FacebookPost> facebookPosts,
             List<InstagramPost> instagramPosts,
-            List<SnapchatPost> snapchatPosts,
-            List<XPost> xPosts,
             List<LinkedinPost> linkedinPosts
     ) {
         super(title, content, createdAt, scheduledToPostAt, lastEditedAt, employee);
         this.facebookPosts = facebookPosts;
         this.instagramPosts = instagramPosts;
-        this.snapchatPosts = snapchatPosts;
-        this.xPosts = xPosts;
         this.linkedinPosts = linkedinPosts;
     }
 

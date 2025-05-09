@@ -29,10 +29,7 @@ public class SuitDTOMapper implements Function<Suit, SuitDTO> {
                 suit.getEmployees().stream().map(employeeDTOMapper).toList(),
                 suit.getFacebookPages(),
                 suit.getInstagramAccounts(),
-                suit.getLinkedInAccounts(),
-                suit.getXAccounts(),
-                suit.getSnapchatAccounts(),
-                suit.getTikTokAccounts()
+                suit.getLinkedInOrganizations()
         );
     }
 }

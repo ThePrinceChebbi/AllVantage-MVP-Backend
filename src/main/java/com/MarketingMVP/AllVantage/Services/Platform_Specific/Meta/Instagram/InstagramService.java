@@ -6,6 +6,8 @@ import com.MarketingMVP.AllVantage.Entities.FileData.FileData;
 import java.util.Date;
 import java.util.List;
 
+import com.MarketingMVP.AllVantage.Entities.Platform_Specific.Instagram.InstagramAccount;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import org.springframework.http.ResponseEntity;
 
 public interface InstagramService {
@@ -14,21 +16,20 @@ public interface InstagramService {
 
     ResponseEntity<Object> getInstagramAccountDetails(String instagramId, Long pageId);
 
-    ResponseEntity<Object> addInstagramAccount(String instagramBusinessId, Long pageId);
+    InstagramAccount addInstagramAccount(String instagramBusinessId, Long pageId) throws JsonProcessingException;
 
     PlatformPostResult createInstagramPost(
             List<FileData> files, // Instagram might only allow single image/video per basic post through the API
-            String title,
             String caption,
             Date scheduledAt,
-            Long instagramAccountId
+            InstagramAccount instagramAccount
     );
 
     PlatformPostResult createInstagramReel(
             FileData video,
             String caption,
             Date scheduledAt,
-            Long instagramAccountId
+            InstagramAccount instagramAccount
     );
 
     PlatformPostResult createInstagramStory(

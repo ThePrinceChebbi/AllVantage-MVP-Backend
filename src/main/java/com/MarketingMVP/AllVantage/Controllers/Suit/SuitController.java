@@ -15,20 +15,35 @@ import java.util.UUID;
 public class SuitController {
 
     private final SuitService suitService;
-    private final FacebookService facebookService;
 
-    public SuitController(SuitService suitService, FacebookService facebookService) {
+    public SuitController(SuitService suitService) {
         this.suitService = suitService;
-        this.facebookService = facebookService;
     }
 
-    @PostMapping("/{accountId}/{suitId}/add-page")
+    @PostMapping("/{accountId}/{suitId}/add-fb")
     public ResponseEntity<Object> addFacebookPageToSuit(
             @PathVariable Long accountId,
             @PathVariable Long suitId,
             @RequestParam String pageId)
     {
         return suitService.addFacebookPageToSuit(suitId, accountId, pageId);
+    }
+    @PostMapping("/{accountId}/{suitId}/add-ig")
+    public ResponseEntity<Object> addInstagramAccountToSuit(
+            @PathVariable Long accountId,
+            @PathVariable Long suitId,
+            @RequestParam String igId)
+    {
+        return suitService.addInstagramAccountToSuit(suitId, accountId, igId);
+    }
+
+    @PostMapping("/{accountId}/{suitId}/add-li")
+    public ResponseEntity<Object> addLinkedInOrganizationToSuit(
+            @PathVariable Long accountId,
+            @PathVariable Long suitId,
+            @RequestParam String orgId)
+    {
+        return suitService.addLinkedInOrganizationToSuit(suitId, accountId, orgId);
     }
 
     @GetMapping("/{clientId}/all")
@@ -46,9 +61,9 @@ public class SuitController {
         return suitService.getSuitById(suitId);
     }
 
-    @GetMapping("/test")
-    public FacebookMedia test(@RequestParam Long fileId, @RequestParam Long accountId) {
-        return suitService.test(fileId, accountId);
+    @GetMapping("/{suitId}/posts")
+    public ResponseEntity<Object> getAllSuitPosts(@PathVariable Long suitId, @RequestParam int pageNumber) {
+        return suitService.getAllSuitPosts(suitId, pageNumber);
     }
 
     @PostMapping("/{suitId}/post")
@@ -70,5 +85,10 @@ public class SuitController {
     )
     {
         return suitService.postReelToSuit(suitId, videoFile, reelPostDTOJson);
+    }
+
+    @GetMapping("/{suitId}/post-insights")
+    public ResponseEntity<Object> getPostInsights(@PathVariable Long suitId, @RequestParam Long postId) {
+        return suitService.getPostInsights(suitId, postId);
     }
 }

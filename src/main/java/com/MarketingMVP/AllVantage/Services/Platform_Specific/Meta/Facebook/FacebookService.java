@@ -53,4 +53,6 @@ public interface  FacebookService {
     JsonNode fetchUserPages(Long accountId) throws JsonProcessingException;
 
     ResponseEntity<Object> getAllAccounts();
+
+    PlatformInsightsResult getFacebookInsights(Long id, Date startDate, Date endDate);
 }

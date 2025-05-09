@@ -3,9 +3,14 @@ package com.MarketingMVP.AllVantage.Controllers.Accounts;
 import com.MarketingMVP.AllVantage.DTOs.Response.Insights.PlatformInsightsResult;
 import com.MarketingMVP.AllVantage.DTOs.Response.Postable.PlatformPostResult;
 import com.MarketingMVP.AllVantage.Entities.FileData.FileData;
+import com.MarketingMVP.AllVantage.Entities.Platform_Specific.Instagram.InstagramAccount;
+import com.MarketingMVP.AllVantage.Exceptions.ResourceNotFoundException;
+import com.MarketingMVP.AllVantage.Repositories.Account.Instagram.InstagramAccountRepository;
 import com.MarketingMVP.AllVantage.Repositories.Account.PlatformType;
 import com.MarketingMVP.AllVantage.Services.Platform_Specific.Meta.Instagram.InstagramService;
 import com.MarketingMVP.AllVantage.Services.FileData.FileService;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.lang.Nullable;
 import org.springframework.web.bind.annotation.*;
@@ -20,10 +25,12 @@ public class InstagramController {
 
     private final InstagramService instagramService;
     private final FileService fileService;
+    private final InstagramAccountRepository instagramAccountRepository;
 
-    public InstagramController(InstagramService instagramService, FileService fileService) {
+    public InstagramController(InstagramService instagramService, FileService fileService, InstagramAccountRepository instagramAccountRepository) {
         this.instagramService = instagramService;
         this.fileService = fileService;
+        this.instagramAccountRepository = instagramAccountRepository;
     }
 
     @GetMapping("/{pageId}/ig-accounts")
@@ -37,8 +44,12 @@ public class InstagramController {
     }
 
     @PostMapping("/{pageId}/add")
-    public ResponseEntity<Object> addAccount(@PathVariable Long pageId, @RequestParam String igId) {
-        return instagramService.addInstagramAccount(igId,pageId);
+    public InstagramAccount addAccount(@PathVariable Long pageId, @RequestParam String igId) {
+        try {
+            return instagramService.addInstagramAccount(igId,pageId);
+        } catch (JsonProcessingException e) {
+            return null;
+        }
     }
 
     @GetMapping("/get_all")
@@ -51,8 +62,7 @@ public class InstagramController {
             @PathVariable Long accountId,
             @RequestParam String content,
             @RequestParam List<MultipartFile> files,
-            @RequestParam @Nullable Date scheduledAt,
-            @RequestParam String title) {
+            @RequestParam @Nullable Date scheduledAt){
         try {
             List<FileData> fileDataList = files.stream().map((file) -> {
                 try {
@@ -61,7 +71,9 @@ public class InstagramController {
                     return null;
                 }
             }).toList();
-            PlatformPostResult result = instagramService.createInstagramPost(fileDataList, title, content, scheduledAt, accountId);
+            InstagramAccount instagramAccount = instagramAccountRepository.findById(accountId).
+                    orElseThrow( ()-> new ResourceNotFoundException("Account with id " + accountId + " not found") );
+            PlatformPostResult result = instagramService.createInstagramPost(fileDataList, content, scheduledAt, instagramAccount);
             return result.isSuccess() ? ResponseEntity.ok(result) : ResponseEntity.internalServerError().body(result);
         } catch (Exception e) {
             return ResponseEntity.internalServerError().body(PlatformPostResult.failure(PlatformType.INSTAGRAM, e.getMessage()));
@@ -77,7 +89,9 @@ public class InstagramController {
     ) {
         try {
             FileData fileData = fileService.processUploadedFile(video);
-            PlatformPostResult result = instagramService.createInstagramReel(fileData, content, scheduledAt, accountId);
+            InstagramAccount instagramAccount = instagramAccountRepository.findById(accountId).
+                    orElseThrow( ()-> new ResourceNotFoundException("Account with id " + accountId + " not found") );
+            PlatformPostResult result = instagramService.createInstagramReel(fileData, content, scheduledAt, instagramAccount);
             return result.isSuccess() ? ResponseEntity.ok(result) : ResponseEntity.internalServerError().body(result);
         } catch (Exception e) {
             return ResponseEntity.internalServerError().body(PlatformPostResult.failure(PlatformType.INSTAGRAM, e.getMessage()));

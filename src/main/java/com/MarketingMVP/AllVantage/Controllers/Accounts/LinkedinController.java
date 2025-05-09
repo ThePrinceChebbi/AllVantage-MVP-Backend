@@ -1,8 +1,12 @@
 package com.MarketingMVP.AllVantage.Controllers.Accounts;
 
 
+import com.MarketingMVP.AllVantage.DTOs.Response.Insights.PlatformInsightsResult;
 import com.MarketingMVP.AllVantage.DTOs.Response.Postable.PlatformPostResult;
 import com.MarketingMVP.AllVantage.Entities.FileData.FileData;
+import com.MarketingMVP.AllVantage.Entities.Platform_Specific.LinkedIn.Organization.LinkedInOrganization;
+import com.MarketingMVP.AllVantage.Exceptions.ResourceNotFoundException;
+import com.MarketingMVP.AllVantage.Repositories.Account.LinkedIn.LinkedInOrganizationRepository;
 import com.MarketingMVP.AllVantage.Repositories.Account.PlatformType;
 import com.MarketingMVP.AllVantage.Services.FileData.FileService;
 import com.MarketingMVP.AllVantage.Services.Platform_Specific.LinkedIn.LinkedInService;
@@ -21,10 +25,12 @@ public class LinkedinController {
 
     private final LinkedInService linkedInService;
     private final FileService fileService;
+    private final LinkedInOrganizationRepository linkedInOrganizationRepository;
 
-    public LinkedinController(LinkedInService linkedInService, FileService fileService) {
+    public LinkedinController(LinkedInService linkedInService, FileService fileService, LinkedInOrganizationRepository linkedInOrganizationRepository) {
         this.linkedInService = linkedInService;
         this.fileService = fileService;
+        this.linkedInOrganizationRepository = linkedInOrganizationRepository;
     }
 
     @GetMapping("/add-global-account")
@@ -70,10 +76,25 @@ public class LinkedinController {
                     return null;
                 }
             }).toList();
-            PlatformPostResult result = linkedInService.createLinkedInPost(fileDataList, content, scheduledAt, organizationId);
+            LinkedInOrganization linkedInOrganization = linkedInOrganizationRepository.findById(organizationId).
+                    orElseThrow( () -> new ResourceNotFoundException("Organization with id " + organizationId + " not found"));
+            PlatformPostResult result = linkedInService.createLinkedInPost(fileDataList, content, linkedInOrganization, false);
             return result.isSuccess() ? ResponseEntity.ok(result) : ResponseEntity.internalServerError().body(result);
         } catch (Exception e) {
             return ResponseEntity.internalServerError().body(PlatformPostResult.failure(PlatformType.LINKEDIN, e.getMessage()));
+        }
+    }
+
+    @GetMapping("/{organizationId}/post/{postId}/insights")
+    public ResponseEntity<Object> getPostInsights(
+            @PathVariable Long organizationId,
+            @PathVariable String postId
+    ) {
+        try {
+            PlatformInsightsResult result = linkedInService.getLinkedInInsights(organizationId, postId);
+            return result.isSuccess() ? ResponseEntity.ok(result) : ResponseEntity.internalServerError().body(result);
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body("Error fetching post insights: " + e.getMessage());
         }
     }
 

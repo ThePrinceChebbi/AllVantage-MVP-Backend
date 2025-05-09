@@ -160,7 +160,7 @@ public class MetaAuthServiceImpl implements MetaAuthService {
 
         FacebookAccountToken savedToken = generateAndSaveAccountToken(longLivedToken, expiresIn, savedAccount);
 
-        cacheAccountToken(savedToken);
+        refreshPageTokens(cacheAccountToken(savedToken));
 
         return savedAccount;
     }
@@ -346,11 +346,17 @@ public class MetaAuthServiceImpl implements MetaAuthService {
     public FacebookPageTokenDTO fetchPageToken(Long pageId) {
         List<FacebookPageToken> tokens = getTokenByPageId(pageId);
         FacebookPageToken token = tokens.stream()
-                .filter(t -> validateToken(new FacebookPageTokenDTOMapper(encryptionService).apply(t)))
-                .findFirst().orElse(null);
-        if (token == null) {
+                .filter(t -> !t.isRevoked())
+                .findFirst()
+                .orElseThrow(() -> new IllegalStateException("No valid token found for page: " + pageId));
+
+        System.out.println(token);
+
+    /*    if (validateToken(token)==false) {
             throw new ResourceNotFoundException("Token not found for page: " + pageId + ", please authenticate again.");
-        }
+        }*/
+
+        System.out.println(token.getAccessToken());
         return cachePageToken(token);
     }
 
@@ -417,22 +423,29 @@ public class MetaAuthServiceImpl implements MetaAuthService {
             String url = String.format("https://graph.facebook.com/v22.0/me/accounts?access_token=%s", accountToken.accessToken());
 
             ResponseEntity<Map> response = restTemplate.getForEntity(url, Map.class);
+
+            System.out.println(response.getBody());
+
             if (response.getBody() != null && response.getBody().containsKey("data")) {
                 List<Map<String, Object>> pages = (List<Map<String, Object>>) response.getBody().get("data");
 
                 List<FacebookPageTokenDTO> newPageTokens = new ArrayList<>();
 
                 for (Map<String, Object> page : pages) {
-                    FacebookPage facebookPage = getPageByFacebookId(page.get("id").toString());
-                    String pageAccessToken = page.get("access_token").toString();
+                    try{
+                        FacebookPage facebookPage = getPageByFacebookId(page.get("id").toString());
+                        String pageAccessToken = page.get("access_token").toString();
 
-                    int expiresIn = page.containsKey("expires_in")
-                            ? Integer.parseInt(page.get("expires_in").toString())
-                            : 0; // Assume long-lived if not provided
+                        int expiresIn = page.containsKey("expires_in")
+                                ? Integer.parseInt(page.get("expires_in").toString())
+                                : 0; // Assume long-lived if not provided
 
-                    newPageTokens.add(new FacebookPageTokenDTOMapper(encryptionService).apply(
-                            generateAndSavePageToken(pageAccessToken, expiresIn, facebookPage)
-                    ));
+                        newPageTokens.add(new FacebookPageTokenDTOMapper(encryptionService).apply(
+                                generateAndSavePageToken(pageAccessToken, expiresIn, facebookPage)
+                        ));
+                    }catch (ResourceNotFoundException e){
+                        continue;
+                    }
                 }
                 return newPageTokens;
             } else {
@@ -448,6 +461,7 @@ public class MetaAuthServiceImpl implements MetaAuthService {
 
         if (token instanceof FacebookAccountTokenDTO || token instanceof FacebookPageTokenDTO) {
             // Cast and handle based on type
+
             long expiresIn;
             TimeUnit timeUnit;
 

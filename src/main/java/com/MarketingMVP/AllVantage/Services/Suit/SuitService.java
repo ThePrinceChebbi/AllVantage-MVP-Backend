@@ -21,9 +21,12 @@ public interface SuitService {
     ResponseEntity<Object> addEmployeeToSuit(Long suitId, UUID employeeId);
     ResponseEntity<Object> removeEmployeeFromSuit(Long suitId, UUID employeeId);
 
-    ResponseEntity<Object> postToSuit(Long suitId, String postSendDTOJson, UserDetails employee, List<MultipartFile> files);
-
     ResponseEntity<Object> addFacebookPageToSuit(Long suitId, Long accountId, String facebookPageId);
+
+    ResponseEntity<Object> addInstagramAccountToSuit(Long suitId, Long pageId, String instagramAccountId);
+
+    ResponseEntity<Object> addLinkedInOrganizationToSuit(Long suitId, Long accountId, String linkedInOrganizationId);
+
     ResponseEntity<Object> removeFacebookPageFromSuit(Long suitId, Long accountId);
 
     Suit findSuitById(Long suitId) throws ResourceNotFoundException;
@@ -32,7 +35,13 @@ public interface SuitService {
 
     ResponseEntity<Object> getSuitById(Long suitId);
 
-    FacebookMedia test(Long fileId, Long accountId);
+    ResponseEntity<Object> getAllSuitPosts(Long suitId, int pageNumber);
+
+    ResponseEntity<Object> postToSuit(Long suitId, String postSendDTOJson, UserDetails employee, List<MultipartFile> files);
 
     ResponseEntity<Object> postReelToSuit(Long suitId, MultipartFile videoFile, String reelPostDTOJson);
+
+    ResponseEntity<Object> getAllSuits();
+
+    ResponseEntity<Object> getPostInsights(Long suitId, Long postId);
 }

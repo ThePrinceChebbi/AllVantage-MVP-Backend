@@ -22,11 +22,6 @@ public class PostSendDTO {
 
     private List<Long> instagramAccountIds;
 
-    private List<Long> linkedInAccountIds;
+    private List<Long> likedInOrganizationIds;
 
-    private List<Long> xAccountIds;
-
-    private List<Long> snapchatAccountIds;
-
-    private List<Long> tikTokAccountIds;
 }

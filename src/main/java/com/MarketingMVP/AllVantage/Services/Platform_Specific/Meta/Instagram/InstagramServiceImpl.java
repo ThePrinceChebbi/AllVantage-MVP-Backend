@@ -1,7 +1,6 @@
 package com.MarketingMVP.AllVantage.Services.Platform_Specific.Meta.Instagram;
 
 import com.MarketingMVP.AllVantage.DTOs.Facebook.PageToken.FacebookPageTokenDTO;
-import com.MarketingMVP.AllVantage.DTOs.Instagram.InstagramAccountDTOMapper;
 import com.MarketingMVP.AllVantage.DTOs.Response.Insights.PlatformInsightsResult;
 import com.MarketingMVP.AllVantage.DTOs.Response.Postable.PlatformPostResult;
 import com.MarketingMVP.AllVantage.Entities.Platform_Specific.Facebook.Page.FacebookPage;
@@ -22,6 +21,7 @@ import com.MarketingMVP.AllVantage.Repositories.PlatformContent.Instagram.Instag
 import com.MarketingMVP.AllVantage.Repositories.PlatformContent.Instagram.InstagramStoryRepository;
 import com.MarketingMVP.AllVantage.Services.Platform_Specific.Meta.MetaAuth.MetaAuthService;
 import com.MarketingMVP.AllVantage.Services.FileData.FileService;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.http.*;
@@ -44,7 +44,7 @@ import java.util.function.Supplier;
 @Service
 public class InstagramServiceImpl implements InstagramService{
 
-    private final String ngrokUrl = "https://80aa-41-224-35-242.ngrok-free.app/";
+    private final String ngrokUrl = "https://be23-102-173-49-185.ngrok-free.app/";
 
     private final MetaAuthService metaAuthService;
     private final FacebookPageRepository facebookPageRepository;
@@ -127,7 +127,7 @@ public class InstagramServiceImpl implements InstagramService{
     }
 
     @Override
-    public ResponseEntity<Object> addInstagramAccount(String instagramBusinessId, Long pageId) {
+    public InstagramAccount addInstagramAccount(String instagramBusinessId, Long pageId) throws JsonProcessingException {
         FacebookPageTokenDTO tokenDTO = metaAuthService.getPageCachedToken(pageId);
         if (instagramAccountRepository.findInstagramAccountByInstagramId(instagramBusinessId).isPresent()) {
             throw new IllegalArgumentException(String.format("Instagram Account with instagram id: %s already exists.",instagramBusinessId));
@@ -143,40 +143,27 @@ public class InstagramServiceImpl implements InstagramService{
 
         RestTemplate restTemplate = new RestTemplate();
 
-        try {
-            ResponseEntity<String> response = restTemplate.getForEntity(url, String.class);
-            ObjectMapper mapper = new ObjectMapper();
-            JsonNode json = mapper.readTree(response.getBody());
+        ResponseEntity<String> response = restTemplate.getForEntity(url, String.class);
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode json = mapper.readTree(response.getBody());
 
-            String username = json.path("username").asText();
-            String name = json.path("name").asText("");
+        String username = json.path("username").asText();
+        String name = json.path("name").asText("");
 
-            InstagramAccount instagramAccount = new InstagramAccount(
-                    instagramBusinessId,
-                    name.isEmpty() ? username : name,
-                    new Date(),
-                    new Date(),
-                    facebookPage
-            );
+        InstagramAccount instagramAccount = new InstagramAccount(
+                instagramBusinessId,
+                name.isEmpty() ? username : name,
+                new Date(),
+                new Date(),
+                facebookPage
+        );
 
-            InstagramAccount savedAccount = instagramAccountRepository.save(instagramAccount);
-
-            return ResponseEntity.ok(Map.of(
-                    "message", "Instagram account added successfully",
-                    "instagram_id", instagramBusinessId,
-                    "account", new InstagramAccountDTOMapper().apply(savedAccount)
-            ));
-
-        } catch (Exception e) {
-            return ResponseEntity.internalServerError().body(Map.of("error", e.getMessage()));
-        }
+        return instagramAccountRepository.save(instagramAccount);
     }
 
     @Override
-    public PlatformPostResult createInstagramPost(List<FileData> files, String title, String caption, Date scheduledAt, Long instagramAccountId) {
+    public PlatformPostResult createInstagramPost(List<FileData> files, String caption, Date scheduledAt, InstagramAccount instagramAccount) {
         try {
-            InstagramAccount instagramAccount = instagramAccountRepository.findById(instagramAccountId)
-                    .orElseThrow(() -> new ResourceNotFoundException("Instagram account not found with ID: " + instagramAccountId));
             return postInstagramMedia(files, caption, scheduledAt, instagramAccount);
         } catch (Exception e) {
             files.forEach(file -> {
@@ -208,6 +195,8 @@ public class InstagramServiceImpl implements InstagramService{
                 String creationId = uploadMediaItem(file, instagramAccount, tokenDTO.accessToken(),caption, false);
                 System.out.println("Media item uploaded with creation ID: " + creationId);
 
+                waitForMediaProcessing(creationId, tokenDTO.accessToken());
+
                 PlatformMediaType mediaType = "image".equals(file.getType()) ? PlatformMediaType.IMAGE : PlatformMediaType.VIDEO;
                 InstagramMedia media = instagramMediaRepository.save(new InstagramMedia(creationId, file, mediaType));
 
@@ -232,7 +221,7 @@ public class InstagramServiceImpl implements InstagramService{
                         try {
                             String creationId = withRetry(
                                     () -> uploadMediaItem(file, instagramAccount, tokenDTO.accessToken(),caption, false),
-                                    3, 1000,
+                                    5, 2000,
                                     "uploadMediaItem for " + file.getId()
                             );
                             waitForMediaProcessing(creationId, tokenDTO.accessToken());
@@ -297,11 +286,12 @@ public class InstagramServiceImpl implements InstagramService{
 
         for (int i = 0; i < 10; i++) {
             ResponseEntity<Map> response = restTemplate.getForEntity(url, Map.class);
+            System.out.println(response.getBody());
             String status = (String) ((Map) response.getBody()).get("status_code");
             System.out.println(creationId + ": " + status);
             if ("FINISHED".equals(status)) return;
 
-            Thread.sleep(1000); // wait 1 second
+            Thread.sleep(5000); // wait 1 second
         }
         throw new IllegalStateException("Media processing timed out for ID: " + creationId);
     }
@@ -378,12 +368,9 @@ public class InstagramServiceImpl implements InstagramService{
     }
 
     @Override
-    public PlatformPostResult createInstagramReel(FileData video, String caption, Date scheduledAt, Long instagramAccountId) {
+    public PlatformPostResult createInstagramReel(FileData video, String caption, Date scheduledAt, InstagramAccount account) {
         try {
-            InstagramAccount instagramAccount = instagramAccountRepository.findById(instagramAccountId)
-                    .orElseThrow(() -> new ResourceNotFoundException("Instagram account not found with ID: " + instagramAccountId));
-
-            return postInstagramReel(video, caption, scheduledAt, instagramAccount);
+            return postInstagramReel(video, caption, scheduledAt, account);
 
         } catch (Exception e) {
             try {

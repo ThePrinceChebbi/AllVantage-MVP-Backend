@@ -13,11 +13,13 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import lombok.Getter;
+import lombok.Setter;
 
 import java.util.Date;
 import java.util.List;
 
 @Getter
+@Setter
 @Entity
 @Table
 public class Reel extends Postable {
@@ -26,13 +28,7 @@ public class Reel extends Postable {
     @OneToMany
     private List<InstagramReel> instagramReels;
     @OneToMany
-    private List<SnapchatReel> snapchatReels;
-    @OneToMany
-    private List<XReel> xReels;
-    @OneToMany
     private List<LinkedinReel> linkedinReels;
-    @OneToMany
-    private List<TikTokReel> tikTokReels;
 
     public Reel(
             String title,
@@ -43,18 +39,12 @@ public class Reel extends Postable {
             Employee employee,
             List<FacebookReel> facebookReels,
             List<InstagramReel> instagramReels,
-            List<SnapchatReel> snapchatReels,
-            List<XReel> xReels,
-            List<LinkedinReel> linkedinReels,
-            List<TikTokReel> tikTokReels
+            List<LinkedinReel> linkedinReels
     ) {
         super(title, content, createdAt, scheduledToPostAt, lastEditedAt, employee);
         this.facebookReels = facebookReels;
         this.instagramReels = instagramReels;
-        this.snapchatReels = snapchatReels;
-        this.xReels = xReels;
         this.linkedinReels = linkedinReels;
-        this.tikTokReels = tikTokReels;
     }
 
     public Reel() {

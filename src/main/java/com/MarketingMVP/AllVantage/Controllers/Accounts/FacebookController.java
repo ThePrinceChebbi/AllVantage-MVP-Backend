@@ -141,4 +141,9 @@ public class FacebookController {
             return ResponseEntity.internalServerError().body(PlatformPostResult.failure(PlatformType.FACEBOOK, e.getMessage()));
         }
     }
+
+    @PostMapping("/{accountId}/refresh")
+    public ResponseEntity<Object> refreshToken(@PathVariable Long accountId) {
+        return facebookService.testRefreshMethod(accountId);
+    }
 }

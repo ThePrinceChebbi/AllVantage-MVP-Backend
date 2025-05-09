@@ -4,10 +4,12 @@ import com.MarketingMVP.AllVantage.DTOs.LinkedIn.Account.LinkedInAccountDTO;
 import com.MarketingMVP.AllVantage.DTOs.LinkedIn.Account.LinkedInAccountDTOMapper;
 import com.MarketingMVP.AllVantage.DTOs.LinkedIn.AccountToken.LinkedinTokenDTO;
 import com.MarketingMVP.AllVantage.DTOs.LinkedIn.AccountToken.LinkedinTokenDTOMapper;
+import com.MarketingMVP.AllVantage.DTOs.Response.Insights.PlatformInsightsResult;
 import com.MarketingMVP.AllVantage.DTOs.Response.Postable.PlatformPostResult;
 import com.MarketingMVP.AllVantage.Entities.FileData.FileData;
 import com.MarketingMVP.AllVantage.Entities.PlatformContent.LinkedIn.LinkedinMedia;
 import com.MarketingMVP.AllVantage.Entities.PlatformContent.LinkedIn.LinkedinPost;
+import com.MarketingMVP.AllVantage.Entities.PlatformContent.LinkedIn.LinkedinReel;
 import com.MarketingMVP.AllVantage.Entities.PlatformContent.PlatformMediaType;
 import com.MarketingMVP.AllVantage.Entities.Platform_Specific.LinkedIn.Account.LinkedInAccount;
 import com.MarketingMVP.AllVantage.Entities.Platform_Specific.LinkedIn.Organization.LinkedInOrganization;
@@ -18,6 +20,7 @@ import com.MarketingMVP.AllVantage.Repositories.Account.LinkedIn.LinkedInOrganiz
 import com.MarketingMVP.AllVantage.Repositories.Account.PlatformType;
 import com.MarketingMVP.AllVantage.Repositories.PlatformContent.LinkedIn.LinkedinMediaRepository;
 import com.MarketingMVP.AllVantage.Repositories.PlatformContent.LinkedIn.LinkedinPostRepository;
+import com.MarketingMVP.AllVantage.Repositories.PlatformContent.LinkedIn.LinkedinReelRepository;
 import com.MarketingMVP.AllVantage.Repositories.Token.OAuthToken.Linkedin.LinkedinTokenRepository;
 import com.MarketingMVP.AllVantage.Security.Utility.AESEncryptionService;
 import com.MarketingMVP.AllVantage.Services.FileData.FileService;
@@ -33,9 +36,14 @@ import org.springframework.web.client.RestTemplate;
 import org.springframework.web.servlet.view.RedirectView;
 import org.springframework.beans.factory.annotation.Value;
 
-import java.io.IOException;
+import java.io.*;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 @Service
 public class LinkedInServiceImpl implements LinkedInService{
@@ -44,6 +52,8 @@ public class LinkedInServiceImpl implements LinkedInService{
     private final FileService fileService;
     private final LinkedinMediaRepository linkedinMediaRepository;
     private final LinkedinPostRepository linkedinPostRepository;
+    private final LinkedinReelRepository linkedinReelRepository;
+
     @Value("${linkedin.client.id}")
     private String clientId;
 
@@ -57,7 +67,7 @@ public class LinkedInServiceImpl implements LinkedInService{
     private final LinkedInAccountRepository linkedInAccountRepository;
     private final LinkedinTokenRepository linkedinTokenRepository;
 
-    public LinkedInServiceImpl(RedisTemplate<String,LinkedinTokenDTO> redisLinkedinTemplate, AESEncryptionService encryptionService, LinkedInAccountRepository linkedInAccountRepository, LinkedinTokenRepository linkedinTokenRepository, LinkedInOrganizationRepository linkedInOrganizationRepository, FileService fileService, LinkedinMediaRepository linkedinMediaRepository, LinkedinPostRepository linkedinPostRepository) {
+    public LinkedInServiceImpl(RedisTemplate<String,LinkedinTokenDTO> redisLinkedinTemplate, AESEncryptionService encryptionService, LinkedInAccountRepository linkedInAccountRepository, LinkedinTokenRepository linkedinTokenRepository, LinkedInOrganizationRepository linkedInOrganizationRepository, FileService fileService, LinkedinMediaRepository linkedinMediaRepository, LinkedinPostRepository linkedinPostRepository, LinkedinReelRepository linkedinReelRepository) {
         this.redisLinkedinTemplate = redisLinkedinTemplate;
         this.encryptionService = encryptionService;
         this.linkedInAccountRepository = linkedInAccountRepository;
@@ -66,6 +76,7 @@ public class LinkedInServiceImpl implements LinkedInService{
         this.fileService = fileService;
         this.linkedinMediaRepository = linkedinMediaRepository;
         this.linkedinPostRepository = linkedinPostRepository;
+        this.linkedinReelRepository = linkedinReelRepository;
     }
 
     @Override
@@ -77,13 +88,12 @@ public class LinkedInServiceImpl implements LinkedInService{
                 "rw_organization_admin%20" +
                 "w_member_social%20" +
                 "w_organization_social%20" +
-                "r_basicprofile%20" +
                 "r_events%20" +
                 "r_organization_admin%20" +
                 "email%20" +
+                "r_ads%20" +
                 "r_1st_connections_size";
 //                "rw_events%20" +
-//                "r_ads%20" +
 //                "r_ads_reporting%20" +
 //                "rw_ads%20" +
 
@@ -234,7 +244,7 @@ public class LinkedInServiceImpl implements LinkedInService{
     @Override
     public JsonNode fetchAdministeredPages(Long accountId) throws Exception {
 
-        LinkedinTokenDTO tokenDTO = getPageCachedToken(accountId);
+        LinkedinTokenDTO tokenDTO = getCachedToken(accountId);
 
         String url = "https://api.linkedin.com/v2/organizationAcls" +
                 "?q=roleAssignee&role=ADMINISTRATOR&state=APPROVED" +
@@ -252,13 +262,13 @@ public class LinkedInServiceImpl implements LinkedInService{
         return new ObjectMapper().readTree(response.getBody());
     }
 
-    public LinkedinTokenDTO getPageCachedToken(Long pageId) throws ResourceNotFoundException, IllegalStateException {
+    public LinkedinTokenDTO getCachedToken(Long pageId) throws ResourceNotFoundException, IllegalStateException {
 
         String key = formulateKey(pageId);
         List<LinkedinTokenDTO> tokenList = redisLinkedinTemplate.opsForList().range(key, 0, -1);
 
         if (tokenList == null || tokenList.isEmpty()) {
-            return fetchPageToken(pageId);
+            return fetchToken(pageId);
         }
 
         // Identify the token with the longest expiration
@@ -272,11 +282,16 @@ public class LinkedInServiceImpl implements LinkedInService{
         return bestToken;
     }
 
-    public LinkedinTokenDTO fetchPageToken(Long accountId){
+    public LinkedinTokenDTO fetchToken(Long accountId){
         List<LinkedinToken> tokens = linkedinTokenRepository.findByAccountId(accountId);
         LinkedinToken token = tokens.stream()
+                .filter(t -> !t.isRevoked())
+                .findFirst()
+                .orElseThrow(() -> new IllegalStateException("No valid token found for account: " + accountId));
+
+/*        LinkedinToken token = tokens.stream()
                 .filter(this::validateToken)
-                .findFirst().orElse(null);
+                .findFirst().orElse(null);*/
         if (token == null) {
             throw new ResourceNotFoundException("Token not found for account: " + accountId + ", please authenticate again.");
         }
@@ -299,7 +314,12 @@ public class LinkedInServiceImpl implements LinkedInService{
 
     @Override
     public LinkedInOrganization authenticateLinkedInOrganization(Long accountId, String organizationId) throws Exception {
-        LinkedinTokenDTO tokenDTO = getPageCachedToken(accountId); // Reuse your method
+        LinkedinTokenDTO tokenDTO = getCachedToken(accountId); // Reuse your method
+
+        if (linkedInOrganizationRepository.findByOrganizationId(organizationId).isPresent()) {
+            throw new IllegalArgumentException(String.format("LinkedIn organization with linkedin id: %s already exists.",organizationId));
+        }
+
         LinkedInAccount account = linkedInAccountRepository.findById(accountId).orElseThrow(
                 () -> new ResourceNotFoundException("LinkedIn account not found with ID: " + accountId)
         );
@@ -337,34 +357,39 @@ public class LinkedInServiceImpl implements LinkedInService{
         return linkedInOrganizationRepository.save(linkedInOrg);
     }
 
-    public PlatformPostResult createLinkedInPost(List<FileData> files, String content, Date scheduledAt, Long organizationId) {
+    public PlatformPostResult createLinkedInPost(List<FileData> files, String content, LinkedInOrganization organization, boolean isReel) {
         try {
-            // Get the LinkedIn organization
-            LinkedInOrganization organization = linkedInOrganizationRepository.findById(organizationId)
-                    .orElseThrow(() -> new ResourceNotFoundException("LinkedIn organization not found with ID: " + organizationId));
+            // Validate that all files are either images or a single video
+            boolean hasVideo = files.stream().anyMatch(file -> "video".equals(file.getType()));
+            boolean hasImage = files.stream().anyMatch(file -> "image".equals(file.getType()));
+
+            if (hasVideo && hasImage) {
+                throw new IllegalArgumentException("Cannot create a post with both images and videos.");
+            }
+            if (hasVideo && files.size() > 1) {
+                throw new IllegalArgumentException("LinkedIn only supports one video per post.");
+            }
+            if (hasImage && files.size() > 20) {
+                throw new IllegalArgumentException("LinkedIn supports up to 9 images per post.");
+            }
 
             // Get the cached token
-            LinkedinTokenDTO tokenDTO = getPageCachedToken(organization.getLinkedInAccount().getId());
+            LinkedinTokenDTO tokenDTO = getCachedToken(organization.getLinkedInAccount().getId());
             String accessToken = tokenDTO.accessToken();
+
+            System.out.println("Access token: " + accessToken);
 
             // First upload any media files and collect their media IDs
             List<LinkedinMedia> uploadedMedia = new ArrayList<>();
 
             for (FileData file : files) {
-                LinkedinMedia media;
                 String fileType = file.getType();
 
-                System.out.println(fileType.substring(0, 1).toUpperCase() + fileType.substring(1) + " file detected: ");
-
                 if ("video".equals(fileType) || "image".equals(fileType)) {
-
                     byte[] fileBytes = fileService.getFileBytesByFileData(file);
                     Long fileSize = "video".equals(fileType) ? (long) fileBytes.length : null;
 
-                    if (fileSize != null) {
-                        System.out.println("File size: " + fileSize);
-                    }
-
+                    // Upload registration
                     JsonNode uploadRegistrationResult = initializeUpload(
                             "urn:li:organization:" + organization.getOrganizationId(),
                             accessToken,
@@ -372,20 +397,21 @@ public class LinkedInServiceImpl implements LinkedInService{
                             fileSize
                     );
 
-                    System.out.println("Upload registration result: " + uploadRegistrationResult);
-
                     JsonNode valueNode = uploadRegistrationResult.get("value");
-                    String uploadUrl = valueNode.get("uploadUrl").asText();
-                    String mediaUrn = "video".equals(fileType) ? valueNode.get("video").asText() : valueNode.get("image").asText();
+                    String uploadUrl = "video".equals(fileType) ?
+                            valueNode.get("uploadInstructions").get(0).get("uploadUrl").asText() :
+                            valueNode.get("uploadUrl").asText();
 
+                    String mediaUrn = "video".equals(fileType) ?
+                            valueNode.get("video").asText() :
+                            valueNode.get("image").asText();
 
-                    System.out.println("Upload URL: " + uploadUrl);
+                    String uploadToken = "video".equals(fileType) ?
+                            valueNode.get("uploadToken").asText() : null;
 
-                    media = "video".equals(fileType)
-                            ? uploadVideoToLinkedIn(uploadUrl, file, mediaUrn)
+                    LinkedinMedia media = "video".equals(fileType)
+                            ? uploadVideoToLinkedIn(uploadUrl, file, mediaUrn, uploadToken, tokenDTO.accessToken())
                             : uploadImageToLinkedIn(uploadUrl, file, mediaUrn);
-
-                    System.out.println("Media ID: " + media.getMediaId());
 
                     uploadedMedia.add(media);
                 } else {
@@ -393,20 +419,14 @@ public class LinkedInServiceImpl implements LinkedInService{
                 }
             }
 
-            System.out.println("Done uploading media files.");
             // Now create the post with any uploaded media
             String url = "https://api.linkedin.com/rest/posts";
-
             ObjectMapper mapper = new ObjectMapper();
             ObjectNode postRequest = mapper.createObjectNode();
 
             // Set author as the organization
             postRequest.put("author", "urn:li:organization:" + organization.getOrganizationId());
-
-            // Set commentary (formerly shareCommentary.text)
             postRequest.put("commentary", content);
-
-            // Set visibility directly as a string
             postRequest.put("visibility", "PUBLIC");
 
             // Set distribution details with empty arrays for targetEntities and thirdPartyDistributionChannels
@@ -415,28 +435,28 @@ public class LinkedInServiceImpl implements LinkedInService{
             distribution.putArray("targetEntities");
             distribution.putArray("thirdPartyDistributionChannels");
 
-            // Set lifecycle state directly as a string
-            postRequest.put("lifecycleState", scheduledAt != null ? "SCHEDULED" : "PUBLISHED");
-
-            // Set reshare option
+            postRequest.put("lifecycleState", "PUBLISHED");
             postRequest.put("isReshareDisabledByAuthor", false);
 
             // Set content with media
             if (!uploadedMedia.isEmpty()) {
                 ObjectNode contentNode = postRequest.putObject("content");
-                ObjectNode mediaNode = contentNode.putObject("media");
 
-                // For now, we're only handling the first media item (based on the target format)
-                LinkedinMedia media = uploadedMedia.get(0);
-                mediaNode.put("id", media.getMediaId());
+                if ("image".equals(files.get(0).getType()) && uploadedMedia.size() > 1) {
+                    // Correct LinkedIn format for multiple images
+                    ObjectNode multiImageNode = contentNode.putObject("multiImage");
+                    ArrayNode imageArray = multiImageNode.putArray("images");
+
+                    for (LinkedinMedia media : uploadedMedia) {
+                        ObjectNode imageObject = imageArray.addObject();
+                        imageObject.put("id", media.getMediaId());
+                    }
+                } else {
+                    // For single video or image
+                    ObjectNode mediaNode = contentNode.putObject("media");
+                    mediaNode.put("id", uploadedMedia.get(0).getMediaId());
+                }
             }
-
-            // Add scheduling if provided
-            if (scheduledAt != null) {
-                postRequest.put("scheduledStartTime", scheduledAt.getTime());
-            }
-
-            System.out.println("Post request: " + postRequest);
 
             // Prepare and send request
             HttpHeaders headers = new HttpHeaders();
@@ -444,34 +464,37 @@ public class LinkedInServiceImpl implements LinkedInService{
             headers.setContentType(MediaType.APPLICATION_JSON);
             headers.add("LinkedIn-Version", "202504");
 
+            System.out.println("Request body: " + postRequest.toPrettyString());
+
             HttpEntity<String> request = new HttpEntity<>(postRequest.toString(), headers);
             RestTemplate restTemplate = new RestTemplate();
-
             ResponseEntity<String> response = restTemplate.postForEntity(url, request, String.class);
 
-            System.out.println("Response: " + response.getBody());
+            if (response.getStatusCode().is2xxSuccessful()) {
+                String postUrn = response.getHeaders().getFirst("x-linkedin-id");
 
-            if (!response.getStatusCode().is2xxSuccessful()) {
+                System.out.println(postUrn);
+                if (isReel) {
+                    LinkedinReel linkedinReel = new LinkedinReel();
+                    linkedinReel.setLinkedinReelId(postUrn);
+                    linkedinReel.setCaption(content);
+                    linkedinReel.setLinkedinMedia(uploadedMedia.get(0));
+                    linkedinReel.setOrganization(organization);
+                    return PlatformPostResult.success(PlatformType.LINKEDIN, linkedinReelRepository.save(linkedinReel));
+                }else {
+                    LinkedinPost linkedinPost = new LinkedinPost();
+                    linkedinPost.setLinkedinPostId(postUrn);
+                    linkedinPost.setCaption(content);
+                    linkedinPost.setLinkedinMediaList(uploadedMedia);
+                    linkedinPost.setOrganization(organization);
+                    return PlatformPostResult.success(PlatformType.LINKEDIN, linkedinPostRepository.save(linkedinPost));
+                }
+
+            } else {
                 throw new RuntimeException("Failed to create LinkedIn post: " + response.getStatusCode() + " - " + response.getBody());
             }
-
-            JsonNode responseNode = mapper.readTree(response.getBody());
-            String postId = responseNode.get("id").asText();
-
-            // Create and save LinkedinPost entity
-            LinkedinPost linkedinPost = new LinkedinPost();
-            linkedinPost.setLinkedinPostId(postId);
-            linkedinPost.setCaption(content);
-            linkedinPost.setLinkedinMediaList(uploadedMedia);
-            linkedinPost.setOrganization(organization);
-
-            // Save the post to the database
-            linkedinPostRepository.save(linkedinPost);
-
-            return PlatformPostResult.success(PlatformType.LINKEDIN, linkedinPostRepository.save(linkedinPost));
-
         } catch (Exception e) {
-            e.printStackTrace(); // This gives you the full stack trace
+            e.printStackTrace();
             return PlatformPostResult.failure(PlatformType.LINKEDIN, e.getMessage());
         }
     }
@@ -517,6 +540,110 @@ public class LinkedInServiceImpl implements LinkedInService{
         return mapper.readTree(response.getBody());
     }
 
+    public LinkedinMedia uploadVideoToLinkedIn(
+            String uploadUrl,
+            FileData fileData,
+            String mediaUrn,
+            String uploadToken,    // from initializeUploadResponse.value.uploadToken
+            String accessToken     // your OAuth Bearer token
+    ) throws IOException, InterruptedException {
+        // 1) PUSH THE BYTES & CAPTURE ETAG
+        File file = fileService.getFileFromFileData(fileData);
+        long fileSize = file.length();
+
+        HttpURLConnection putConn = (HttpURLConnection) new URL(uploadUrl).openConnection();
+        putConn.setDoOutput(true);
+        putConn.setRequestMethod("PUT");
+        putConn.setRequestProperty("Content-Type", "video/mp4");
+        putConn.setRequestProperty("Content-Length", String.valueOf(fileSize));
+        putConn.setConnectTimeout(30000);
+        putConn.setReadTimeout(60000);
+
+        try (OutputStream out = putConn.getOutputStream();
+             FileInputStream in = new FileInputStream(file)) {
+            byte[] buf = new byte[16 * 1024];
+            int r;
+            while ((r = in.read(buf)) != -1) {
+                out.write(buf, 0, r);
+            }
+            out.flush();
+        }
+
+        int code = putConn.getResponseCode();
+        if (code < 200 || code >= 300) {
+            throw new RuntimeException("Video upload failed: " + code + " " + putConn.getResponseMessage());
+        }
+        String etag = putConn.getHeaderField("ETag");
+        System.out.println("Upload succeeded, ETag=" + etag);
+
+        // 2) FINALIZE UPLOAD
+        String finalizeUrl = "https://api.linkedin.com/rest/videos?action=finalizeUpload";
+        ObjectMapper mapper = new ObjectMapper();
+        ObjectNode finalizeReq = mapper.createObjectNode();
+        ObjectNode body = finalizeReq.putObject("finalizeUploadRequest");
+        body.put("video", mediaUrn);
+        body.put("uploadToken", uploadToken);
+        ArrayNode parts = body.putArray("uploadedPartIds");
+        parts.add(etag);
+
+        HttpURLConnection finalConn = (HttpURLConnection) new URL(finalizeUrl).openConnection();
+        finalConn.setRequestMethod("POST");
+        finalConn.setDoOutput(true);
+        finalConn.setRequestProperty("Authorization", "Bearer " + accessToken);
+        finalConn.setRequestProperty("LinkedIn-Version", "202504");
+        finalConn.setRequestProperty("X-Restli-Protocol-Version", "2.0.0");
+        finalConn.setRequestProperty("Content-Type", "application/json");
+
+        try (OutputStream os = finalConn.getOutputStream()) {
+            os.write(mapper.writeValueAsBytes(finalizeReq));
+        }
+        if (finalConn.getResponseCode() / 100 != 2) {
+            throw new RuntimeException("Finalize upload failed: " +
+                    finalConn.getResponseCode() + " " + finalConn.getResponseMessage());
+        }
+        System.out.println("Finalize successful, now polling…");
+
+        // 3) POLL UNTIL READY
+        String encodedUrn = URLEncoder.encode(mediaUrn, StandardCharsets.UTF_8);
+        String statusUrl = "https://api.linkedin.com/rest/videos/" + encodedUrn;
+        long start = System.currentTimeMillis(), timeout = TimeUnit.MINUTES.toMillis(2);
+
+        while (true) {
+            if (System.currentTimeMillis() - start > timeout) {
+                throw new RuntimeException("Video processing timed out for URN: " + mediaUrn);
+            }
+
+            System.out.println("Ah shit, here we go again");
+
+            HttpURLConnection statusConn = (HttpURLConnection) new URL(statusUrl).openConnection();
+            statusConn.setRequestMethod("GET");
+            statusConn.setRequestProperty("Authorization", "Bearer " + accessToken);
+            statusConn.setRequestProperty("LinkedIn-Version", "202504");
+            statusConn.setRequestProperty("X-Restli-Protocol-Version", "2.0.0");
+            statusConn.setConnectTimeout(5000);
+            statusConn.setReadTimeout(5000);
+
+            if (statusConn.getResponseCode() / 100 == 2) {
+                JsonNode root = mapper.readTree(statusConn.getInputStream());
+                String state = root.path("status").asText();
+                System.out.println("Current video.status = " + state);
+                if ("AVAILABLE".equalsIgnoreCase(state)) break;
+                if ("PROCESSING_FAILED".equalsIgnoreCase(state)) {
+                    throw new RuntimeException("LinkedIn video processing failed for URN: " + mediaUrn);
+                }
+            }
+
+            Thread.sleep(5000);
+        }
+
+        // 4) SAVE & RETURN
+        LinkedinMedia lm = new LinkedinMedia();
+        lm.setMediaId(mediaUrn);
+        lm.setFile(fileData);
+        lm.setMediaType(PlatformMediaType.VIDEO);
+        return linkedinMediaRepository.save(lm);
+    }
+
     public LinkedinMedia uploadImageToLinkedIn(String uploadUrl, FileData fileData, String mediaUrn) throws IOException {
         System.out.println("Upload preparing");
         MediaType fileType;
@@ -560,39 +687,117 @@ public class LinkedInServiceImpl implements LinkedInService{
 
         return linkedinMediaRepository.save(media);
     }
-    public LinkedinMedia uploadVideoToLinkedIn(String uploadUrl, FileData fileData, String mediaUrn) throws IOException {
 
-        MediaType fileType;
-        switch (fileData.getPrefix()) {
-            case "mp4" -> fileType = MediaType.valueOf("video/mp4");
-            case "mov" -> fileType = MediaType.valueOf("video/quicktime");
-            default -> throw new IllegalArgumentException("Unsupported video type: " + fileData.getPrefix());
+    @Override
+    public PlatformInsightsResult getLinkedInInsights(Long organizationId, String postUrn) {
+        try {
+            LinkedInOrganization organization = linkedInOrganizationRepository.findById(organizationId)
+                    .orElseThrow(() -> new ResourceNotFoundException("LinkedIn organization not found with ID: " + organizationId));
+
+            LinkedinTokenDTO tokenDTO = getCachedToken(organization.getLinkedInAccount().getId());
+            String orgUrn = "urn:li:organization:" + organization.getOrganizationId();
+
+            // Modified approach based on LinkedIn's API documentation
+            String baseUrl = "https://api.linkedin.com/v2/organizationalEntityShareStatistics";
+            StringBuilder urlBuilder = new StringBuilder(baseUrl)
+                    .append("?q=organizationalEntity")
+                    .append("&organizationalEntity=").append(URLEncoder.encode(orgUrn, StandardCharsets.UTF_8));
+
+            // Handle post-specific metrics if a postUrn is provided
+            if (postUrn != null && !postUrn.trim().isEmpty()) {
+                if (!postUrn.startsWith("urn:li:")) {
+                    // Determine the correct prefix based on the ID format
+                    if (postUrn.matches("\\d+")) {
+                        postUrn = "urn:li:share:" + postUrn;
+                    } else if (postUrn.startsWith("ACoAAA")) {
+                        postUrn = "urn:li:activity:" + postUrn;
+                    }
+                }
+
+                boolean isUGC = postUrn.contains("ugcPost");
+                String encodedPostUrn = URLEncoder.encode(postUrn, StandardCharsets.UTF_8);
+
+                // Use the correct parameter structure based on post type
+                if (isUGC) {
+                    // For UGC posts
+                    baseUrl = "https://api.linkedin.com/v2/organizationalEntityUgcPostStats";
+                    urlBuilder = new StringBuilder(baseUrl)
+                            .append("?q=organizationalEntity")
+                            .append("&organizationalEntity=").append(URLEncoder.encode(orgUrn, StandardCharsets.UTF_8))
+                            .append("&ugcPosts=List(").append(encodedPostUrn).append(")");
+                } else {
+                    // For shares
+                    urlBuilder.append("&shares=List(").append(encodedPostUrn).append(")");
+                }
+            }
+
+            String fullUrl = urlBuilder.toString();
+            System.out.println("LinkedIn API Request: " + fullUrl);
+
+            HttpURLConnection conn = (HttpURLConnection) new URL(fullUrl).openConnection();
+            conn.setRequestMethod("GET");
+            conn.setRequestProperty("Authorization", "Bearer " + tokenDTO.accessToken());
+            conn.setRequestProperty("LinkedIn-Version", "202504");
+            conn.setRequestProperty("X-Restli-Protocol-Version", "2.0.0");
+
+            System.out.println("Final URL sent to LinkedIn: " + conn.getURL());
+
+            int status = conn.getResponseCode();
+            if (status != 200) {
+                String error = "";
+                if (conn.getErrorStream() != null) {
+                    error = new BufferedReader(new InputStreamReader(conn.getErrorStream()))
+                            .lines().collect(Collectors.joining("\n"));
+                    System.out.println("LinkedIn API Error Response: " + error);
+                }
+                return PlatformInsightsResult.failure(PlatformType.LINKEDIN,
+                        "LinkedIn API error (" + status + "): " + error);
+            }
+
+            // Read and parse the response
+            String responseStr = new BufferedReader(new InputStreamReader(conn.getInputStream()))
+                    .lines().collect(Collectors.joining("\n"));
+            System.out.println("LinkedIn API Success Response: " + responseStr);
+
+            ObjectMapper mapper = new ObjectMapper();
+            JsonNode response = mapper.readTree(responseStr);
+
+            Map<String, Object> insights = new HashMap<>();
+            JsonNode elements = response.path("elements");
+
+            if (!elements.isEmpty()) {
+                JsonNode element = elements.get(0);
+
+                // Extract statistics from the right location in the response
+                JsonNode statsNode = element.path("totalShareStatistics");
+                if (!statsNode.isMissingNode() && !statsNode.isEmpty()) {
+                    statsNode.fields().forEachRemaining(entry -> {
+                        String key = entry.getKey();
+                        JsonNode value = entry.getValue();
+                        if (value.isNumber()) {
+                            insights.put(key, value.numberValue());
+                        } else if (value.isTextual()) {
+                            insights.put(key, value.asText());
+                        } else if (value.isBoolean()) {
+                            insights.put(key, value.booleanValue());
+                        }
+                    });
+                }
+
+                // Also copy other useful fields from the response
+                if (element.has("share")) {
+                    insights.put("shareUrn", element.get("share").asText());
+                }
+                if (element.has("organizationalEntity")) {
+                    insights.put("orgUrn", element.get("organizationalEntity").asText());
+                }
+            }
+
+            System.out.println("Extracted insights: " + insights);
+            return PlatformInsightsResult.success(PlatformType.LINKEDIN, insights);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            return PlatformInsightsResult.failure(PlatformType.LINKEDIN, "Error fetching insights: " + e.getMessage());
         }
-
-        byte[] fileBytes = fileService.getFileBytesByFileData(fileData);
-
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(fileType);
-        headers.setContentLength(fileBytes.length);
-        headers.add("LinkedIn-Version", "202504");
-
-        HttpEntity<byte[]> requestEntity = new HttpEntity<>(fileBytes, headers);
-
-        RestTemplate restTemplate = new RestTemplate();
-        ResponseEntity<String> response = restTemplate.exchange(
-                uploadUrl, HttpMethod.PUT, requestEntity, String.class
-        );
-
-        if (!response.getStatusCode().is2xxSuccessful()) {
-            throw new RuntimeException("Video upload failed: " + response.getStatusCode() + " - " + response.getBody());
-        }
-
-        LinkedinMedia linkedinMedia = new LinkedinMedia();
-        linkedinMedia.setMediaId(mediaUrn);
-        linkedinMedia.setFile(fileData);
-        linkedinMedia.setMediaType(PlatformMediaType.VIDEO);
-
-        return linkedinMediaRepository.save(linkedinMedia);
-    }
-
-}
+    }}
