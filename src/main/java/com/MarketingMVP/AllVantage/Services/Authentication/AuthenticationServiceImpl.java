@@ -31,6 +31,8 @@ import com.MarketingMVP.AllVantage.Services.UserEntity.UserService;
 import io.micrometer.common.lang.NonNull;
 import jakarta.validation.constraints.NotNull;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -156,49 +158,68 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 
     @Override
     public ResponseEntity<Object> login(@NonNull LoginDTO loginDto) {
-        try{
+        try {
             Authentication authentication = authenticationManager.authenticate(
                     new UsernamePasswordAuthenticationToken(
                             loginDto.getEmail(),
                             loginDto.getPassword()
                     )
             );
+
             SecurityContextHolder.getContext().setAuthentication(authentication);
 
             UserEntity user = userService.getUserByUsername(loginDto.getEmail());
             revokeAllUserAccessTokens(user);
             revokeAllUserRefreshToken(user);
+
             String jwtAccessToken = revokeGenerateAndSaveToken(user);
             String jwtRefreshToken = refreshTokenService.generateRefreshToken(user);
 
-            if (user.getRole().getName().equals("CLIENT")) {
-                final ClientLogInResponseDTO logInResponse = ClientLogInResponseDTO
-                        .builder()
-                        .accessToken(jwtAccessToken)
-                        .refreshToken(jwtRefreshToken)
-                        .clientDTO(clientDTOMapper.apply(userService.getClientById(user.getId())))
-                        .build();
-                return ResponseEntity.status(200).body(logInResponse);
-            }else if (user.getRole().getName().equals("EMPLOYEE")) {
-                final EmployeeLoginResponseDTO logInResponse = EmployeeLoginResponseDTO
-                        .builder()
-                        .accessToken(jwtAccessToken)
-                        .refreshToken(jwtRefreshToken)
-                        .build();
-                return ResponseEntity.status(200).body(logInResponse);
-            }else if (user.getRole().getName().equals("ADMIN")) {
-                final AdminLoginResponseDTO logInResponse = AdminLoginResponseDTO
-                        .builder()
-                        .accessToken(jwtAccessToken)
-                        .refreshToken(jwtRefreshToken)
-                        .adminDTO(adminDTOMapper.apply(userService.getAdminById(user.getId())))
-                        .build();
-                return ResponseEntity.status(200).body(logInResponse);
+            ResponseCookie accessCookie = ResponseCookie.from("accessToken", jwtAccessToken)
+                    .httpOnly(true)
+                    .secure(true)
+                    .path("/")
+                    .maxAge(3600)
+                    .sameSite("Strict")
+                    .build();
+
+            ResponseCookie refreshCookie = ResponseCookie.from("refreshToken", jwtRefreshToken)
+                    .httpOnly(true)
+                    .secure(true)
+                    .path("/")
+                    .maxAge(604800)
+                    .sameSite("Strict")
+                    .build();
+
+            Object loginResponse;
+
+            switch (user.getRole().getName()) {
+                case "CLIENT":
+                    loginResponse = ClientLogInResponseDTO.builder()
+                            .clientDTO(clientDTOMapper.apply(userService.getClientById(user.getId())))
+                            .build();
+                    break;
+
+                case "EMPLOYEE":
+                    loginResponse = EmployeeLoginResponseDTO.builder().build();
+                    break;
+
+                case "ADMIN":
+                    loginResponse = AdminLoginResponseDTO.builder()
+                            .adminDTO(adminDTOMapper.apply(userService.getAdminById(user.getId())))
+                            .build();
+                    break;
+
+                default:
+                    return ResponseEntity.status(500).body("User role not specified");
             }
-            else {
-                return ResponseEntity.status(500).body("User role not specified");
-            }
-        } catch (ResourceNotFoundException e){
+
+            return ResponseEntity.ok()
+                    .header(HttpHeaders.SET_COOKIE, accessCookie.toString())
+                    .header(HttpHeaders.SET_COOKIE, refreshCookie.toString())
+                    .body(loginResponse);
+
+        } catch (ResourceNotFoundException e) {
             return ResponseEntity.status(404).body(e.getMessage());
         }
     }
@@ -303,5 +324,4 @@ public class AuthenticationServiceImpl implements AuthenticationService {
             throw new IllegalArgumentException("Sorry, that phone number is already taken. Please choose a different one.");
         }
     }
-
 }
