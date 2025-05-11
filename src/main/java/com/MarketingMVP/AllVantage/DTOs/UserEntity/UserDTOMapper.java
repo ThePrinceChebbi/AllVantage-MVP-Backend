@@ -16,6 +16,7 @@ public class UserDTOMapper implements Function<UserEntity, UserDTO> {
                 userEntity.getUsername(),
                 userEntity.getEmail(),
                 userEntity.getPhoneNumber(),
+                "http://localhost:8080/api/v1/files/" + userEntity.getImage().getId(),
                 userEntity.getRole(),
                 userEntity.getCreationDate(),
                 userEntity.isEnabled(),

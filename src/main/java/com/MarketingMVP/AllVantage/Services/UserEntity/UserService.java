@@ -9,6 +9,7 @@ import com.MarketingMVP.AllVantage.Entities.UserEntity.Employee;
 import com.MarketingMVP.AllVantage.Entities.UserEntity.UserEntity;
 import org.springframework.http.ResponseEntity;
 import org.springframework.lang.NonNull;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.UUID;
 
@@ -34,4 +35,6 @@ public interface UserService {
     ResponseEntity<Object> getAllUsers();
 
     boolean clientExists(UUID clientId);
+
+    ResponseEntity<Object> addImage(MultipartFile file, UUID id);
 }

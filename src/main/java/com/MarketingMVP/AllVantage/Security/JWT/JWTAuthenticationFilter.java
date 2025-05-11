@@ -12,6 +12,7 @@ import com.MarketingMVP.AllVantage.Services.UserDetails.CustomUserDetailsService
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
+import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.NonNull;
@@ -46,14 +47,24 @@ public class JWTAuthenticationFilter extends OncePerRequestFilter {
 
         try {
 
-            final String authHeader = request.getHeader("Authorization");
+            String jwtToken = null;
+            String authHeader = request.getHeader("Authorization");
 
-            if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-                filterChain.doFilter(request , response);
-                return;
+            if (authHeader != null && authHeader.startsWith("Bearer ")) {
+                jwtToken = authHeader.substring(7);
+            } else if (request.getCookies() != null) {
+                for (Cookie cookie : request.getCookies()) {
+                    if ("access_token".equals(cookie.getName())) {
+                        jwtToken = cookie.getValue();
+                        break;
+                    }
+                }
             }
 
-            final String jwtToken = authHeader.substring(7);
+            if (jwtToken == null) {
+                filterChain.doFilter(request, response);
+                return;
+            }
 
             if (!jwtService.validateToken(jwtToken)) {
                 filterChain.doFilter(request, response);

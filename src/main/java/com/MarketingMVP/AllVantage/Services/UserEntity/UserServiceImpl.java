@@ -7,6 +7,7 @@ import com.MarketingMVP.AllVantage.DTOs.UserEntity.Client.ClientDTOMapper;
 import com.MarketingMVP.AllVantage.DTOs.UserEntity.Employee.EmployeeDTOMapper;
 import com.MarketingMVP.AllVantage.DTOs.UserEntity.UserDTO;
 import com.MarketingMVP.AllVantage.DTOs.UserEntity.UserDTOMapper;
+import com.MarketingMVP.AllVantage.Entities.FileData.FileData;
 import com.MarketingMVP.AllVantage.Entities.UserEntity.Admin;
 import com.MarketingMVP.AllVantage.Entities.UserEntity.Client;
 import com.MarketingMVP.AllVantage.Entities.UserEntity.Employee;
@@ -14,11 +15,13 @@ import com.MarketingMVP.AllVantage.Entities.UserEntity.UserEntity;
 import com.MarketingMVP.AllVantage.Exceptions.ResourceNotFoundException;
 import com.MarketingMVP.AllVantage.Exceptions.UnauthorizedActionException;
 import com.MarketingMVP.AllVantage.Repositories.UserEntity.UserRepository;
+import com.MarketingMVP.AllVantage.Services.FileData.FileService;
 import lombok.NonNull;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 import java.util.Objects;
@@ -30,12 +33,14 @@ public class UserServiceImpl implements UserService {
     private final EmployeeDTOMapper employeeDTOMapper;
     private final ClientDTOMapper clientDTOMapper;
     private final AdminDTOMapper adminDTOMapper;
+    private final FileService fileService;
 
-    public UserServiceImpl(UserRepository userRepository, EmployeeDTOMapper employeeDTOMapper, ClientDTOMapper clientDTOMapper, AdminDTOMapper adminDTOMapper) {
+    public UserServiceImpl(UserRepository userRepository, EmployeeDTOMapper employeeDTOMapper, ClientDTOMapper clientDTOMapper, AdminDTOMapper adminDTOMapper, FileService fileService) {
         this.userRepository = userRepository;
         this.employeeDTOMapper = employeeDTOMapper;
         this.clientDTOMapper = clientDTOMapper;
         this.adminDTOMapper = adminDTOMapper;
+        this.fileService = fileService;
     }
 
     @Override
@@ -70,6 +75,19 @@ public class UserServiceImpl implements UserService {
     @Override
     public boolean clientExists(UUID clientId) {
         return userRepository.clientExists(clientId);
+    }
+
+    @Override
+    public ResponseEntity<Object> addImage(MultipartFile file, UUID id) {
+        try{
+            UserEntity user = getUserById(id);
+            FileData fileData = fileService.processUploadedFile(file);
+            user.setImage(fileData);
+            saveUser(user);
+            return ResponseEntity.status(200).body("Image added successfully");
+        }catch (Exception e){
+            return ResponseEntity.status(500).body(e.getMessage());
+        }
     }
 
     @Override

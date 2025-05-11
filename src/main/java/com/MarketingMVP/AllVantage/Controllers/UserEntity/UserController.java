@@ -40,6 +40,11 @@ public class UserController {
         return suitService.addNewSuit(name, description, id, file);
     }
 
+    @PostMapping("/{id}/add_image")
+    public ResponseEntity<Object> addImage(@RequestParam("file") MultipartFile file, @PathVariable UUID id) {
+        return userService.addImage(file, id);
+    }
+
     @GetMapping("/")
     public ResponseEntity<Object> getAll() {
         return userService.getAllUsers();

@@ -12,6 +12,8 @@ import com.MarketingMVP.AllVantage.DTOs.Authentication.Employee.EmployeeRegister
 import com.MarketingMVP.AllVantage.DTOs.UserEntity.Admin.AdminDTOMapper;
 import com.MarketingMVP.AllVantage.DTOs.UserEntity.Client.ClientDTOMapper;
 import com.MarketingMVP.AllVantage.DTOs.UserEntity.Employee.EmployeeDTOMapper;
+import com.MarketingMVP.AllVantage.DTOs.UserEntity.UserDTO;
+import com.MarketingMVP.AllVantage.DTOs.UserEntity.UserDTOMapper;
 import com.MarketingMVP.AllVantage.Entities.Role.Role;
 import com.MarketingMVP.AllVantage.Entities.Tokens.AccessToken.Token;
 import com.MarketingMVP.AllVantage.Entities.Tokens.AccessToken.TokenType;
@@ -21,6 +23,7 @@ import com.MarketingMVP.AllVantage.Entities.UserEntity.Client;
 import com.MarketingMVP.AllVantage.Entities.UserEntity.Employee;
 import com.MarketingMVP.AllVantage.Entities.UserEntity.UserEntity;
 import com.MarketingMVP.AllVantage.Exceptions.ResourceNotFoundException;
+import com.MarketingMVP.AllVantage.Exceptions.RevokedTokenException;
 import com.MarketingMVP.AllVantage.Security.JWT.JWTService;
 import com.MarketingMVP.AllVantage.Services.FileData.FileService;
 import com.MarketingMVP.AllVantage.Services.Role.RoleService;
@@ -29,22 +32,26 @@ import com.MarketingMVP.AllVantage.Services.Token.Refresh.RefreshTokenService;
 import com.MarketingMVP.AllVantage.Services.Token.Access.TokenService;
 import com.MarketingMVP.AllVantage.Services.UserEntity.UserService;
 import io.micrometer.common.lang.NonNull;
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.constraints.NotNull;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.Date;
+import java.util.*;
 
 @Service
 public class AuthenticationServiceImpl implements AuthenticationService {
@@ -173,21 +180,12 @@ public class AuthenticationServiceImpl implements AuthenticationService {
             revokeAllUserRefreshToken(user);
 
             String jwtAccessToken = revokeGenerateAndSaveToken(user);
-            String jwtRefreshToken = refreshTokenService.generateRefreshToken(user);
 
             ResponseCookie accessCookie = ResponseCookie.from("accessToken", jwtAccessToken)
                     .httpOnly(true)
                     .secure(true)
                     .path("/")
                     .maxAge(3600)
-                    .sameSite("Strict")
-                    .build();
-
-            ResponseCookie refreshCookie = ResponseCookie.from("refreshToken", jwtRefreshToken)
-                    .httpOnly(true)
-                    .secure(true)
-                    .path("/")
-                    .maxAge(604800)
                     .sameSite("Strict")
                     .build();
 
@@ -214,10 +212,26 @@ public class AuthenticationServiceImpl implements AuthenticationService {
                     return ResponseEntity.status(500).body("User role not specified");
             }
 
-            return ResponseEntity.ok()
-                    .header(HttpHeaders.SET_COOKIE, accessCookie.toString())
-                    .header(HttpHeaders.SET_COOKIE, refreshCookie.toString())
-                    .body(loginResponse);
+            if (loginDto.isRememberMe()) {
+                String jwtRefreshToken = refreshTokenService.generateRefreshToken(user);
+
+                ResponseCookie refreshCookie = ResponseCookie.from("refreshToken", jwtRefreshToken)
+                        .httpOnly(true)
+                        .secure(true)
+                        .path("/")
+                        .maxAge(604800)
+                        .sameSite("Strict")
+                        .build();
+
+                return ResponseEntity.ok()
+                        .header(HttpHeaders.SET_COOKIE, accessCookie.toString())
+                        .header(HttpHeaders.SET_COOKIE, refreshCookie.toString())
+                        .body(loginResponse);
+            }else{
+                return ResponseEntity.ok()
+                        .header(HttpHeaders.SET_COOKIE, accessCookie.toString())
+                        .body(loginResponse);
+            }
 
         } catch (ResourceNotFoundException e) {
             return ResponseEntity.status(404).body(e.getMessage());
@@ -248,28 +262,66 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     }
 
     @Override
-    public ResponseEntity<Object> refresh(final String refreshToken, final String expiredToken) {
-        try{
-            final Token currentToken = tokenService.getTokenByToken(expiredToken);
+    public ResponseEntity<Object> refresh(HttpServletRequest request, HttpServletResponse response) {
+        try {
+            // 1. Extract tokens from cookies
+            String refreshToken = getCookieValue(request, "refreshToken");
+            String expiredAccessToken = getCookieValue(request, "accessToken");
+
+            // 2. Validate tokens and fetch data
+            final Token currentToken = tokenService.getTokenByToken(expiredAccessToken);
             final UserEntity currentUser = currentToken.getUserEntity();
             final RefreshToken currentRefreshToken = refreshTokenService.fetchRefreshTokenByToken(refreshToken);
             final boolean isRefreshTokenValid = refreshTokenService.validateRefreshToken(refreshToken);
+
+            if (!isRefreshTokenValid) {
+                throw new RevokedTokenException("Refresh token is revoked or expired.");
+            }
+
             if (currentRefreshToken.getUserEntity().getId() != currentUser.getId()) {
                 throw new IllegalStateException("The access token and refresh token u provided are not compatible.");
             }
-            revokeAllUserAccessTokens(currentUser);
+
             String jwtAccessToken = revokeGenerateAndSaveToken(currentUser);
-            final RefreshTokenResponseDTO refreshTokenResponse = RefreshTokenResponseDTO
-                    .builder()
-                    .accessToken(jwtAccessToken)
-                    .refreshToken(refreshToken)
-                    .build();
-            return ResponseEntity.status(200).body(refreshTokenResponse);
-        } catch (ResourceNotFoundException e){
-            return ResponseEntity.status(404).body(e.getMessage());
-        } catch (Exception e){
-            return ResponseEntity.status(500).body(e.getMessage());
+            String newRefreshToken = refreshTokenService.generateRefreshToken(currentUser);
+
+            ResponseCookie accessCookie = ResponseCookie.from("accessToken", jwtAccessToken)
+                    .httpOnly(true).secure(true).sameSite("Strict")
+                    .path("/").maxAge(3600).build();
+
+            ResponseCookie refreshCookie = ResponseCookie.from("refreshToken", newRefreshToken)
+                    .httpOnly(true).secure(true).sameSite("Strict")
+                    .path("/").maxAge( 7 * 24 * 3600).build();
+
+            return ResponseEntity.ok()
+                    .header(HttpHeaders.SET_COOKIE, accessCookie.toString())
+                    .header(HttpHeaders.SET_COOKIE, refreshCookie.toString())
+                    .body(Map.of("message", "Tokens refreshed"));
+
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", e.getMessage()));
         }
+    }
+
+    private String getCookieValue(HttpServletRequest request, String name) {
+        return Arrays.stream(Optional.ofNullable(request.getCookies())
+                        .orElseThrow(() -> new ResourceNotFoundException("No cookies found")))
+                .filter(cookie -> name.equals(cookie.getName()))
+                .map(Cookie::getValue)
+                .findFirst()
+                .orElseThrow(() -> new ResourceNotFoundException(name + " cookie not found"));
+    }
+
+    @Override
+    public ResponseEntity<UserDTO> getMe(UserDetails userDetails) {
+        if (userDetails == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+
+        UserEntity user = userService.getUserByUsername(userDetails.getUsername());
+        UserDTO userDTO = new UserDTOMapper().apply(user);
+
+        return ResponseEntity.ok(userDTO);
     }
 
     private String revokeGenerateAndSaveToken(UserEntity user) {

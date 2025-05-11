@@ -9,6 +9,7 @@ import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
+import jakarta.validation.constraints.NotNull;
 import lombok.NonNull;
 import org.springframework.stereotype.Service;
 
@@ -29,6 +30,9 @@ public class RefreshTokenServiceImpl implements RefreshTokenService{
     @Override
     public String generateRefreshToken(@NonNull UserEntity userEntity) {
         Date expirationDate = new Date(System.currentTimeMillis() + SecurityConstants.REFRESH_JWT_EXPIRATION);
+        // Revoke all previous refresh tokens
+        revokeAllUserRefreshTokens(userEntity);
+        // Create a new refresh token
         String token = Jwts.builder()
                 .setSubject(userEntity.getEmail())
                 .setIssuedAt(new Date())
@@ -44,6 +48,18 @@ public class RefreshTokenServiceImpl implements RefreshTokenService{
         refreshTokenRepository.save(refreshToken);
         return token;
     }
+
+    private void revokeAllUserRefreshTokens(@NotNull UserEntity userEntity) {
+        var refreshTokens = refreshTokenRepository.fetchAllRefreshTokenByUserId(userEntity.getId());
+        if (refreshTokens.isEmpty())
+            return;
+        refreshTokens.forEach(token -> {
+            token.setExpired(true);
+            token.setRevoked(true);
+        });
+        refreshTokenRepository.saveAll(refreshTokens);
+    }
+
 
     @Override
     public List<RefreshToken> fetchAllRefreshTokenByUserId(final UUID userId)

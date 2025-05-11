@@ -29,10 +29,9 @@ public class UserEntity implements UserDetails {
     )
     private UUID id;
 
-/*
     @OneToOne
     private FileData image;
-*/
+
 
     @NotNull
     private String firstName;

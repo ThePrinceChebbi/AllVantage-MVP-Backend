@@ -1,8 +1,13 @@
 package com.MarketingMVP.AllVantage.Controllers.Authetication;
 
 import com.MarketingMVP.AllVantage.DTOs.Authentication.LoginDTO;
+import com.MarketingMVP.AllVantage.DTOs.UserEntity.UserDTO;
 import com.MarketingMVP.AllVantage.Services.Authentication.AuthenticationService;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -20,12 +25,17 @@ public class AuthenticationController {
     }
 
     @PostMapping("/refresh")
-    public ResponseEntity<Object> refresh(@RequestParam(name = "refreshToken") String refreshToken, @RequestParam(name = "expiredToken") String expiredToken) {
-        return authenticationService.refresh(refreshToken, expiredToken);
+    public ResponseEntity<Object> refresh(HttpServletRequest request, HttpServletResponse response) {
+        return authenticationService.refresh(request,response);
     }
 
     @GetMapping("/confirm")
     public String confirm(@RequestParam(name = "token") String token) {
         return authenticationService.confirmation(token);
+    }
+
+    @GetMapping("/me")
+    public ResponseEntity<UserDTO> getCurrentUser(@AuthenticationPrincipal UserDetails userDetails) {
+        return authenticationService.getMe(userDetails);
     }
 }
