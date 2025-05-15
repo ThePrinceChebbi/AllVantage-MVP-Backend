@@ -11,6 +11,7 @@ public record EmployeeDTO(
         String lastName,
         String username,
         String email,
+        String imageUrl,
         Role role,
         String phoneNumber,
         Date creationDate,

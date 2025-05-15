@@ -25,6 +25,7 @@ import com.MarketingMVP.AllVantage.Entities.UserEntity.UserEntity;
 import com.MarketingMVP.AllVantage.Exceptions.ResourceNotFoundException;
 import com.MarketingMVP.AllVantage.Exceptions.RevokedTokenException;
 import com.MarketingMVP.AllVantage.Security.JWT.JWTService;
+import com.MarketingMVP.AllVantage.Security.Utility.SecurityConstants;
 import com.MarketingMVP.AllVantage.Services.FileData.FileService;
 import com.MarketingMVP.AllVantage.Services.Role.RoleService;
 import com.MarketingMVP.AllVantage.Services.Token.Confirmation.ConfirmationTokenService;
@@ -138,7 +139,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
             employee.setPhoneNumber(employeeRegisterDTO.getPhoneNumber());
             employee.setCreationDate(new Date());
             employee.setPassword(passwordEncoder.encode(employeeRegisterDTO.getPassword()));
-            employee.setLocked(true);
+            employee.setLocked(false);
             employee.setEnabled(false);
             employee.setSuits(new ArrayList<>());
             employee.setRole(role);
@@ -168,15 +169,14 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         try {
             Authentication authentication = authenticationManager.authenticate(
                     new UsernamePasswordAuthenticationToken(
-                            loginDto.getEmail(),
+                            loginDto.getUsername(),
                             loginDto.getPassword()
                     )
             );
 
             SecurityContextHolder.getContext().setAuthentication(authentication);
 
-            UserEntity user = userService.getUserByUsername(loginDto.getEmail());
-            revokeAllUserAccessTokens(user);
+            UserEntity user = userService.getUserByUsername(loginDto.getUsername());
             revokeAllUserRefreshToken(user);
 
             String jwtAccessToken = revokeGenerateAndSaveToken(user);
@@ -185,7 +185,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
                     .httpOnly(true)
                     .secure(true)
                     .path("/")
-                    .maxAge(3600)
+                    .maxAge(SecurityConstants.ACCESS_JWT_EXPIRATION)
                     .sameSite("Strict")
                     .build();
 
@@ -219,7 +219,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
                         .httpOnly(true)
                         .secure(true)
                         .path("/")
-                        .maxAge(604800)
+                        .maxAge(SecurityConstants.REFRESH_JWT_EXPIRATION)
                         .sameSite("Strict")
                         .build();
 
@@ -314,6 +314,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 
     @Override
     public ResponseEntity<UserDTO> getMe(UserDetails userDetails) {
+        System.out.println(userDetails.getUsername());
         if (userDetails == null) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }

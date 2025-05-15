@@ -13,6 +13,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -51,10 +52,10 @@ public interface UserRepository extends JpaRepository<UserEntity, UUID> {
     Optional<Client> getClientById(@Param("userId") UUID userId);
 
     @Query(value = "select a from Client a")
-    List<Client> findAllAgencies();
+    List<Client> findAllClients(Pageable pageable);
 
-    @Query(value = "select p from Employee p where p.role.name!='ADMIN'")
-    List<Employee> findAllPeople();
+    @Query(value = "select p from Employee p")
+    List<Employee> findAllEmployees(Pageable pageable);
 
     @Query(value = "SELECT EXISTS(SELECT U FROM UserEntity U WHERE  U.username = :username) AS RESULT")
     Boolean isUsernameRegistered(@Param("username") String username);
@@ -67,4 +68,10 @@ public interface UserRepository extends JpaRepository<UserEntity, UUID> {
 
     @Query(value = "SELECT E FROM Employee E WHERE E.username = :username")
     Optional<Employee> fetchEmployeeWithUsername(String username);
+
+    @Query(value = "select count(u) from UserEntity u where u.role.name = 'EMPLOYEE'")
+    int getTotalEmployeeCount();
+
+    @Query(value = "select count(u) from UserEntity u where u.role.name = 'CLIENT'")
+    int getTotalClientCount();
 }

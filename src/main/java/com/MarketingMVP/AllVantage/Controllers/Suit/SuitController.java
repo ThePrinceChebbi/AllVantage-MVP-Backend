@@ -47,8 +47,13 @@ public class SuitController {
     }
 
     @GetMapping("/{clientId}/all")
-    public ResponseEntity<Object> getAllSuits(@PathVariable UUID clientId) {
+    public ResponseEntity<Object> getAllClientSuits(@PathVariable UUID clientId) {
         return suitService.getAllClientSuits(clientId);
+    }
+
+    @GetMapping("/all")
+    public ResponseEntity<Object> getAllSuits() {
+        return suitService.getAllSuits();
     }
 
     @PostMapping("/{suitId}/add-employee")

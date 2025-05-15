@@ -28,4 +28,6 @@ public interface LinkedInService {
     PlatformPostResult createLinkedInPost(List<FileData> files, String content, LinkedInOrganization organization, boolean isReel);
 
     PlatformInsightsResult getLinkedInInsights(Long organizationId, String shareUrn);
+
+    ResponseEntity<Object> getAllLinkedInAccounts();
 }

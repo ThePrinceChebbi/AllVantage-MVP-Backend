@@ -2,10 +2,15 @@ package com.MarketingMVP.AllVantage.Controllers.UserEntity;
 
 import com.MarketingMVP.AllVantage.DTOs.Authentication.Client.ClientRegisterDTO;
 import com.MarketingMVP.AllVantage.DTOs.Authentication.Employee.EmployeeRegisterDTO;
+import com.MarketingMVP.AllVantage.DTOs.UserEntity.Client.ClientDTO;
+import com.MarketingMVP.AllVantage.DTOs.UserEntity.UserDTO;
+import com.MarketingMVP.AllVantage.Entities.UserEntity.UserEntity;
 import com.MarketingMVP.AllVantage.Services.Authentication.AuthenticationService;
 import com.MarketingMVP.AllVantage.Services.Suit.SuitService;
 import com.MarketingMVP.AllVantage.Services.UserEntity.UserService;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -36,8 +41,8 @@ public class UserController {
     }
 
     @PostMapping("/{id}/add_suit")
-    public ResponseEntity<Object> addSuit(@RequestParam("name") String name, @RequestParam("description") String description, @PathVariable UUID id, @RequestParam("file") MultipartFile file) {
-        return suitService.addNewSuit(name, description, id, file);
+    public ResponseEntity<Object> addSuit(@RequestParam("name") String name, @RequestParam("description") String description, @RequestParam("suitColor") String suitColor, @PathVariable UUID id, @RequestParam("file") MultipartFile file) {
+        return suitService.addNewSuit(name, description, id, file, suitColor);
     }
 
     @PostMapping("/{id}/add_image")
@@ -50,4 +55,23 @@ public class UserController {
         return userService.getAllUsers();
     }
 
+    @GetMapping("/clients")
+    public ResponseEntity<Object> getAllClients(@RequestParam("pageNumber") int pageNumber) {
+        return userService.getAllClients(pageNumber);
+    }
+
+    @GetMapping("/employees")
+    public ResponseEntity<Object> getAllEmployees(@RequestParam("pageNumber") int pageNumber) {
+        return userService.getAllEmployees(pageNumber);
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<Object> getAccountById(@PathVariable UUID id) {
+        return userService.getAccountById(id);
+    }
+
+    @PutMapping("/{id}/info")
+    public ResponseEntity<Object> updateUserInfo(@PathVariable UUID id, @RequestBody UserEntity userEntity, @AuthenticationPrincipal UserDetails userDetails) {
+        return userService.updateUserInfo(id, userEntity, userDetails);
+    }
 }

@@ -800,4 +800,18 @@ public class LinkedInServiceImpl implements LinkedInService{
             e.printStackTrace();
             return PlatformInsightsResult.failure(PlatformType.LINKEDIN, "Error fetching insights: " + e.getMessage());
         }
-    }}
+    }
+
+    @Override
+    public ResponseEntity<Object> getAllLinkedInAccounts() {
+        try {
+            List<LinkedInAccount> accounts = linkedInAccountRepository.findAll();
+            if (accounts.isEmpty()) {
+                return ResponseEntity.status(404).body("No LinkedIn accounts found.");
+            }
+            return ResponseEntity.ok(accounts.stream().map(new LinkedInAccountDTOMapper()).toList());
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body(e.getMessage());
+        }
+    }
+}

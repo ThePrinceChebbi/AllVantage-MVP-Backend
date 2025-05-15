@@ -15,6 +15,7 @@ public class ClientDTOMapper implements Function<Client, ClientDTO> {
                 client.getLastName(),
                 client.getUsername(),
                 client.getEmail(),
+                "http://localhost:8080/api/v1/files/" + client.getImage().getId(),
                 client.getPhoneNumber(),
                 client.getRole(),
                 client.getCreationDate(),

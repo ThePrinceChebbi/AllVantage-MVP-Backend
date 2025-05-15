@@ -14,6 +14,7 @@ public class EmployeeDTOMapper implements Function<Employee, EmployeeDTO> {
                 employee.getLastName(),
                 employee.getUsername(),
                 employee.getEmail(),
+                "http://localhost:8080/api/v1/files/" + employee.getImage().getId(),
                 employee.getRole(),
                 employee.getPhoneNumber(),
                 employee.getCreationDate(),

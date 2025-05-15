@@ -14,6 +14,7 @@ public record ClientDTO(
         String lastName,
         String username,
         String email,
+        String imageUrl,
         String phoneNumber,
         Role role,
         Date creationDate,

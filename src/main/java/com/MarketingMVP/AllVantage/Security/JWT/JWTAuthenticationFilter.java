@@ -8,6 +8,7 @@ import com.MarketingMVP.AllVantage.Exceptions.InvalidTokenException;
 import com.MarketingMVP.AllVantage.Exceptions.ResourceNotFoundException;
 import com.MarketingMVP.AllVantage.Exceptions.RevokedTokenException;
 import com.MarketingMVP.AllVantage.Repositories.Token.AccessToken.TokenRepository;
+import com.MarketingMVP.AllVantage.Services.Authentication.AuthenticationService;
 import com.MarketingMVP.AllVantage.Services.UserDetails.CustomUserDetailsService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.FilterChain;
@@ -18,6 +19,8 @@ import jakarta.servlet.http.HttpServletResponse;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
@@ -37,29 +40,22 @@ public class JWTAuthenticationFilter extends OncePerRequestFilter {
 
     @Autowired
     private JWTService jwtService;
+
     @Autowired
     private TokenRepository tokenRepository;
+
     @Autowired
     private CustomUserDetailsService customUserDetailsService;
+
+    @Autowired
+    private AuthenticationService authenticationService;
 
     @Override
     protected void doFilterInternal(@NonNull HttpServletRequest request, @NonNull HttpServletResponse response, @NonNull FilterChain filterChain) throws ServletException, IOException {
 
         try {
 
-            String jwtToken = null;
-            String authHeader = request.getHeader("Authorization");
-
-            if (authHeader != null && authHeader.startsWith("Bearer ")) {
-                jwtToken = authHeader.substring(7);
-            } else if (request.getCookies() != null) {
-                for (Cookie cookie : request.getCookies()) {
-                    if ("access_token".equals(cookie.getName())) {
-                        jwtToken = cookie.getValue();
-                        break;
-                    }
-                }
-            }
+            String jwtToken = jwtService.extractFromCookie(request, "accessToken");
 
             if (jwtToken == null) {
                 filterChain.doFilter(request, response);
@@ -71,14 +67,14 @@ public class JWTAuthenticationFilter extends OncePerRequestFilter {
                 return;
             }
 
-            String userEmail = jwtService.extractEmailFromJwt(jwtToken);
+            String username = jwtService.extractUsernameFromJwt(jwtToken);
 
-            if (userEmail == null || SecurityContextHolder.getContext().getAuthentication() != null) {
+            if (username == null || SecurityContextHolder.getContext().getAuthentication() != null) {
                 filterChain.doFilter(request, response);
                 return;
             }
 
-            UserEntity userEntity = (UserEntity) this.customUserDetailsService.loadUserByUsername(userEmail);
+            UserEntity userEntity = (UserEntity) this.customUserDetailsService.loadUserByUsername(username);
 
             var isTokenValid = tokenRepository.findByToken(jwtToken).map(t -> !t.isExpired() && !t.isRevoked()).orElse(false);
             var tokenSaved = tokenRepository.findByToken(jwtToken).orElse(null);
@@ -93,6 +89,7 @@ public class JWTAuthenticationFilter extends OncePerRequestFilter {
                 throw new RevokedTokenException("Token has been revoked");
             }
             if (!jwtService.isTokenValid(jwtToken, userEntity)) {
+
                 throw new InvalidTokenException("Invalid token");
             }
 
@@ -106,8 +103,23 @@ public class JWTAuthenticationFilter extends OncePerRequestFilter {
             SecurityContextHolder.getContext().setAuthentication(authToken);
             filterChain.doFilter(request, response);
         }
+        catch (ExpiredTokenException ex) {
+            ResponseEntity<Object> refreshResponse = authenticationService.refresh(request, response);
+
+            if (refreshResponse.getStatusCode() != HttpStatus.OK) {
+                jwtService.clearCookies(response);
+                response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Session expired. Please log in again.");
+                return;
+            }
+
+            // You can re-extract the new accessToken from cookies, or better yet,
+            // just allow the request to pass, since SecurityContext will be re-filled next time.
+            filterChain.doFilter(request, response);
+            return;
+        }
         catch (Exception e)
         {
+            jwtService.clearCookies(response);
             response.setHeader("error",e.getMessage());
             response.setStatus(HttpServletResponse.SC_FORBIDDEN);
             Map<String, String> error = new HashMap<>();

@@ -57,6 +57,14 @@ public class UserEntity implements UserDetails {
     @NotNull
     private Date creationDate;
 
+    private String country;
+
+    private String state;
+
+    private String address;
+
+    private String postalCode;
+
     @NotNull
     private boolean enabled;
 

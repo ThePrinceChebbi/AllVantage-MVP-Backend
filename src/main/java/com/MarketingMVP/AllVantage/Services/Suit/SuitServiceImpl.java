@@ -7,6 +7,7 @@ import com.MarketingMVP.AllVantage.DTOs.Suit.SuitDTOMapper;
 import com.MarketingMVP.AllVantage.Entities.PlatformContent.Facebook.FacebookReel;
 import com.MarketingMVP.AllVantage.Entities.PlatformContent.Instagram.InstagramReel;
 import com.MarketingMVP.AllVantage.Entities.PlatformContent.LinkedIn.LinkedinReel;
+import com.MarketingMVP.AllVantage.Entities.Platform_Specific.Facebook.Account.FacebookAccount;
 import com.MarketingMVP.AllVantage.Entities.Platform_Specific.Facebook.Page.FacebookPage;
 import com.MarketingMVP.AllVantage.Entities.Platform_Specific.Instagram.InstagramAccount;
 import com.MarketingMVP.AllVantage.Entities.Platform_Specific.LinkedIn.Organization.LinkedInOrganization;
@@ -77,7 +78,7 @@ public class SuitServiceImpl implements SuitService {
     }
 
     @Override
-    public ResponseEntity<Object> addNewSuit(String name, String description, UUID clientId, MultipartFile file) {
+    public ResponseEntity<Object> addNewSuit(String name, String description, UUID clientId, MultipartFile file, String suitColor) {
         try{
             Client client = userService.getClientById(clientId);
             FileData fileData = fileService.processUploadedFile(file);
@@ -86,6 +87,7 @@ public class SuitServiceImpl implements SuitService {
             suit.setName(name);
             suit.setDescription(description);
             suit.setImage(fileData);
+            suit.setSuitColor(suitColor);
             suit.setClient(client);
             suit.setEmployees(new ArrayList<>());
             suit.setFacebookPages(new ArrayList<>());
@@ -167,8 +169,6 @@ public class SuitServiceImpl implements SuitService {
         }
     }
 
-
-    //TODO: Implement the full post - platform relationship accounting for media Ids and facebook post ids
     public <T> List<T> filterAccounts(List<Long> requestedIds, List<T> accounts, Function<T, Long> getIdFunction, PlatformType platformName) {
         if (requestedIds.isEmpty() || accounts.isEmpty()){
             return new ArrayList<>();

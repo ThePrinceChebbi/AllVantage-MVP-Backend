@@ -51,6 +51,8 @@ public class Suit {
     @ManyToOne
     private Client client;
 
+    private String suitColor;
+
     @ManyToMany
     @JoinTable(
             name = "employee_suits",
@@ -68,15 +70,6 @@ public class Suit {
     @OneToMany
     private List<LinkedInOrganization> linkedInOrganizations;
 
-   /* @OneToMany
-    private List<XAccount> xAccounts;
-
-    @OneToMany
-    private List<SnapchatAccount> snapchatAccounts;
-
-    @OneToMany
-    private List<TikTokAccount> tikTokAccounts;
-*/
     @OneToMany
     private List<Postable> posts;
 

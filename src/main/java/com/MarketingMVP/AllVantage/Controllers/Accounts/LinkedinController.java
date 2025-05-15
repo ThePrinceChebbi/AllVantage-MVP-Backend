@@ -33,6 +33,11 @@ public class LinkedinController {
         this.linkedInOrganizationRepository = linkedInOrganizationRepository;
     }
 
+    @GetMapping("/all-accounts")
+    public ResponseEntity<Object> getAllLinkedInAccounts() {
+        return linkedInService.getAllLinkedInAccounts();
+    }
+
     @GetMapping("/add-global-account")
     public RedirectView linkedinAuth() {
         return linkedInService.authenticateGlobalAccount();

@@ -15,6 +15,7 @@ public class AdminDTOMapper implements Function<Admin, AdminDTO> {
                 admin.getLastName(),
                 admin.getUsername(),
                 admin.getEmail(),
+                "http://localhost:8080/api/v1/files/" + admin.getImage().getId(),
                 admin.getPhoneNumber(),
                 admin.getRole(),
                 admin.getCreationDate(),
