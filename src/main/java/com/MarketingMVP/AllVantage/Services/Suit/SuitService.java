@@ -31,7 +31,7 @@ public interface SuitService {
 
     ResponseEntity<Object> getAllClientSuits(UUID clientId);
 
-    ResponseEntity<Object> getSuitById(Long suitId);
+    ResponseEntity<Object> getSuitById(Long suitId, UserDetails userDetails);
 
     ResponseEntity<Object> getAllSuitPosts(Long suitId, int pageNumber);
 

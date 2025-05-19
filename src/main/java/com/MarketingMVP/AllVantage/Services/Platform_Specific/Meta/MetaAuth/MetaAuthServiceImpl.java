@@ -169,7 +169,7 @@ public class MetaAuthServiceImpl implements MetaAuthService {
     public FacebookPage authenticateFacebookPage(Long accountId, String pageId) throws ResourceNotFoundException, JsonProcessingException {
         FacebookAccountTokenDTO userToken = getAccountCachedToken(accountId, FacebookTokenType.FACEBOOK_LONG_LIVED);
 
-        String url = String.format("https://graph.facebook.com/v19.0/%s?fields=id,name,access_token&access_token=%s",
+        String url = String.format("https://graph.facebook.com/v19.0/%s?fields=id,link,name,access_token&access_token=%s",
                 pageId, userToken.accessToken());
 
         RestTemplate restTemplate = new RestTemplate();
@@ -188,6 +188,7 @@ public class MetaAuthServiceImpl implements MetaAuthService {
                             newPage.setFacebookAccount(getFacebookAccount(accountId));
                             newPage.setPageName(jsonNode.get("name").asText());
                             newPage.setFacebookPageId(jsonNode.get("id").asText());
+                            newPage.setPageUrl(jsonNode.get("link").asText());
                             newPage.setConnectedAt(new Date());
                             newPage.setUpdatedAt(new Date());
                             return facebookPageRepository.save(newPage);

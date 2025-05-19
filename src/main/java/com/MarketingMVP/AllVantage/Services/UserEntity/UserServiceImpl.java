@@ -271,7 +271,7 @@ public class UserServiceImpl implements UserService {
         return userRepository.save(client);
     }
 
-    public <T extends UserEntity> T saveUser(final T userEntity) {
+    public UserEntity saveUser(final UserEntity userEntity) {
         return userRepository.save(userEntity);
     }
 

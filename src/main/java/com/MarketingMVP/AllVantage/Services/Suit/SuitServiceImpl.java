@@ -7,7 +7,6 @@ import com.MarketingMVP.AllVantage.DTOs.Suit.SuitDTOMapper;
 import com.MarketingMVP.AllVantage.Entities.PlatformContent.Facebook.FacebookReel;
 import com.MarketingMVP.AllVantage.Entities.PlatformContent.Instagram.InstagramReel;
 import com.MarketingMVP.AllVantage.Entities.PlatformContent.LinkedIn.LinkedinReel;
-import com.MarketingMVP.AllVantage.Entities.Platform_Specific.Facebook.Account.FacebookAccount;
 import com.MarketingMVP.AllVantage.Entities.Platform_Specific.Facebook.Page.FacebookPage;
 import com.MarketingMVP.AllVantage.Entities.Platform_Specific.Instagram.InstagramAccount;
 import com.MarketingMVP.AllVantage.Entities.Platform_Specific.LinkedIn.Organization.LinkedInOrganization;
@@ -274,8 +273,22 @@ public class SuitServiceImpl implements SuitService {
     }
 
     @Override
-    public ResponseEntity<Object> getSuitById(Long suitId) {
-        return ResponseEntity.ok(suitRepository.findById(suitId).map(suitDTOMapper));
+    public ResponseEntity<Object> getSuitById(Long suitId, UserDetails userDetails) {
+        Suit suit = suitRepository.findById(suitId).orElseThrow(
+                () -> new ResourceNotFoundException("Suit with id " + suitId + " not found")
+        );
+        if (suit.getClient() != null) {
+            Client client = suit.getClient();
+            if (!client.getUsername().equals(userDetails.getUsername())) {
+                return ResponseEntity.status(401).body("Unauthorized to access this suit");
+            }
+        } else {
+            Employee employee = userService.getEmployeeByUsername(userDetails.getUsername());
+            if (!suit.getEmployees().contains(employee)) {
+                return ResponseEntity.status(401).body("Unauthorized to access this suit");
+            }
+        }
+        return ResponseEntity.ok(suitDTOMapper.apply(suit));
     }
 
     @Override

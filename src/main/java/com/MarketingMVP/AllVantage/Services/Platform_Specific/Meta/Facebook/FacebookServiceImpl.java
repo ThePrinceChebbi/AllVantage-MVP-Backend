@@ -5,7 +5,7 @@ import com.MarketingMVP.AllVantage.Entities.PlatformContent.Facebook.FacebookRee
 import com.MarketingMVP.AllVantage.Entities.PlatformContent.Facebook.FacebookStory;
 import com.MarketingMVP.AllVantage.Entities.PlatformContent.PlatformMediaType;
 import com.MarketingMVP.AllVantage.DTOs.Facebook.AccountToken.FacebookAccountTokenDTO;
-import com.MarketingMVP.AllVantage.DTOs.Facebook.Page.FacebookPageDTO;
+import com.MarketingMVP.AllVantage.DTOs.Facebook.Page.ConnectionFacebookPageDTO;
 import com.MarketingMVP.AllVantage.DTOs.Facebook.PageToken.FacebookPageTokenDTO;
 import com.MarketingMVP.AllVantage.DTOs.Response.Postable.PlatformPostResult;
 import com.MarketingMVP.AllVantage.Entities.Platform_Specific.Facebook.Page.FacebookPage;
@@ -29,7 +29,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.http.*;
-import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Service;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
@@ -76,7 +75,7 @@ public class FacebookServiceImpl implements FacebookService {
 
         MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
 
-        // Read the file & send it directly
+        // Read the file and send it directly
         File file = new File(fileData.getPath());
         FileSystemResource fileResource = new FileSystemResource(file);
         body.add("source", fileResource);
@@ -318,11 +317,11 @@ public class FacebookServiceImpl implements FacebookService {
         try {
             JsonNode userPages = fetchUserPages(accountId);
 
-            List<FacebookPageDTO> pageList = new ArrayList<>();
+            List<ConnectionFacebookPageDTO> pageList = new ArrayList<>();
 
             if (userPages.has("data")) {
                 for (JsonNode page : userPages.get("data")) {
-                    FacebookPageDTO dto = new FacebookPageDTO(
+                    ConnectionFacebookPageDTO dto = new ConnectionFacebookPageDTO(
                             page.get("id").asText(),
                             page.get("name").asText()
                     );
@@ -365,6 +364,31 @@ public class FacebookServiceImpl implements FacebookService {
     @Override
     public PlatformInsightsResult getFacebookInsights(Long id, Date startDate, Date endDate) {
         return null;
+    }
+
+    @Override
+    public ResponseEntity<Object> getPagePicture(Long pageId) {
+        try {
+
+            FacebookPageTokenDTO tokenDTO = metaAuthService.getPageCachedToken(pageId);
+
+            String url = String.format(
+                    "https://graph.facebook.com/v22.0/%s/picture?redirect=false&height=1080&width=1080&access_token=%s",
+                    tokenDTO.facebookPageId(),
+                    tokenDTO.accessToken()
+            );
+
+            RestTemplate restTemplate = new RestTemplate();
+            ResponseEntity<Map> response = restTemplate.exchange(url, HttpMethod.GET, null, Map.class);
+
+            if (!response.getStatusCode().is2xxSuccessful()) {
+                throw new RuntimeException("Failed to fetch page picture: " + response.getBody());
+            }
+            String imageUrl = response.getBody().get("data").toString();
+            return ResponseEntity.ok(imageUrl);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("Error fetching page picture: " + e.getMessage());
+        }
     }
 
     //Utility private methods -------------------------------------------------------------------------------------------------------------------------------
@@ -442,7 +466,6 @@ public class FacebookServiceImpl implements FacebookService {
                 body.add("published", "false");
             } else {*/
                 body.add("published", "true");
-
 
             HttpEntity<MultiValueMap<String, Object>> request = new HttpEntity<>(body, headers);
             ResponseEntity<Map> response = restTemplate.exchange(url, HttpMethod.POST, request, Map.class);

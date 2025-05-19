@@ -1,5 +1,7 @@
 package com.MarketingMVP.AllVantage.DTOs.Suit;
 
+import com.MarketingMVP.AllVantage.DTOs.Facebook.Page.FacebookPageDTO;
+import com.MarketingMVP.AllVantage.DTOs.Instagram.InstagramAccountDTO;
 import com.MarketingMVP.AllVantage.DTOs.UserEntity.Client.ClientDTO;
 import com.MarketingMVP.AllVantage.DTOs.UserEntity.Employee.EmployeeDTO;
 import com.MarketingMVP.AllVantage.Entities.Platform_Specific.Facebook.Page.FacebookPage;
@@ -17,9 +19,8 @@ public record SuitDTO (
         String suitColor,
         ClientDTO client,
         List<EmployeeDTO> employees,
-        List<FacebookPage> facebookPages,
-        List<InstagramAccount> instagramAccounts,
+        List<FacebookPageDTO> facebookPages,
+        List<InstagramAccountDTO> instagramAccounts,
         List<LinkedInOrganization> linkedInOrganizations
-
 ) {
 }

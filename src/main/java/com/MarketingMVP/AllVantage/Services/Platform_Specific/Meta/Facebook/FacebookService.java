@@ -55,4 +55,6 @@ public interface  FacebookService {
     ResponseEntity<Object> getAllAccounts();
 
     PlatformInsightsResult getFacebookInsights(Long id, Date startDate, Date endDate);
+
+    ResponseEntity<Object> getPagePicture(Long pageId);
 }

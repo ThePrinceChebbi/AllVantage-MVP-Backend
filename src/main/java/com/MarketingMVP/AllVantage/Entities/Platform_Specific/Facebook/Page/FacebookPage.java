@@ -39,6 +39,8 @@ public class FacebookPage {
     @NotNull
     private Date updatedAt;
 
+    private String pageUrl;
+
     @ManyToOne
     @JoinColumn(name = "facebook_account_id")
     private FacebookAccount facebookAccount;

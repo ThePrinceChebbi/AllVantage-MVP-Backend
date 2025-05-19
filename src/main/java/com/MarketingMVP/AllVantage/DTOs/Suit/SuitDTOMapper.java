@@ -1,5 +1,7 @@
 package com.MarketingMVP.AllVantage.DTOs.Suit;
 
+import com.MarketingMVP.AllVantage.DTOs.Facebook.Page.FacebookPageDTOMapper;
+import com.MarketingMVP.AllVantage.DTOs.Instagram.InstagramAccountDTOMapper;
 import com.MarketingMVP.AllVantage.DTOs.UserEntity.Client.ClientDTOMapper;
 import com.MarketingMVP.AllVantage.DTOs.UserEntity.Employee.EmployeeDTOMapper;
 import com.MarketingMVP.AllVantage.Entities.Suit.Suit;
@@ -28,8 +30,8 @@ public class SuitDTOMapper implements Function<Suit, SuitDTO> {
                 suit.getSuitColor(),
                 clientDTOMapper.apply(suit.getClient()),
                 suit.getEmployees().stream().map(employeeDTOMapper).toList(),
-                suit.getFacebookPages(),
-                suit.getInstagramAccounts(),
+                suit.getFacebookPages().stream().map(new FacebookPageDTOMapper()).toList(),
+                suit.getInstagramAccounts().stream().map(new InstagramAccountDTOMapper()).toList(),
                 suit.getLinkedInOrganizations()
         );
     }

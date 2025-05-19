@@ -4,6 +4,8 @@ import com.MarketingMVP.AllVantage.Entities.PlatformContent.Facebook.FacebookMed
 import com.MarketingMVP.AllVantage.Services.Platform_Specific.Meta.Facebook.FacebookService;
 import com.MarketingMVP.AllVantage.Services.Suit.SuitService;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -62,8 +64,8 @@ public class SuitController {
     }
 
     @GetMapping("/{suitId}")
-    public ResponseEntity<Object> getSuitById(@PathVariable Long suitId) {
-        return suitService.getSuitById(suitId);
+    public ResponseEntity<Object> getSuitById(@PathVariable Long suitId, @AuthenticationPrincipal UserDetails userDetails) {
+        return suitService.getSuitById(suitId, userDetails);
     }
 
     @GetMapping("/{suitId}/posts")

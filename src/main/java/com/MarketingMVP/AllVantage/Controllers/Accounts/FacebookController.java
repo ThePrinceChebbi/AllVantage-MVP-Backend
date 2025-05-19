@@ -146,4 +146,10 @@ public class FacebookController {
     public ResponseEntity<Object> refreshToken(@PathVariable Long accountId) {
         return facebookService.testRefreshMethod(accountId);
     }
+
+    @GetMapping("/{pageId}/picture")
+    public ResponseEntity<Object> getPagePicture(@PathVariable Long pageId) {
+        return facebookService.getPagePicture(pageId);
+    }
+
 }

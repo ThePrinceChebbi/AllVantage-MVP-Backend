@@ -184,16 +184,13 @@ public class InstagramServiceImpl implements InstagramService{
             }
 
             FacebookPageTokenDTO tokenDTO = metaAuthService.getPageCachedToken(instagramAccount.getFacebookPage().getId());
-            System.out.println("Token retrieved successfully for page ID: " + instagramAccount.getFacebookPage().getId());
 
             List<String> creationIds = new ArrayList<>();
             List<InstagramMedia> mediaList = new ArrayList<>();
 
             if(files.size()==1){
-                System.out.println(files);
                 FileData file = files.get(0);
                 String creationId = uploadMediaItem(file, instagramAccount, tokenDTO.accessToken(),caption, false);
-                System.out.println("Media item uploaded with creation ID: " + creationId);
 
                 waitForMediaProcessing(creationId, tokenDTO.accessToken());
 
@@ -317,13 +314,13 @@ public class InstagramServiceImpl implements InstagramService{
     }
 
     private String buildUploadEndpoint(FileData file, InstagramAccount account, String accessToken, @Nullable String caption, boolean isStory) {
-        String mediaUrl = ngrokUrl + "api/v1/files/" + file.getId() ;
+        String mediaUrl = ngrokUrl + "api/v1/files/" + file.getId();
         String encodedToken = URLEncoder.encode(accessToken, StandardCharsets.UTF_8);
         String mediaType = isStory ? "STORIES" : "REELS";
         return switch (file.getType()) {
             case "image" -> String.format(
-                    "https://graph.facebook.com/v22.0/%s/media?image_url=%s&access_token=%s",
-                    account.getInstagramId(), mediaUrl, encodedToken
+                    "https://graph.facebook.com/v22.0/%s/media?image_url=%s&caption=%s&access_token=%s",
+                    account.getInstagramId(), mediaUrl, caption, encodedToken
             );
             case "video" -> String.format(
                     "https://graph.facebook.com/v22.0/%s/media?video_url=%s&caption=%s&media_type=%s&access_token=%s",
@@ -370,7 +367,7 @@ public class InstagramServiceImpl implements InstagramService{
     @Override
     public PlatformPostResult createInstagramReel(FileData video, String caption, Date scheduledAt, InstagramAccount account) {
         try {
-            return postInstagramReel(video, caption, scheduledAt, account);
+            return postInstagramReel(video, caption, account);
 
         } catch (Exception e) {
             try {
@@ -382,7 +379,7 @@ public class InstagramServiceImpl implements InstagramService{
             return PlatformPostResult.failure(PlatformType.INSTAGRAM, e.getMessage());
         }
     }
-    private PlatformPostResult postInstagramReel(FileData video, String caption, Date scheduledAt, InstagramAccount account ){
+    private PlatformPostResult postInstagramReel(FileData video, String caption, InstagramAccount account ){
         try{
             if (!video.getType().contains("video")) {
                 return PlatformPostResult.failure(

@@ -369,7 +369,7 @@ public class LinkedInServiceImpl implements LinkedInService{
             if (hasVideo && files.size() > 1) {
                 throw new IllegalArgumentException("LinkedIn only supports one video per post.");
             }
-            if (hasImage && files.size() > 20) {
+            if (files.size() > 20) {
                 throw new IllegalArgumentException("LinkedIn supports up to 9 images per post.");
             }
 

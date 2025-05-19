@@ -1,13 +1,11 @@
 package com.MarketingMVP.AllVantage.DTOs.Facebook.Page;
 
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import java.util.Date;
 
-@Data
-@AllArgsConstructor
-@NoArgsConstructor
-public class FacebookPageDTO {
-    private String id;
-    private String name;
+public record FacebookPageDTO(
+        Long id,
+        String pageName,
+        Date createdTime,
+        String pageUrl
+) {
 }
