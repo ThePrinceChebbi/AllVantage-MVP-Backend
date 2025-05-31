@@ -22,12 +22,6 @@ public class Story extends Postable {
     @OneToMany
     private List<InstagramStory> instagramStories;
 
-    /*
-        @OneToMany
-        private List<SnapchatStories> snapchatReels;
-        @OneToMany
-        private List<TikTokReel> tikTokReels;
-    */
 
     public Story(
             String title,

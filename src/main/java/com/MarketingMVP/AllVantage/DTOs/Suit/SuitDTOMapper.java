@@ -2,6 +2,7 @@ package com.MarketingMVP.AllVantage.DTOs.Suit;
 
 import com.MarketingMVP.AllVantage.DTOs.Facebook.Page.FacebookPageDTOMapper;
 import com.MarketingMVP.AllVantage.DTOs.Instagram.InstagramAccountDTOMapper;
+import com.MarketingMVP.AllVantage.DTOs.LinkedIn.Organization.LinkedInOrganizationDTOMapper;
 import com.MarketingMVP.AllVantage.DTOs.UserEntity.Client.ClientDTOMapper;
 import com.MarketingMVP.AllVantage.DTOs.UserEntity.Employee.EmployeeDTOMapper;
 import com.MarketingMVP.AllVantage.Entities.Suit.Suit;
@@ -32,7 +33,7 @@ public class SuitDTOMapper implements Function<Suit, SuitDTO> {
                 suit.getEmployees().stream().map(employeeDTOMapper).toList(),
                 suit.getFacebookPages().stream().map(new FacebookPageDTOMapper()).toList(),
                 suit.getInstagramAccounts().stream().map(new InstagramAccountDTOMapper()).toList(),
-                suit.getLinkedInOrganizations()
+                suit.getLinkedInOrganizations().stream().map(new LinkedInOrganizationDTOMapper()).toList()
         );
     }
 }

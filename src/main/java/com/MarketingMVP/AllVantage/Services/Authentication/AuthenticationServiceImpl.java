@@ -92,6 +92,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     public ResponseEntity<Object> createClientAccount(ClientRegisterDTO clientRegisterDTO) {
         try {
             verifyCredentialsExistence(clientRegisterDTO.getUsername(), clientRegisterDTO.getEmail(), clientRegisterDTO.getPhoneNumber());
+
             Role role = roleService.fetchRoleByName("CLIENT");
             Client client = new Client();
             client.setFirstName(clientRegisterDTO.getFirstName());
@@ -167,6 +168,9 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     @Override
     public ResponseEntity<Object> login(@NonNull LoginDTO loginDto) {
         try {
+            if (loginDto.getUsername() == null || loginDto.getPassword() == null) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Username and password must not be empty");
+            }
             Authentication authentication = authenticationManager.authenticate(
                     new UsernamePasswordAuthenticationToken(
                             loginDto.getUsername(),
@@ -174,20 +178,13 @@ public class AuthenticationServiceImpl implements AuthenticationService {
                     )
             );
 
+            if (authentication == null || !authentication.isAuthenticated()) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid username or password");
+            }
+
             SecurityContextHolder.getContext().setAuthentication(authentication);
 
             UserEntity user = userService.getUserByUsername(loginDto.getUsername());
-            revokeAllUserRefreshToken(user);
-
-            String jwtAccessToken = revokeGenerateAndSaveToken(user);
-
-            ResponseCookie accessCookie = ResponseCookie.from("accessToken", jwtAccessToken)
-                    .httpOnly(true)
-                    .secure(true)
-                    .path("/")
-                    .maxAge(SecurityConstants.ACCESS_JWT_EXPIRATION)
-                    .sameSite("Strict")
-                    .build();
 
             Object loginResponse;
 
@@ -211,6 +208,18 @@ public class AuthenticationServiceImpl implements AuthenticationService {
                 default:
                     return ResponseEntity.status(500).body("User role not specified");
             }
+            revokeAllUserRefreshToken(user);
+
+            String jwtAccessToken = revokeGenerateAndSaveToken(user);
+
+            ResponseCookie accessCookie = ResponseCookie.from("accessToken", jwtAccessToken)
+                    .httpOnly(true)
+                    .secure(true)
+                    .path("/")
+                    .maxAge(SecurityConstants.ACCESS_JWT_EXPIRATION)
+                    .sameSite("Strict")
+                    .build();
+
 
             if (loginDto.isRememberMe()) {
                 String jwtRefreshToken = refreshTokenService.generateRefreshToken(user);
@@ -314,7 +323,6 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 
     @Override
     public ResponseEntity<UserDTO> getMe(UserDetails userDetails) {
-        System.out.println(userDetails.getUsername());
         if (userDetails == null) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }

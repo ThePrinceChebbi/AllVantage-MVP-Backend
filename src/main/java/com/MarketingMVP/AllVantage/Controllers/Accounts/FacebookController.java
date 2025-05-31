@@ -65,7 +65,7 @@ public class FacebookController {
                     return null;
                 }
             }).toList();
-            PlatformPostResult result = facebookService.createFacebookPost(fileDataList, title, content, scheduledAt, pageId);
+            PlatformPostResult result = facebookService.createFacebookPost(fileDataList, title, content, pageId);
             return result.isSuccess() ? ResponseEntity.ok(result) : ResponseEntity.internalServerError().body(result);
         } catch (Exception e) {
             return ResponseEntity.internalServerError().body(PlatformPostResult.failure(PlatformType.FACEBOOK, e.getMessage()));
@@ -82,7 +82,7 @@ public class FacebookController {
     ) {
         try {
             FileData fileData = fileService.processUploadedFile(video);
-            PlatformPostResult result = facebookService.createFacebookReel(fileData, title, content, scheduledAt, pageId);
+            PlatformPostResult result = facebookService.createFacebookReel(fileData, title, content, pageId);
             return result.isSuccess() ? ResponseEntity.ok(result) : ResponseEntity.internalServerError().body(result);
         } catch (Exception e) {
             return ResponseEntity.internalServerError().body(PlatformPostResult.failure(PlatformType.FACEBOOK, e.getMessage()));
@@ -99,7 +99,7 @@ public class FacebookController {
     ) {
         try {
             FileData fileData = fileService.processUploadedFile(story);
-            PlatformPostResult result = facebookService.storyOnFacebookPage(fileData, title, content, scheduledAt, pageId);
+            PlatformPostResult result = facebookService.storyOnFacebookPage(fileData, title, content, pageId);
             return result.isSuccess() ? ResponseEntity.ok(result) : ResponseEntity.internalServerError().body(result);
         } catch (Exception e) {
             return ResponseEntity.internalServerError().body(PlatformPostResult.failure(PlatformType.FACEBOOK, e.getMessage()));

@@ -33,4 +33,6 @@ public interface FileService {
     File getFileFromFileData(FileData fileData);
 
     byte[] getFileBytesByFileData(FileData fileData) throws IOException;
+
+    ResponseEntity<byte[]> getThumbnail(Long fileId);
 }

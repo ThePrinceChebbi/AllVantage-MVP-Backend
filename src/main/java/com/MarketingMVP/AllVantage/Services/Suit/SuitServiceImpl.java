@@ -1,9 +1,12 @@
 package com.MarketingMVP.AllVantage.Services.Suit;
 
 import com.MarketingMVP.AllVantage.DTOs.Post.PostSendDTO;
+import com.MarketingMVP.AllVantage.DTOs.Post.SmallPostDTO;
+import com.MarketingMVP.AllVantage.DTOs.Post.SmallPostDTOMapper;
 import com.MarketingMVP.AllVantage.DTOs.Response.Insights.PlatformInsightsResult;
 import com.MarketingMVP.AllVantage.DTOs.Response.Postable.PlatformPostResult;
 import com.MarketingMVP.AllVantage.DTOs.Suit.SuitDTOMapper;
+import com.MarketingMVP.AllVantage.DTOs.UserEntity.UserDTOMapper;
 import com.MarketingMVP.AllVantage.Entities.PlatformContent.Facebook.FacebookReel;
 import com.MarketingMVP.AllVantage.Entities.PlatformContent.Instagram.InstagramReel;
 import com.MarketingMVP.AllVantage.Entities.PlatformContent.LinkedIn.LinkedinReel;
@@ -16,6 +19,7 @@ import com.MarketingMVP.AllVantage.Entities.PlatformContent.LinkedIn.LinkedinPos
 import com.MarketingMVP.AllVantage.Entities.Postable.Post.Post;
 import com.MarketingMVP.AllVantage.Entities.Postable.Postable;
 import com.MarketingMVP.AllVantage.Entities.Postable.Reel.Reel;
+import com.MarketingMVP.AllVantage.Entities.Postable.Story.Story;
 import com.MarketingMVP.AllVantage.Entities.Responses.Error.CustomErrorLog;
 import com.MarketingMVP.AllVantage.Entities.Responses.Error.ErrorType;
 import com.MarketingMVP.AllVantage.Entities.FileData.FileData;
@@ -23,6 +27,7 @@ import com.MarketingMVP.AllVantage.Entities.Responses.Success.CustomSuccessLog;
 import com.MarketingMVP.AllVantage.Entities.Suit.Suit;
 import com.MarketingMVP.AllVantage.Entities.UserEntity.Client;
 import com.MarketingMVP.AllVantage.Entities.UserEntity.Employee;
+import com.MarketingMVP.AllVantage.Entities.UserEntity.UserEntity;
 import com.MarketingMVP.AllVantage.Exceptions.ResourceNotFoundException;
 import com.MarketingMVP.AllVantage.Repositories.Account.PlatformType;
 import com.MarketingMVP.AllVantage.Repositories.Post.PostableRepository;
@@ -277,25 +282,41 @@ public class SuitServiceImpl implements SuitService {
         Suit suit = suitRepository.findById(suitId).orElseThrow(
                 () -> new ResourceNotFoundException("Suit with id " + suitId + " not found")
         );
-        if (suit.getClient() != null) {
-            Client client = suit.getClient();
-            if (!client.getUsername().equals(userDetails.getUsername())) {
-                return ResponseEntity.status(401).body("Unauthorized to access this suit");
+
+        UserEntity user = userService.getUserByUsername(userDetails.getUsername());
+
+        if (user instanceof Client client) {
+            if (!suit.getClient().getId().equals(client.getId())) {
+                return ResponseEntity.status(401).body("Unauthorized to access this suit, you are not the owner of this suit");
             }
-        } else {
-            Employee employee = userService.getEmployeeByUsername(userDetails.getUsername());
+        } else if (user instanceof Employee employee) {
             if (!suit.getEmployees().contains(employee)) {
-                return ResponseEntity.status(401).body("Unauthorized to access this suit");
+                return ResponseEntity.status(401).body("Unauthorized to access this suit, you are not an employee of this suit");
             }
         }
         return ResponseEntity.ok(suitDTOMapper.apply(suit));
     }
 
     @Override
-    public ResponseEntity<Object> getAllSuitPosts(Long suitId, int pageNumber) {
+    public ResponseEntity<Object> getAllSuitPosts(Long suitId, int pageNumber, UserDetails userDetails) {
         try{
+            UserEntity user = userService.getUserByUsername(userDetails.getUsername());
             Suit suit = findSuitById(suitId);
-            List<Post> posts = suit.getPosts().stream().filter(p -> p instanceof Post).map(p -> (Post) p).toList();
+            if (user instanceof Client client) {
+                if (!suit.getClient().getId().equals(client.getId())) {
+                    return ResponseEntity.status(401).body("Unauthorized to access this suit, you are not the owner of this suit");
+                }
+            } else if (user instanceof Employee employee) {
+                if (!suit.getEmployees().contains(employee)) {
+                    return ResponseEntity.status(401).body("Unauthorized to access this suit, you are not an employee of this suit");
+                }
+            }
+            List<Postable> posts = suit.getPosts().stream()
+                    .filter(p -> p instanceof Postable && !(p instanceof Story))
+                    .map(p -> (Postable) p)
+                    .sorted(Comparator.comparing(Postable::getCreatedAt).reversed())
+                    .toList();
+
             int pageSize = 10;
             int totalPages = (int) Math.ceil((double) posts.size() / pageSize);
             if (pageNumber < 0 || pageNumber >= totalPages) {
@@ -303,7 +324,7 @@ public class SuitServiceImpl implements SuitService {
             }
             int startIndex = pageNumber * pageSize;
             int endIndex = Math.min(startIndex + pageSize, posts.size());
-            List<Post> paginatedPosts = posts.subList(startIndex, endIndex);
+            List<SmallPostDTO> paginatedPosts = posts.subList(startIndex, endIndex).stream().map(new SmallPostDTOMapper()).toList();
             return ResponseEntity.ok(paginatedPosts);
         }catch (ResourceNotFoundException e){
             return ResponseEntity.status(404).body(e.getMessage());
@@ -380,7 +401,6 @@ public class SuitServiceImpl implements SuitService {
                             fileDataList,
                             postSendDTO.getTitle(),
                             postSendDTO.getContent(),
-                            postSendDTO.getScheduledAt(),
                             facebookPage.getId()
                     ));
                 }
@@ -521,7 +541,6 @@ public class SuitServiceImpl implements SuitService {
                             fileData,
                             postSendDTO.getTitle(),
                             postSendDTO.getContent(),
-                            postSendDTO.getScheduledAt(),
                             facebookPage.getId()
                     ));
                 }
@@ -680,6 +699,19 @@ public class SuitServiceImpl implements SuitService {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Unexpected error: " + e.getMessage());
         } finally {
             if (executor != null) executor.shutdown();
+        }
+    }
+
+    @Override
+    public ResponseEntity<Object> getUsersBySuitId(Long suitId) {
+        try {
+            Suit suit = findSuitById(suitId);
+            List<UserEntity> users = new ArrayList<>();
+            users.add(suit.getClient());
+            users.addAll(suit.getEmployees());
+            return ResponseEntity.ok(users.stream().map(new UserDTOMapper()).toList());
+        } catch (ResourceNotFoundException e) {
+            return ResponseEntity.status(404).body(e.getMessage());
         }
     }
 

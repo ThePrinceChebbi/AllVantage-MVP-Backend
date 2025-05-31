@@ -29,5 +29,7 @@ public interface LinkedInService {
 
     PlatformInsightsResult getLinkedInInsights(Long organizationId, String shareUrn);
 
+    ResponseEntity<Object> getLinkedInOrgLogo400x400(Long orgId);
+
     ResponseEntity<Object> getAllLinkedInAccounts();
 }

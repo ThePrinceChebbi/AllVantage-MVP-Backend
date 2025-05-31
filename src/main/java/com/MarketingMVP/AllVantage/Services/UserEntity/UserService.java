@@ -28,10 +28,10 @@ public interface UserService {
     Employee saveEmployee(@NonNull final Employee employee);
     Client saveClient(@NonNull final Client client);
     <T extends UserEntity> T saveUser(final T userEntity);
-    ResponseEntity<Object> lockAccount(UUID id);
+    ResponseEntity<Object> lockAccount(UUID id, UserDetails userDetails);
     ResponseEntity<Object> disableAccount(LoginDTO loginDTO);
     UserEntity enableAccount(UUID id);
-    ResponseEntity<Object> unlockAccount(UUID id);
+    ResponseEntity<Object> unlockAccount(UUID id, UserDetails userDetails);
 
     ResponseEntity<Object> getAllUsers();
 

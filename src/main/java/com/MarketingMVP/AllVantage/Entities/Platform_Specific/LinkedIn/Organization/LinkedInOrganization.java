@@ -34,6 +34,9 @@ public class LinkedInOrganization {
     private String organizationId;
 
     @NotNull
+    private String organizationUsername;
+
+    @NotNull
     private Date connectedAt;
 
     @NotNull

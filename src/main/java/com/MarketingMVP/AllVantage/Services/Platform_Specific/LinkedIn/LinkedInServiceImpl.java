@@ -339,6 +339,7 @@ public class LinkedInServiceImpl implements LinkedInService{
         JsonNode jsonNode = new ObjectMapper().readTree(response.getBody());
 
         String name = jsonNode.path("localizedName").asText();
+        String username = jsonNode.path("vanityName").asText();
 
         LinkedInOrganization linkedInOrg = linkedInOrganizationRepository
                 .findByOrganizationId(organizationId)
@@ -347,12 +348,12 @@ public class LinkedInServiceImpl implements LinkedInService{
                     newOrg.setLinkedInAccount(account);
                     newOrg.setPageName(name);
                     newOrg.setOrganizationId(organizationId);
+                    newOrg.setOrganizationUsername(username);
                     newOrg.setConnectedAt(new Date());
                     newOrg.setUpdatedAt(new Date());
                     return linkedInOrganizationRepository.save(newOrg);
                 });
 
-        // Update timestamp on every access
         linkedInOrg.setUpdatedAt(new Date());
         return linkedInOrganizationRepository.save(linkedInOrg);
     }
@@ -464,8 +465,6 @@ public class LinkedInServiceImpl implements LinkedInService{
             headers.setContentType(MediaType.APPLICATION_JSON);
             headers.add("LinkedIn-Version", "202504");
 
-            System.out.println("Request body: " + postRequest.toPrettyString());
-
             HttpEntity<String> request = new HttpEntity<>(postRequest.toString(), headers);
             RestTemplate restTemplate = new RestTemplate();
             ResponseEntity<String> response = restTemplate.postForEntity(url, request, String.class);
@@ -473,7 +472,6 @@ public class LinkedInServiceImpl implements LinkedInService{
             if (response.getStatusCode().is2xxSuccessful()) {
                 String postUrn = response.getHeaders().getFirst("x-linkedin-id");
 
-                System.out.println(postUrn);
                 if (isReel) {
                     LinkedinReel linkedinReel = new LinkedinReel();
                     linkedinReel.setLinkedinReelId(postUrn);
@@ -544,9 +542,10 @@ public class LinkedInServiceImpl implements LinkedInService{
             String uploadUrl,
             FileData fileData,
             String mediaUrn,
-            String uploadToken,    // from initializeUploadResponse.value.uploadToken
-            String accessToken     // your OAuth Bearer token
+            String uploadToken,
+            String accessToken
     ) throws IOException, InterruptedException {
+
         // 1) PUSH THE BYTES & CAPTURE ETAG
         File file = fileService.getFileFromFileData(fileData);
         long fileSize = file.length();
@@ -561,20 +560,19 @@ public class LinkedInServiceImpl implements LinkedInService{
 
         try (OutputStream out = putConn.getOutputStream();
              FileInputStream in = new FileInputStream(file)) {
-            byte[] buf = new byte[16 * 1024];
-            int r;
-            while ((r = in.read(buf)) != -1) {
-                out.write(buf, 0, r);
+                byte[] buf = new byte[16 * 1024];
+                int r;
+                while ((r = in.read(buf)) != -1) {
+                    out.write(buf, 0, r);
+                }
+                out.flush();
             }
-            out.flush();
-        }
 
         int code = putConn.getResponseCode();
         if (code < 200 || code >= 300) {
             throw new RuntimeException("Video upload failed: " + code + " " + putConn.getResponseMessage());
         }
         String etag = putConn.getHeaderField("ETag");
-        System.out.println("Upload succeeded, ETag=" + etag);
 
         // 2) FINALIZE UPLOAD
         String finalizeUrl = "https://api.linkedin.com/rest/videos?action=finalizeUpload";
@@ -601,7 +599,6 @@ public class LinkedInServiceImpl implements LinkedInService{
             throw new RuntimeException("Finalize upload failed: " +
                     finalConn.getResponseCode() + " " + finalConn.getResponseMessage());
         }
-        System.out.println("Finalize successful, now polling…");
 
         // 3) POLL UNTIL READY
         String encodedUrn = URLEncoder.encode(mediaUrn, StandardCharsets.UTF_8);
@@ -612,8 +609,6 @@ public class LinkedInServiceImpl implements LinkedInService{
             if (System.currentTimeMillis() - start > timeout) {
                 throw new RuntimeException("Video processing timed out for URN: " + mediaUrn);
             }
-
-            System.out.println("Ah shit, here we go again");
 
             HttpURLConnection statusConn = (HttpURLConnection) new URL(statusUrl).openConnection();
             statusConn.setRequestMethod("GET");
@@ -676,10 +671,6 @@ public class LinkedInServiceImpl implements LinkedInService{
             throw new RuntimeException("Image upload failed: " + response.getStatusCode() + " - " + response.getBody());
         }
 
-        System.out.println("Upload successful");
-
-        System.out.println("Media URN: " + mediaUrn);
-
         LinkedinMedia media = new LinkedinMedia();
         media.setMediaId(mediaUrn);
         media.setFile(fileData);
@@ -697,16 +688,13 @@ public class LinkedInServiceImpl implements LinkedInService{
             LinkedinTokenDTO tokenDTO = getCachedToken(organization.getLinkedInAccount().getId());
             String orgUrn = "urn:li:organization:" + organization.getOrganizationId();
 
-            // Modified approach based on LinkedIn's API documentation
             String baseUrl = "https://api.linkedin.com/v2/organizationalEntityShareStatistics";
             StringBuilder urlBuilder = new StringBuilder(baseUrl)
                     .append("?q=organizationalEntity")
                     .append("&organizationalEntity=").append(URLEncoder.encode(orgUrn, StandardCharsets.UTF_8));
 
-            // Handle post-specific metrics if a postUrn is provided
             if (postUrn != null && !postUrn.trim().isEmpty()) {
                 if (!postUrn.startsWith("urn:li:")) {
-                    // Determine the correct prefix based on the ID format
                     if (postUrn.matches("\\d+")) {
                         postUrn = "urn:li:share:" + postUrn;
                     } else if (postUrn.startsWith("ACoAAA")) {
@@ -719,14 +707,12 @@ public class LinkedInServiceImpl implements LinkedInService{
 
                 // Use the correct parameter structure based on post type
                 if (isUGC) {
-                    // For UGC posts
                     baseUrl = "https://api.linkedin.com/v2/organizationalEntityUgcPostStats";
                     urlBuilder = new StringBuilder(baseUrl)
                             .append("?q=organizationalEntity")
                             .append("&organizationalEntity=").append(URLEncoder.encode(orgUrn, StandardCharsets.UTF_8))
                             .append("&ugcPosts=List(").append(encodedPostUrn).append(")");
                 } else {
-                    // For shares
                     urlBuilder.append("&shares=List(").append(encodedPostUrn).append(")");
                 }
             }
@@ -754,7 +740,6 @@ public class LinkedInServiceImpl implements LinkedInService{
                         "LinkedIn API error (" + status + "): " + error);
             }
 
-            // Read and parse the response
             String responseStr = new BufferedReader(new InputStreamReader(conn.getInputStream()))
                     .lines().collect(Collectors.joining("\n"));
             System.out.println("LinkedIn API Success Response: " + responseStr);
@@ -768,7 +753,6 @@ public class LinkedInServiceImpl implements LinkedInService{
             if (!elements.isEmpty()) {
                 JsonNode element = elements.get(0);
 
-                // Extract statistics from the right location in the response
                 JsonNode statsNode = element.path("totalShareStatistics");
                 if (!statsNode.isMissingNode() && !statsNode.isEmpty()) {
                     statsNode.fields().forEachRemaining(entry -> {
@@ -784,7 +768,6 @@ public class LinkedInServiceImpl implements LinkedInService{
                     });
                 }
 
-                // Also copy other useful fields from the response
                 if (element.has("share")) {
                     insights.put("shareUrn", element.get("share").asText());
                 }
@@ -797,8 +780,66 @@ public class LinkedInServiceImpl implements LinkedInService{
             return PlatformInsightsResult.success(PlatformType.LINKEDIN, insights);
 
         } catch (Exception e) {
-            e.printStackTrace();
             return PlatformInsightsResult.failure(PlatformType.LINKEDIN, "Error fetching insights: " + e.getMessage());
+        }
+    }
+
+    @Override
+    public ResponseEntity<Object> getLinkedInOrgLogo400x400(Long orgId) {
+        try {
+
+            LinkedInOrganization organization = linkedInOrganizationRepository.findById(orgId)
+                    .orElseThrow(() -> new ResourceNotFoundException("LinkedIn organization not found with ID: " + orgId));
+
+            LinkedinTokenDTO tokenDTO = getCachedToken(organization.getLinkedInAccount().getId());
+            String url = String.format(
+                    "https://api.linkedin.com/v2/organizations/%s?projection=(logoV2(original~:playableStreams))",
+                    organization.getOrganizationId()
+            );
+
+            HttpURLConnection conn = (HttpURLConnection) new URL(url).openConnection();
+            conn.setRequestMethod("GET");
+            conn.setRequestProperty("Authorization", "Bearer " + tokenDTO.accessToken());
+            conn.setRequestProperty("LinkedIn-Version", "202504");
+            conn.setRequestProperty("X-Restli-Protocol-Version", "2.0.0");
+
+            int status = conn.getResponseCode();
+            if (status != 200) {
+                String error = new BufferedReader(new InputStreamReader(conn.getErrorStream()))
+                        .lines().collect(Collectors.joining("\n"));
+                return ResponseEntity.status(status).body(Map.of("error", error));
+            }
+
+            String responseStr = new BufferedReader(new InputStreamReader(conn.getInputStream()))
+                    .lines().collect(Collectors.joining("\n"));
+
+            ObjectMapper mapper = new ObjectMapper();
+            JsonNode json = mapper.readTree(responseStr);
+
+            JsonNode elements = json
+                    .path("logoV2")
+                    .path("original~")
+                    .path("elements");
+
+            if (elements.isArray()) {
+                for (JsonNode element : elements) {
+                    String artifact = element.path("artifact").asText("");
+                    if (artifact.contains("company-logo_400_400")) {
+                        JsonNode identifiers = element.path("identifiers");
+                        if (identifiers.isArray() && identifiers.size() > 0) {
+                            String imageUrl = identifiers.get(0).path("identifier").asText("");
+                            return ResponseEntity.ok(Map.of("imageUrl", imageUrl));
+                        }
+                    }
+                }
+            }
+
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(Map.of("error", "No 400x400 image found"));
+
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError()
+                    .body(Map.of("error", e.getMessage()));
         }
     }
 

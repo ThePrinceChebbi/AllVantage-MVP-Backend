@@ -9,10 +9,9 @@ public class InstagramAccountDTOMapper implements Function<InstagramAccount, Ins
     public InstagramAccountDTO apply(InstagramAccount instagramAccount) {
         return new InstagramAccountDTO(
                 instagramAccount.getId(),
-                instagramAccount.getInstagramId(),
                 instagramAccount.getAccountName(),
                 instagramAccount.getConnectedAt(),
-                instagramAccount.getUpdatedAt(),
+                instagramAccount.getInstagramUsername(),
                 instagramAccount.getFacebookPage().getId()
         );
     }

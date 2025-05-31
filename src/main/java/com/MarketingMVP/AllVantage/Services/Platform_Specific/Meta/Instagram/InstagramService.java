@@ -18,6 +18,8 @@ public interface InstagramService {
 
     InstagramAccount addInstagramAccount(String instagramBusinessId, Long pageId) throws JsonProcessingException;
 
+    ResponseEntity<Object> getInstagramProfilePicture(Long id);
+
     PlatformPostResult createInstagramPost(
             List<FileData> files, // Instagram might only allow single image/video per basic post through the API
             String caption,

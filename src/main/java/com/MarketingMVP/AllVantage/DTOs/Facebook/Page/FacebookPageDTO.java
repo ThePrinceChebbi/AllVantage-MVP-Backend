@@ -5,7 +5,7 @@ import java.util.Date;
 public record FacebookPageDTO(
         Long id,
         String pageName,
-        Date createdTime,
+        Date connectedAt,
         String pageUrl
 ) {
 }

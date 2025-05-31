@@ -57,6 +57,15 @@ public class LinkedinController {
         }
     }
 
+    @GetMapping("/{orgId}/picture")
+    public ResponseEntity<Object> getOrganizationProfilePicture(@PathVariable Long orgId) {
+        try {
+            return linkedInService.getLinkedInOrgLogo400x400(orgId);
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body("Error fetching organization profile picture: " + e.getMessage());
+        }
+    }
+
     @GetMapping("/{accountId}/{organizationId}/")
     public ResponseEntity<Object> getOrganizationDetails(@PathVariable Long accountId, @PathVariable String organizationId) {
         try {

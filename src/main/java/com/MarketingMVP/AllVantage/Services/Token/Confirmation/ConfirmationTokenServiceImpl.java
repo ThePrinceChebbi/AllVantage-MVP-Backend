@@ -156,7 +156,7 @@ public class ConfirmationTokenServiceImpl implements  ConfirmationTokenService{
     @Override
     public String generateConfirmationToken(@NonNull UserEntity userEntity) {
 
-        String token = UUID.randomUUID().toString();
+        String token = userEntity.getId().toString();
 
         ConfirmationToken confirmationToken = new ConfirmationToken(
                 token,

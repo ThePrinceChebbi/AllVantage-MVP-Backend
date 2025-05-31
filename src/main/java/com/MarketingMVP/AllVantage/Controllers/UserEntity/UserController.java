@@ -74,4 +74,14 @@ public class UserController {
     public ResponseEntity<Object> updateUserInfo(@PathVariable UUID id, @RequestBody UserEntity userEntity, @AuthenticationPrincipal UserDetails userDetails) {
         return userService.updateUserInfo(id, userEntity, userDetails);
     }
+
+    @PutMapping("/{id}/lock")
+    public ResponseEntity<Object> lockAccount(@PathVariable UUID id, @AuthenticationPrincipal UserDetails userDetails) {
+        return userService.lockAccount(id, userDetails);
+    }
+    @PutMapping("/{id}/unlock")
+    public ResponseEntity<Object> unlockAccount(@PathVariable UUID id, @AuthenticationPrincipal UserDetails userDetails) {
+        return userService.unlockAccount(id, userDetails);
+    }
+
 }

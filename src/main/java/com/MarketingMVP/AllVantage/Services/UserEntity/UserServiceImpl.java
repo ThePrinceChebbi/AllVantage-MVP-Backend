@@ -19,6 +19,7 @@ import com.MarketingMVP.AllVantage.Exceptions.ResourceNotFoundException;
 import com.MarketingMVP.AllVantage.Exceptions.UnauthorizedActionException;
 import com.MarketingMVP.AllVantage.Repositories.UserEntity.UserRepository;
 import com.MarketingMVP.AllVantage.Services.FileData.FileService;
+import jakarta.transaction.Transactional;
 import lombok.NonNull;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -51,12 +52,18 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public ResponseEntity<Object> unlockAccount(UUID id) {
+    public ResponseEntity<Object> unlockAccount(UUID id, UserDetails userDetails) {
         try{
+            UserEntity locker = getUserByUsername(userDetails.getUsername());
+            if (!locker.getRole().getName().equals("ADMIN")){
+                throw new UnauthorizedActionException("Sorry, you can't lock an account");
+            }
             UserEntity user = getUserById(id);
-            user.setLocked(true);
-            saveUser(user);
-            return ResponseEntity.status(200).body("Account has been enabled successfully");
+            if (Objects.equals(user.getRole().getName(), "ADMIN")){
+                throw new UnauthorizedActionException("Sorry, you can't lock an Admin");
+            }
+            user.setLocked(false);
+            return ResponseEntity.status(200).body(userDTOMapper.apply(saveUser(user)));
         } catch (ResourceNotFoundException e){
             return ResponseEntity.status(404).body(e.getMessage());
         } catch (Exception e){
@@ -190,7 +197,8 @@ public class UserServiceImpl implements UserService {
                 user.setState(userEntity.getState());
                 user.setPostalCode(userEntity.getPostalCode());
                 user.setAddress(userEntity.getAddress());
-                return ResponseEntity.status(200).body(userDTOMapper.apply(saveUser(user)));
+                UserEntity savedUser = saveUser(user);
+                return ResponseEntity.status(200).body(userDTOMapper.apply(savedUser));
             } else {
                 throw new UnauthorizedActionException("Sorry you can't access this account");
             }
@@ -199,20 +207,25 @@ public class UserServiceImpl implements UserService {
         } catch (UnauthorizedActionException e){
             return ResponseEntity.status(401).body(e.getMessage());
         } catch (Exception e){
+            e.printStackTrace();
             return ResponseEntity.status(500).body(e.getMessage());
         }
     }
 
     @Override
-    public ResponseEntity<Object> lockAccount(UUID id) {
+    public ResponseEntity<Object> lockAccount(UUID id,UserDetails userDetails) {
         try{
+            UserEntity locker = getUserByUsername(userDetails.getUsername());
+            if (!locker.getRole().getName().equals("ADMIN")){
+                throw new UnauthorizedActionException("Sorry, you can't lock an account");
+            }
             UserEntity user = getUserById(id);
             if (Objects.equals(user.getRole().getName(), "ADMIN")){
                 throw new UnauthorizedActionException("Sorry, you can't lock an Admin");
             }
-            user.setLocked(false);
+            user.setLocked(true);
             saveUser(user);
-            return ResponseEntity.status(200).body("Account locked successfully");
+            return ResponseEntity.status(200).body(userDTOMapper.apply(saveUser(user)));
         } catch (ResourceNotFoundException e){
             return ResponseEntity.status(404).body(e.getMessage());
         } catch (UnauthorizedActionException e){

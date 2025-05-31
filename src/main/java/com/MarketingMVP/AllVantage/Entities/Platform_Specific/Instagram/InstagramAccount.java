@@ -39,6 +39,9 @@ public class InstagramAccount {
     @NotNull
     private Date updatedAt;
 
+    @NotNull
+    private String instagramUsername;
+
     @ManyToOne(fetch = FetchType.EAGER)
     private FacebookPage facebookPage;
 

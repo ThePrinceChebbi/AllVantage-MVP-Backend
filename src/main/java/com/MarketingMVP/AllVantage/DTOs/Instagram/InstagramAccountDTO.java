@@ -5,10 +5,9 @@ import java.util.Date;
 
 public record InstagramAccountDTO(
         Long id,
-        String instagramId,
         String accountName,
         Date createdTime,
-        Date updatedTime,
+        String instagramUsername,
         Long facebookPageId
 ) {
 }

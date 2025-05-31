@@ -44,7 +44,7 @@ import java.util.function.Supplier;
 @Service
 public class InstagramServiceImpl implements InstagramService{
 
-    private final String ngrokUrl = "https://be23-102-173-49-185.ngrok-free.app/";
+    private final String ngrokUrl = " https://856e-197-31-56-241.ngrok-free.app/";
 
     private final MetaAuthService metaAuthService;
     private final FacebookPageRepository facebookPageRepository;
@@ -159,6 +159,34 @@ public class InstagramServiceImpl implements InstagramService{
         );
 
         return instagramAccountRepository.save(instagramAccount);
+    }
+
+    @Override
+    public ResponseEntity<Object> getInstagramProfilePicture(Long id) {
+        InstagramAccount instagramAccount = instagramAccountRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Instagram account not found with ID: " + id));
+        FacebookPageTokenDTO tokenDTO = metaAuthService.getPageCachedToken(instagramAccount.getFacebookPage().getId());
+
+        String url = String.format(
+                "https://graph.facebook.com/v22.0/%s?fields=profile_picture_url&access_token=%s",
+                instagramAccount.getInstagramId(),
+                tokenDTO.accessToken()
+        );
+
+        RestTemplate restTemplate = new RestTemplate();
+        try {
+            ResponseEntity<String> response = restTemplate.getForEntity(url, String.class);
+            ObjectMapper mapper = new ObjectMapper();
+            JsonNode json = mapper.readTree(response.getBody());
+
+            String imageUrl = json.path("profile_picture_url").asText("");
+
+            return ResponseEntity.ok(Map.of(
+                    "profile_picture_url", imageUrl
+            ));
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body(Map.of("error", e.getMessage()));
+        }
     }
 
     @Override

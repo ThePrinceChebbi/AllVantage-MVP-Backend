@@ -37,4 +37,9 @@ public class FileController {
     public ResponseEntity<Object> uploadFile(@RequestParam("file")MultipartFile file) throws Exception {
         return ResponseEntity.ok(fileService.processUploadedFile(file));
     }
+
+    @GetMapping("/{fileId}/thumbnail")
+    public ResponseEntity<byte[]> getThumbnail(@PathVariable("fileId") Long fileId) {
+        return fileService.getThumbnail(fileId);
+    }
 }

@@ -20,7 +20,6 @@ public interface  FacebookService {
             List<FileData> files,
             @NotNull String title,
             @NotNull String content,
-            Date scheduledAt,
             Long facebookPage
     );
 
@@ -28,7 +27,6 @@ public interface  FacebookService {
             FileData video,
             @NotNull String title,
             @NotNull String content,
-            Date scheduledAt,
             Long pageId
     );
 
@@ -36,11 +34,12 @@ public interface  FacebookService {
             FileData story,
             @NotNull String title,
             @NotNull String content,
-            Date scheduledAt,
             Long facebookPageId
     );
 
     PlatformInsightsResult getFacebookPageInsights(Long pageId, String metricName);
+
+    String getFacebookPageImageUrl(Long pageId);
 
     PlatformInsightsResult getFacebookPostInsights(Long pageId, String facebookPostId, String metricList);
 

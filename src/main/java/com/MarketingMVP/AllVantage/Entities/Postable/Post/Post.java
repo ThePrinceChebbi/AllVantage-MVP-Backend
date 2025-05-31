@@ -1,13 +1,8 @@
 package com.MarketingMVP.AllVantage.Entities.Postable.Post;
 
-import com.MarketingMVP.AllVantage.Entities.FileData.FileData;
 import com.MarketingMVP.AllVantage.Entities.PlatformContent.Facebook.FacebookPost;
-import com.MarketingMVP.AllVantage.Entities.PlatformContent.Facebook.FacebookReel;
 import com.MarketingMVP.AllVantage.Entities.PlatformContent.Instagram.InstagramPost;
-import com.MarketingMVP.AllVantage.Entities.PlatformContent.LinkedIn.LinkedinMedia;
 import com.MarketingMVP.AllVantage.Entities.PlatformContent.LinkedIn.LinkedinPost;
-import com.MarketingMVP.AllVantage.Entities.PlatformContent.Snapchat.SnapchatPost;
-import com.MarketingMVP.AllVantage.Entities.PlatformContent.X.XPost;
 import com.MarketingMVP.AllVantage.Entities.Postable.Postable;
 import com.MarketingMVP.AllVantage.Entities.UserEntity.Employee;
 import jakarta.persistence.*;

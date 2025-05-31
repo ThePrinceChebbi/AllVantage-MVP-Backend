@@ -11,6 +11,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.cache.annotation.EnableCaching;
+import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.util.ArrayList;
 import java.util.Date;
@@ -24,6 +25,8 @@ public class AllVantageApplication {
 	private RoleRepository roleRepository;
     @Autowired
     private UserRepository userRepository;
+    @Autowired
+    private PasswordEncoder passwordEncoder;
 
 	public static void main(String[] args) {
 		SpringApplication.run(AllVantageApplication.class, args);
@@ -42,6 +45,7 @@ public class AllVantageApplication {
 		roleRepository.save(new Role("ADMIN"));
 		roleRepository.save(new Role("CLIENT"));
 	}
+
 	private void initUsers() {
 		if (userRepository.findAll().isEmpty()) {
 			Employee employee = new Employee();
@@ -53,7 +57,7 @@ public class AllVantageApplication {
 			employee.setLocked(false);
 			employee.setEnabled(true);
 			employee.setEmail("amirchebbi60@gmail.com");
-			employee.setPassword("password123");
+			employee.setPassword(passwordEncoder.encode("password123"));
 			employee.setRole(roleRepository.getRoleByName("EMPLOYEE").orElse(new Role("EMPLOYEE")));
 			employee.setSuits(new ArrayList<>());
 
@@ -66,7 +70,7 @@ public class AllVantageApplication {
 			client.setLocked(false);
 			client.setEnabled(true);
 			client.setEmail("amirchebbi6@gmail.com");
-			client.setPassword("password123");
+			client.setPassword(passwordEncoder.encode("password123"));
 			client.setRole(roleRepository.getRoleByName("CLIENT").orElse(new Role("CLIENT")));
 
 			userRepository.save(employee);

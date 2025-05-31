@@ -318,7 +318,7 @@ public class MetaAuthServiceImpl implements MetaAuthService {
 
                     int expiresIn = responseBody.containsKey("expires_in")
                             ? Integer.parseInt(responseBody.get("expires_in").toString())
-                            : 0; // Assume long-lived if not provided
+                            : 0;
 
                     FacebookAccount facebookAccount = getFacebookAccountByFacebookId(accountToken.facebookAccountId());
                     FacebookAccountToken newAccountToken = generateAndSaveAccountToken(newAccessToken, expiresIn, facebookAccount);
@@ -366,7 +366,6 @@ public class MetaAuthServiceImpl implements MetaAuthService {
 
         String key = formulateAccountKey(accountId, tokenType);
         List<FacebookAccountTokenDTO> tokenList = redisAccountTemplate.opsForList().range(key, 0, -1);
-
 
         if (tokenList == null || tokenList.isEmpty() || tokenList.stream().allMatch((token) -> token.facebookAccountId() == null)) {
             return fetchAccountToken(accountId, tokenType);

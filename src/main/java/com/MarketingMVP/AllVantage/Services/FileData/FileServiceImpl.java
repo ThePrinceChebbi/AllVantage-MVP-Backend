@@ -13,9 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StreamUtils;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
+import java.io.*;
 import java.nio.file.*;
 import java.util.HashMap;
 import java.util.List;
@@ -248,6 +246,49 @@ public class FileServiceImpl implements FileService{
     @Override
     public byte[] getFileBytesByFileData(FileData fileData) throws IOException {
         return Files.readAllBytes(new File(fileData.getPath()).toPath());
+    }
+
+    @Override
+    public ResponseEntity<byte[]> getThumbnail(Long fileId) {
+        FileData fileData = getFileDataById(fileId);
+        String videoPath = fileData.getPath();
+        String thumbnailPath = videoPath + "_thumb.jpg";
+
+        try {
+            // Make sure the file exists before trying anything
+            if (!Files.exists(Paths.get(videoPath))) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(null);
+            }
+
+            // Run FFmpeg to extract the first frame
+            ProcessBuilder pb = new ProcessBuilder(
+                    "ffmpeg", "-y", "-i", videoPath, "-ss", "00:00:01", "-vframes", "1", thumbnailPath
+            );
+            Process process = pb.start();
+            int exitCode = process.waitFor();
+
+            if (exitCode != 0) {
+                // log error output
+                try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getErrorStream()))) {
+                    reader.lines().forEach(System.err::println);
+                }
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
+            }
+
+            // Make sure the output was created
+            if (!Files.exists(Paths.get(thumbnailPath))) {
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
+            }
+
+            byte[] imageBytes = Files.readAllBytes(Paths.get(thumbnailPath));
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.IMAGE_JPEG);
+            return new ResponseEntity<>(imageBytes, headers, HttpStatus.OK);
+
+        } catch (Exception e) {
+            e.printStackTrace(); // important for debugging
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
+        }
     }
 
 }

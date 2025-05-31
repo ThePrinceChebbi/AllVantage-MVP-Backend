@@ -21,7 +21,7 @@ import java.util.UUID;
 @DiscriminatorColumn(name = "type")
 @Entity
 @Table(name = "users")
-public class UserEntity implements UserDetails {
+public class  UserEntity implements UserDetails {
 
     @Id
     @GeneratedValue(
@@ -31,7 +31,6 @@ public class UserEntity implements UserDetails {
 
     @OneToOne
     private FileData image;
-
 
     @NotNull
     private String firstName;
@@ -57,12 +56,16 @@ public class UserEntity implements UserDetails {
     @NotNull
     private Date creationDate;
 
+    @NotNull
     private String country;
 
+    @NotNull
     private String state;
 
+    @NotNull
     private String address;
 
+    @NotNull
     private String postalCode;
 
     @NotNull

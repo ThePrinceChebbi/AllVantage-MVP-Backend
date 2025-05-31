@@ -38,6 +38,11 @@ public class InstagramController {
         return instagramService.getPageInstagramAccounts(pageId);
     }
 
+    @GetMapping("/{accountId}/picture")
+    public ResponseEntity<Object> getInstagramProfilePicture(@PathVariable Long accountId) {
+        return instagramService.getInstagramProfilePicture(accountId);
+    }
+
     @GetMapping("/{pageId}/{igId}")
     public ResponseEntity<Object> getAccountDetails(@PathVariable Long pageId, @PathVariable String igId) {
         return instagramService.getInstagramAccountDetails(igId,pageId);
@@ -113,7 +118,6 @@ public class InstagramController {
             return ResponseEntity.internalServerError().body(PlatformPostResult.failure(PlatformType.INSTAGRAM, e.getMessage()));
         }
     }
-
 
     @GetMapping("/{pageId}/insights")
     public ResponseEntity<Object> getPageInsights(

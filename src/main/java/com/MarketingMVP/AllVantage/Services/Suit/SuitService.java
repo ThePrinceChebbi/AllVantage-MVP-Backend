@@ -33,7 +33,7 @@ public interface SuitService {
 
     ResponseEntity<Object> getSuitById(Long suitId, UserDetails userDetails);
 
-    ResponseEntity<Object> getAllSuitPosts(Long suitId, int pageNumber);
+    ResponseEntity<Object> getAllSuitPosts(Long suitId, int pageNumber, UserDetails userDetails);
 
     ResponseEntity<Object> postToSuit(Long suitId, String postSendDTOJson, UserDetails employee, List<MultipartFile> files);
 
@@ -42,4 +42,6 @@ public interface SuitService {
     ResponseEntity<Object> getAllSuits();
 
     ResponseEntity<Object> getPostInsights(Long suitId, Long postId);
+
+    ResponseEntity<Object> getUsersBySuitId(Long suitId);
 }

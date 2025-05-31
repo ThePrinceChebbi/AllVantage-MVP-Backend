@@ -94,7 +94,7 @@ public class FacebookServiceImpl implements FacebookService {
     }
 
     @Override
-    public PlatformPostResult createFacebookPost(List<FileData> files, String title, String content, Date scheduledAt, Long pageId) {
+    public PlatformPostResult createFacebookPost(List<FileData> files, String title, String content, Long pageId) {
         try {
             FacebookPage facebookPage = facebookPageRepository.findById(pageId)
                     .orElseThrow(() -> new ResourceNotFoundException("Facebook page not found with ID: " + pageId));
@@ -123,7 +123,7 @@ public class FacebookServiceImpl implements FacebookService {
     }
 
     @Override
-    public PlatformPostResult createFacebookReel(FileData videoFile, String title, String content, Date scheduledAt, Long pageId) {
+    public PlatformPostResult createFacebookReel(FileData videoFile, String title, String content, Long pageId) {
         try {
             FacebookPage facebookPage = facebookPageRepository.findById(pageId)
                     .orElseThrow( () -> new ResourceNotFoundException("Facebook page not found with ID: " + pageId));
@@ -178,7 +178,7 @@ public class FacebookServiceImpl implements FacebookService {
     }
 
     @Override
-    public PlatformPostResult storyOnFacebookPage(FileData story, String title, String content, Date scheduledAt, Long facebookPageId) {
+    public PlatformPostResult storyOnFacebookPage(FileData story, String title, String content, Long facebookPageId) {
         try {
             if (story == null) {
                 return PlatformPostResult.failure(PlatformType.FACEBOOK, "Story file is required for Story post.");
@@ -269,6 +269,34 @@ public class FacebookServiceImpl implements FacebookService {
             return PlatformInsightsResult.failure(PlatformType.FACEBOOK, "Failed to fetch insights: " + e.getMessage());
         }
     }
+
+    @Override
+    public String getFacebookPageImageUrl(Long pageId) {
+        try {
+            FacebookPageTokenDTO tokenDTO = metaAuthService.getPageCachedToken(pageId);
+
+            String pictureUrl = String.format(
+                    "https://graph.facebook.com/v22.0/%s/picture?type=large&redirect=false&access_token=%s",
+                    tokenDTO.facebookPageId(),
+                    tokenDTO.accessToken()
+            );
+
+            RestTemplate restTemplate = new RestTemplate();
+            ResponseEntity<Map> response = restTemplate.exchange(pictureUrl, HttpMethod.GET, null, Map.class);
+
+            if (!response.getStatusCode().is2xxSuccessful()) {
+                throw new RuntimeException("Failed to fetch picture: " + response.getBody());
+            }
+
+            Map<String, Object> body = response.getBody();
+            Map<String, Object> data = (Map<String, Object>) body.get("data");
+            return (String) data.get("url");
+
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to fetch Facebook page image: " + e.getMessage(), e);
+        }
+    }
+
 
     @Override
     public PlatformInsightsResult getFacebookPostInsights(Long pageId, String facebookPostId, String metricList) {
@@ -384,8 +412,10 @@ public class FacebookServiceImpl implements FacebookService {
             if (!response.getStatusCode().is2xxSuccessful()) {
                 throw new RuntimeException("Failed to fetch page picture: " + response.getBody());
             }
-            String imageUrl = response.getBody().get("data").toString();
-            return ResponseEntity.ok(imageUrl);
+            Map<String, Object> data = (Map<String, Object>) response.getBody().get("data");
+            String imageUrl = (String) data.get("url");
+            return ResponseEntity.ok(Map.of("url", imageUrl));
+
         } catch (Exception e) {
             return ResponseEntity.badRequest().body("Error fetching page picture: " + e.getMessage());
         }

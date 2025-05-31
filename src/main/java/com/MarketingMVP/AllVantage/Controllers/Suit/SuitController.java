@@ -69,8 +69,8 @@ public class SuitController {
     }
 
     @GetMapping("/{suitId}/posts")
-    public ResponseEntity<Object> getAllSuitPosts(@PathVariable Long suitId, @RequestParam int pageNumber) {
-        return suitService.getAllSuitPosts(suitId, pageNumber);
+    public ResponseEntity<Object> getAllSuitPosts(@PathVariable Long suitId, @RequestParam int pageNumber, @AuthenticationPrincipal UserDetails userDetails) {
+        return suitService.getAllSuitPosts(suitId, pageNumber,userDetails);
     }
 
     @PostMapping("/{suitId}/post")
@@ -97,5 +97,10 @@ public class SuitController {
     @GetMapping("/{suitId}/post-insights")
     public ResponseEntity<Object> getPostInsights(@PathVariable Long suitId, @RequestParam Long postId) {
         return suitService.getPostInsights(suitId, postId);
+    }
+
+    @GetMapping("/{suitId}/users")
+    public ResponseEntity<Object> getUsers(@PathVariable Long suitId) {
+        return suitService.getUsersBySuitId(suitId);
     }
 }
