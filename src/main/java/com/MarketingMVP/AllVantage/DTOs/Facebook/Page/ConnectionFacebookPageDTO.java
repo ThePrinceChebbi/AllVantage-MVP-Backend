@@ -10,4 +10,6 @@ import lombok.NoArgsConstructor;
 public class ConnectionFacebookPageDTO {
     private String id;
     private String name;
+    private Long accountId;
+    private String imageUrl;
 }

@@ -1,6 +1,6 @@
 package com.MarketingMVP.AllVantage.DTOs.LinkedIn.Organization;
 
-import com.MarketingMVP.AllVantage.Entities.Platform_Specific.LinkedIn.Organization.LinkedInOrganization;
+import com.MarketingMVP.AllVantage.Entities.PlatformAccounts.LinkedIn.Organization.LinkedInOrganization;
 
 import java.util.function.Function;
 
@@ -12,6 +12,7 @@ public class LinkedInOrganizationDTOMapper implements Function<LinkedInOrganizat
                 linkedInOrganization.getPageName(),
                 linkedInOrganization.getConnectedAt(),
                 linkedInOrganization.getOrganizationUsername(),
+                linkedInOrganization.getOrganizationId(),
                 linkedInOrganization.getLinkedInAccount().getId()
         );
     }

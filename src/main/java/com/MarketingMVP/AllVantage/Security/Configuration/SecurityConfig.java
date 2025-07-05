@@ -52,7 +52,37 @@ public class SecurityConfig {
 
                 .authorizeHttpRequests(authorizationManagerRequestMatcherRegistry -> {
                     authorizationManagerRequestMatcherRegistry
-                            .anyRequest().permitAll();
+                            .requestMatchers("/api/v1/auth/login",
+                                    "/api/v1/auth/confirm",
+                                    "/api/v1/auth/me",
+                                    "/api/v1/suit/**").permitAll()
+                            .requestMatchers("/api/v1/user/add_client",
+                                    "/api/v1/user/add_employee",
+                                    "/api/v1/user/{id}/add_suit",
+                                    "/api/v1/user/{id}/lock",
+                                    "/api/v1/user/{id}/unlock",
+                                    "/api/v1/user/{id}/delete").hasRole("ADMIN")
+                            .requestMatchers("/api/v1/suit/{suitId}/unlink-fb",
+                                    "/api/v1/suit/{suitId}/unlink-ig",
+                                    "/api/v1/suit/{suitId}/unlink-li",
+                                    "/api/v1/suit/{suitId}/add-fb",
+                                    "/api/v1/suit/{suitId}/add-ig",
+                                    "/api/v1/suit/{suitId}/add-li",
+                                    "/api/v1/suit/{suitId}/add_image",
+                                    "/api/v1/suit/{suitId}/delete",
+                                    "/api/v1/suit/{suitId}/add-employee",
+                                    "/api/v1/suit/{suitId}/remove-employee",
+                                    "/api/v1/suit/{suitId}/deactivate",
+                                    "/api/v1/suit/{suitId}/reactivate"
+                            ).hasRole("ADMIN")
+                            .requestMatchers("/api/v1/chat/**").hasAnyRole("ADMIN", "EMPLOYEE", "CLIENT")
+                            .requestMatchers("/api/v1/user/add_image",
+                                    "/api/v1/user/clients",
+                                    "/api/v1/user/employees",
+                                    "/api/v1/user/{id}").permitAll()
+                            .requestMatchers("/api/v1/files/{fileId}").permitAll()
+
+                            .anyRequest().authenticated();
                 })
 
                 .sessionManagement(sessionManagementConfigurer -> sessionManagementConfigurer.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
@@ -85,7 +115,6 @@ public class SecurityConfig {
         source.registerCorsConfiguration("/**", configuration);
         return source;
     }
-
 
     @Bean
     PasswordEncoder passwordEncoder() {

@@ -1,7 +1,7 @@
 package com.MarketingMVP.AllVantage.DTOs.LinkedIn.Account;
 
 
-import com.MarketingMVP.AllVantage.Entities.Platform_Specific.LinkedIn.Account.LinkedInAccount;
+import com.MarketingMVP.AllVantage.Entities.PlatformAccounts.LinkedIn.Account.LinkedInAccount;
 
 import java.util.function.Function;
 

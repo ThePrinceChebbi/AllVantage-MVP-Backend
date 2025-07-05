@@ -1,6 +1,6 @@
 package com.MarketingMVP.AllVantage.DTOs.Instagram;
 
-import com.MarketingMVP.AllVantage.Entities.Platform_Specific.Instagram.InstagramAccount;
+import com.MarketingMVP.AllVantage.Entities.PlatformAccounts.Instagram.InstagramAccount;
 
 import java.util.function.Function;
 

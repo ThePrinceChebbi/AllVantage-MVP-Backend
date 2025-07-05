@@ -4,5 +4,5 @@ import com.MarketingMVP.AllVantage.Entities.PlatformContent.Facebook.FacebookRee
 import com.MarketingMVP.AllVantage.Entities.PlatformContent.LinkedIn.LinkedinReel;
 import org.springframework.data.jpa.repository.JpaRepository;
 
-public interface LinkedinReelRepository extends JpaRepository<LinkedinReel, Long> {
+public interface LinkedinReelRepository extends JpaRepository<LinkedinReel, String> {
 }

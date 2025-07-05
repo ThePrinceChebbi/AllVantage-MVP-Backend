@@ -11,6 +11,4 @@ import java.util.List;
 
 public interface LinkedinPostRepository extends JpaRepository<LinkedinPost, String> {
 
-    @Query(value = "SELECT p FROM LinkedinPost p WHERE p.organization.id =:orgId")
-    List<FacebookPost> findAllByPageId(@Param("orgId") Long orgId);
 }

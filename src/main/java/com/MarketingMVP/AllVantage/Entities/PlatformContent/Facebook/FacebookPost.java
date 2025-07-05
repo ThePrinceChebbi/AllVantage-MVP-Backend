@@ -1,6 +1,6 @@
 package com.MarketingMVP.AllVantage.Entities.PlatformContent.Facebook;
 
-import com.MarketingMVP.AllVantage.Entities.Platform_Specific.Facebook.Page.FacebookPage;
+import com.MarketingMVP.AllVantage.Entities.PlatformAccounts.Facebook.Page.FacebookPage;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;

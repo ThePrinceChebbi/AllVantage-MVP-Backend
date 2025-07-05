@@ -1,8 +1,8 @@
 package com.MarketingMVP.AllVantage.Entities.Suit;
 
-import com.MarketingMVP.AllVantage.Entities.Platform_Specific.Facebook.Page.FacebookPage;
-import com.MarketingMVP.AllVantage.Entities.Platform_Specific.Instagram.InstagramAccount;
-import com.MarketingMVP.AllVantage.Entities.Platform_Specific.LinkedIn.Organization.LinkedInOrganization;
+import com.MarketingMVP.AllVantage.Entities.PlatformAccounts.Facebook.Page.FacebookPage;
+import com.MarketingMVP.AllVantage.Entities.PlatformAccounts.Instagram.InstagramAccount;
+import com.MarketingMVP.AllVantage.Entities.PlatformAccounts.LinkedIn.Organization.LinkedInOrganization;
 import com.MarketingMVP.AllVantage.Entities.FileData.FileData;
 import com.MarketingMVP.AllVantage.Entities.UserEntity.Client;
 import com.MarketingMVP.AllVantage.Entities.UserEntity.Employee;
@@ -49,6 +49,9 @@ public class Suit {
     private Client client;
 
     private String suitColor;
+
+    @NotNull
+    private boolean isActive = true;
 
     @ManyToMany
     @JoinTable(

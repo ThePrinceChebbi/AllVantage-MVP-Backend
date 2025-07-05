@@ -1,7 +1,6 @@
 package com.MarketingMVP.AllVantage.Entities.PlatformContent.LinkedIn;
 
-import com.MarketingMVP.AllVantage.Entities.Platform_Specific.Facebook.Page.FacebookPage;
-import com.MarketingMVP.AllVantage.Entities.Platform_Specific.LinkedIn.Organization.LinkedInOrganization;
+import com.MarketingMVP.AllVantage.Entities.PlatformAccounts.LinkedIn.Organization.LinkedInOrganization;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;

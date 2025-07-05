@@ -6,7 +6,9 @@ import com.MarketingMVP.AllVantage.Entities.FileData.FileData;
 import java.util.Date;
 import java.util.List;
 
-import com.MarketingMVP.AllVantage.Entities.Platform_Specific.Instagram.InstagramAccount;
+import com.MarketingMVP.AllVantage.Entities.PlatformAccounts.Instagram.InstagramAccount;
+import com.MarketingMVP.AllVantage.Entities.PlatformContent.Instagram.InstagramPost;
+import com.MarketingMVP.AllVantage.Entities.PlatformContent.Instagram.InstagramReel;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import org.springframework.http.ResponseEntity;
 
@@ -53,4 +55,8 @@ public interface InstagramService {
     ResponseEntity<Object> getAllAccounts();
 
     ResponseEntity<Object> getAllReels(Long accountId);
+
+    String deleteInstagramPost(InstagramPost instagramPost);
+
+    String deleteInstagramReel(InstagramReel instagramReel);
 }

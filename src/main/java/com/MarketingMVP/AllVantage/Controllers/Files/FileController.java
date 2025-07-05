@@ -42,4 +42,9 @@ public class FileController {
     public ResponseEntity<byte[]> getThumbnail(@PathVariable("fileId") Long fileId) {
         return fileService.getThumbnail(fileId);
     }
+
+    @GetMapping("/all")
+    public ResponseEntity<Object> getAllFiles(@RequestParam("pageNumber") int pageNumber)  {
+        return fileService.getAllFiles(pageNumber);
+    }
 }

@@ -35,7 +35,7 @@ public class FacebookController {
     }
 
     @GetMapping("/callback")
-    public ResponseEntity<Object> facebookCallback(@RequestParam("code") String code) {
+    public RedirectView facebookCallback(@RequestParam("code") String code) {
         return metaAuthService.authenticateGlobalAccountCallback(code);
     }
 
@@ -92,14 +92,12 @@ public class FacebookController {
     @PostMapping("/{pageId}/story")
     public ResponseEntity<PlatformPostResult> postStory(
             @PathVariable Long pageId,
-            @RequestParam String content,
             @RequestParam MultipartFile story,
-            @RequestParam @Nullable Date scheduledAt,
             @RequestParam String title
     ) {
         try {
             FileData fileData = fileService.processUploadedFile(story);
-            PlatformPostResult result = facebookService.storyOnFacebookPage(fileData, title, content, pageId);
+            PlatformPostResult result = facebookService.storyOnFacebookPage(fileData, title, pageId);
             return result.isSuccess() ? ResponseEntity.ok(result) : ResponseEntity.internalServerError().body(result);
         } catch (Exception e) {
             return ResponseEntity.internalServerError().body(PlatformPostResult.failure(PlatformType.FACEBOOK, e.getMessage()));
@@ -132,6 +130,19 @@ public class FacebookController {
             return ResponseEntity.internalServerError().body(PlatformPostResult.failure(PlatformType.FACEBOOK, e.getMessage()));
         }
     }
+    @GetMapping("/{pageId}/{reelId}/reel_insights")
+    public ResponseEntity<Object> getReelInsights(
+            @PathVariable Long pageId,
+            @PathVariable String reelId,
+            @RequestParam String metricList
+    ) {
+        try {
+            PlatformInsightsResult result = facebookService.getFacebookReelInsights(pageId, reelId, metricList);
+            return result.isSuccess() ? ResponseEntity.ok(result) : ResponseEntity.internalServerError().body(result);
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body(PlatformPostResult.failure(PlatformType.FACEBOOK, e.getMessage()));
+        }
+    }
 
     @GetMapping("/{pageId}/posts")
     public ResponseEntity<Object> getPosts(@PathVariable Long pageId) {
@@ -152,4 +163,8 @@ public class FacebookController {
         return facebookService.getPagePicture(pageId);
     }
 
+    @GetMapping("/{accountId}/profile-picture")
+    public ResponseEntity<Object> getProfilePicture(@PathVariable Long accountId) {
+        return facebookService.getProfilePicture(accountId);
+    }
 }

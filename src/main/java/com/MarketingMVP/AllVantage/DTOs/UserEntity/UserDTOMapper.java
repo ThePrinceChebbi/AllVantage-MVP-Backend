@@ -20,7 +20,7 @@ public class UserDTOMapper implements Function<UserEntity, UserDTO> {
                 userEntity.getState(),
                 userEntity.getAddress(),
                 userEntity.getPostalCode(),
-                "http://localhost:8080/api/v1/files/" + userEntity.getImage().getId(),
+                userEntity.getImage() != null ? "http://localhost:8080/api/v1/files/" + userEntity.getImage().getId() : null,
                 userEntity.getRole(),
                 userEntity.getCreationDate(),
                 userEntity.isEnabled(),

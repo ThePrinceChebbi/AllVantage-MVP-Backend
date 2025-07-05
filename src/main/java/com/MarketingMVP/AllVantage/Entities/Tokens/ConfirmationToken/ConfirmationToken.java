@@ -30,8 +30,10 @@ public class ConfirmationToken {
     private LocalDateTime creationDate;
     private LocalDateTime expirationDate;
     private LocalDateTime confirmationDate;
+
     @ManyToOne
     private UserEntity userEntity;
+
     public ConfirmationToken(String confirmationToken, LocalDateTime creationDate, LocalDateTime expirationDate, LocalDateTime confirmationDate, UserEntity userEntity) {
         this.confirmationToken = confirmationToken;
         this.creationDate = creationDate;

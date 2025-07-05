@@ -6,6 +6,7 @@ import lombok.Data;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Entity
 @Data
@@ -14,5 +15,9 @@ public class Employee extends UserEntity{
 
     @ManyToMany(mappedBy = "employees")
     private List<Suit> suits = new ArrayList<>();
+
+    public List<Suit> getSuits() {
+        return suits.stream().filter(Suit::isActive).collect(Collectors.toList());
+    }
 
 }

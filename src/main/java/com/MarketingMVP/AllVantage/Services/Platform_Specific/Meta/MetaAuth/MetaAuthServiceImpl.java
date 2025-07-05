@@ -6,8 +6,8 @@ import com.MarketingMVP.AllVantage.DTOs.Facebook.AccountToken.FacebookAccountTok
 import com.MarketingMVP.AllVantage.DTOs.Facebook.AccountToken.FacebookAccountTokenDTOMapper;
 import com.MarketingMVP.AllVantage.DTOs.Facebook.PageToken.FacebookPageTokenDTO;
 import com.MarketingMVP.AllVantage.DTOs.Facebook.PageToken.FacebookPageTokenDTOMapper;
-import com.MarketingMVP.AllVantage.Entities.Platform_Specific.Facebook.Account.FacebookAccount;
-import com.MarketingMVP.AllVantage.Entities.Platform_Specific.Facebook.Page.FacebookPage;
+import com.MarketingMVP.AllVantage.Entities.PlatformAccounts.Facebook.Account.FacebookAccount;
+import com.MarketingMVP.AllVantage.Entities.PlatformAccounts.Facebook.Page.FacebookPage;
 import com.MarketingMVP.AllVantage.Entities.Tokens.OAuthToken.Facebook.FacebookAccount.FacebookAccountToken;
 import com.MarketingMVP.AllVantage.Entities.Tokens.OAuthToken.Facebook.FacebookTokenType;
 import com.MarketingMVP.AllVantage.Entities.Tokens.OAuthToken.Facebook.FacebookPage.FacebookPageToken;
@@ -33,6 +33,7 @@ import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.servlet.view.RedirectView;
+import org.springframework.web.util.UriComponentsBuilder;
 
 import java.util.*;
 import java.util.concurrent.TimeUnit;
@@ -92,14 +93,27 @@ public class MetaAuthServiceImpl implements MetaAuthService {
 
     @Transactional
     @Override
-    public ResponseEntity<Object> authenticateGlobalAccountCallback(String authorizationCode) {
+    public RedirectView authenticateGlobalAccountCallback(String authorizationCode) {
         try {
             FacebookAccountDTO account = new FacebookAccountDTOMapper().apply(exchangeCodeForToken(authorizationCode, true, redirectUri));
-            return ResponseEntity.ok(account);
-        } catch (ResourceNotFoundException e) {
-            return ResponseEntity.status(404).body(e.getMessage());
+            String redirectUrl = UriComponentsBuilder
+                    .fromUriString("http://localhost:4200/")
+                    .queryParam("name", account.accountName())
+                    .queryParam("platform", "Facebook")
+                    .queryParam("message", "success")
+                    .build()
+                    .toUriString();
+
+            return new RedirectView(redirectUrl);
         } catch (Exception e) {
-            return ResponseEntity.internalServerError().body(e.getMessage());
+            String redirectUrl = UriComponentsBuilder
+                    .fromUriString("http://localhost:4200/")
+                    .queryParam("platform", "Facebook")
+                    .queryParam("message", "failed")
+                    .build()
+                    .toUriString();
+
+            return new RedirectView(redirectUrl);
         }
     }
 

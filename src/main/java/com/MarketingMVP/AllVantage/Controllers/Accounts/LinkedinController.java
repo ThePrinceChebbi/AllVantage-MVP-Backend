@@ -4,7 +4,7 @@ package com.MarketingMVP.AllVantage.Controllers.Accounts;
 import com.MarketingMVP.AllVantage.DTOs.Response.Insights.PlatformInsightsResult;
 import com.MarketingMVP.AllVantage.DTOs.Response.Postable.PlatformPostResult;
 import com.MarketingMVP.AllVantage.Entities.FileData.FileData;
-import com.MarketingMVP.AllVantage.Entities.Platform_Specific.LinkedIn.Organization.LinkedInOrganization;
+import com.MarketingMVP.AllVantage.Entities.PlatformAccounts.LinkedIn.Organization.LinkedInOrganization;
 import com.MarketingMVP.AllVantage.Exceptions.ResourceNotFoundException;
 import com.MarketingMVP.AllVantage.Repositories.Account.LinkedIn.LinkedInOrganizationRepository;
 import com.MarketingMVP.AllVantage.Repositories.Account.PlatformType;
@@ -44,7 +44,7 @@ public class LinkedinController {
     }
 
     @GetMapping("/callback")
-    public ResponseEntity<Object> linkedinCallback(@RequestParam("code") String code) {
+    public RedirectView linkedinCallback(@RequestParam("code") String code) {
         return linkedInService.authenticateGlobalAccountCallback(code);
     }
 
@@ -57,12 +57,21 @@ public class LinkedinController {
         }
     }
 
-    @GetMapping("/{orgId}/picture")
-    public ResponseEntity<Object> getOrganizationProfilePicture(@PathVariable Long orgId) {
+    @GetMapping("/{accountId}/{orgId}/picture")
+    public ResponseEntity<Object> getOrganizationProfilePicture(@PathVariable Long accountId, @PathVariable String orgId) {
         try {
-            return linkedInService.getLinkedInOrgLogo400x400(orgId);
+            return linkedInService.getLinkedInOrgLogo400x400(accountId,orgId);
         } catch (Exception e) {
             return ResponseEntity.status(500).body("Error fetching organization profile picture: " + e.getMessage());
+        }
+    }
+
+    @GetMapping("/{accountId}/profile-picture")
+    public ResponseEntity<Object> getAccountProfilePicture(@PathVariable Long accountId) {
+        try {
+            return linkedInService.getAccountProfilePicture(accountId);
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body("Error fetching Account profile picture: " + e.getMessage());
         }
     }
 

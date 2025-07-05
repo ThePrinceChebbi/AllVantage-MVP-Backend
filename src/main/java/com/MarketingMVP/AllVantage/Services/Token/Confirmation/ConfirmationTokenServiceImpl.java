@@ -141,6 +141,11 @@ public class ConfirmationTokenServiceImpl implements  ConfirmationTokenService{
     }
 
     @Override
+    public void deleteAllTokensByUserId(UUID id) {
+        confirmationTokenRepository.deleteAllByUserEntityId(id);
+    }
+
+    @Override
     public ConfirmationToken fetchTokenByToken(String token) {
         return confirmationTokenRepository.fetchConfirmationTokenByToken(token).orElseThrow(
                 ()-> new ResourceNotFoundException("This Token could not be found in our system.")

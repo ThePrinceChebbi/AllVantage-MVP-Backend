@@ -1,6 +1,6 @@
 package com.MarketingMVP.AllVantage.Repositories.Account.Facebook;
 
-import com.MarketingMVP.AllVantage.Entities.Platform_Specific.Facebook.Account.FacebookAccount;
+import com.MarketingMVP.AllVantage.Entities.PlatformAccounts.Facebook.Account.FacebookAccount;
 import io.lettuce.core.dynamic.annotation.Param;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;

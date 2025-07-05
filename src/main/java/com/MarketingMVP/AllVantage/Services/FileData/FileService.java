@@ -15,11 +15,7 @@ import java.util.List;
 public interface FileService {
 
     FileData processUploadedFile(@NotNull final MultipartFile file) throws IOException;
-    Path createNewEventDirectory (String dirName, String parentDirName) throws IOException;
-    Path createNewCategoryDirectory (String dirName) throws IOException;
-    Path deleteEventDirectory(String dirName, String parentDirName) throws IOException;
-    Path deleteCategoryDirectory(String dirName) throws IOException;
-    void deleteAllFiles(@NotNull final List<FileData> files) throws IOException;
+
     String determineContentType(@NotNull String filePath);
     FileData getFileDataById(long fileDataId);
 
@@ -27,7 +23,6 @@ public interface FileService {
 
     ResponseEntity<byte[]> getFile(final Long fileId, HttpHeaders headers);
     void deleteFileFromFileSystem(@NotNull final FileData fileData) throws IOException ;
-    String getFileType(String fileName);
 
     ResponseEntity<byte[]> getFileByName(String name);
     File getFileFromFileData(FileData fileData);
@@ -35,4 +30,6 @@ public interface FileService {
     byte[] getFileBytesByFileData(FileData fileData) throws IOException;
 
     ResponseEntity<byte[]> getThumbnail(Long fileId);
+
+    ResponseEntity<Object> getAllFiles(int pageNumber);
 }

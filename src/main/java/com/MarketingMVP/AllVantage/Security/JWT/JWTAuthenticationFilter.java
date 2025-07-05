@@ -1,7 +1,5 @@
 package com.MarketingMVP.AllVantage.Security.JWT;
 
-
-
 import com.MarketingMVP.AllVantage.Entities.UserEntity.UserEntity;
 import com.MarketingMVP.AllVantage.Exceptions.ExpiredTokenException;
 import com.MarketingMVP.AllVantage.Exceptions.InvalidTokenException;
@@ -13,7 +11,6 @@ import com.MarketingMVP.AllVantage.Services.UserDetails.CustomUserDetailsService
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
-import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.NonNull;
@@ -112,10 +109,7 @@ public class JWTAuthenticationFilter extends OncePerRequestFilter {
                 return;
             }
 
-            // You can re-extract the new accessToken from cookies, or better yet,
-            // just allow the request to pass, since SecurityContext will be re-filled next time.
             filterChain.doFilter(request, response);
-            return;
         }
         catch (Exception e)
         {

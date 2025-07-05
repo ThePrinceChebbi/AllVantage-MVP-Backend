@@ -1,5 +1,6 @@
 package com.MarketingMVP.AllVantage.Services.Platform_Specific.Meta.Facebook;
 
+import com.MarketingMVP.AllVantage.DTOs.MetaInsights.MetaInsights;
 import com.MarketingMVP.AllVantage.DTOs.Response.Insights.PlatformInsightsResult;
 import com.MarketingMVP.AllVantage.Entities.PlatformContent.Facebook.FacebookReel;
 import com.MarketingMVP.AllVantage.Entities.PlatformContent.Facebook.FacebookStory;
@@ -8,7 +9,7 @@ import com.MarketingMVP.AllVantage.DTOs.Facebook.AccountToken.FacebookAccountTok
 import com.MarketingMVP.AllVantage.DTOs.Facebook.Page.ConnectionFacebookPageDTO;
 import com.MarketingMVP.AllVantage.DTOs.Facebook.PageToken.FacebookPageTokenDTO;
 import com.MarketingMVP.AllVantage.DTOs.Response.Postable.PlatformPostResult;
-import com.MarketingMVP.AllVantage.Entities.Platform_Specific.Facebook.Page.FacebookPage;
+import com.MarketingMVP.AllVantage.Entities.PlatformAccounts.Facebook.Page.FacebookPage;
 import com.MarketingMVP.AllVantage.Entities.FileData.FileData;
 import com.MarketingMVP.AllVantage.Entities.PlatformContent.Facebook.FacebookMedia;
 import com.MarketingMVP.AllVantage.Entities.PlatformContent.Facebook.FacebookPost;
@@ -27,7 +28,6 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.core.io.FileSystemResource;
-import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.util.LinkedMultiValueMap;
@@ -38,6 +38,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.*;
+import java.util.stream.Collectors;
 
 @SuppressWarnings({"rawtypes", "CallToPrintStackTrace"})
 @Service
@@ -52,7 +53,7 @@ public class FacebookServiceImpl implements FacebookService {
     private final FacebookPageRepository facebookPageRepository;
     private final MetaAuthService metaAuthService;
 
-    public FacebookServiceImpl(RedisTemplate<String, FacebookAccountTokenDTO> redisAccountTemplate, MetaAuthService facebookOAuthTokenService, FacebookAccountRepository facebookAccountRepository, FacebookPageRepository facebookPageRepository, FileService fileService, FacebookMediaRepository facebookMediaRepository, FacebookStoryRepository facebookStoryRepository, FacebookReelRepository facebookReelRepository, FacebookPostRepository facebookPostRepository, MetaAuthService metaAuthService) {
+    public FacebookServiceImpl(FacebookAccountRepository facebookAccountRepository, FacebookPageRepository facebookPageRepository, FileService fileService, FacebookMediaRepository facebookMediaRepository, FacebookStoryRepository facebookStoryRepository, FacebookReelRepository facebookReelRepository, FacebookPostRepository facebookPostRepository, MetaAuthService metaAuthService) {
         this.facebookAccountRepository = facebookAccountRepository;
         this.facebookPageRepository = facebookPageRepository;
         this.fileService = fileService;
@@ -178,7 +179,7 @@ public class FacebookServiceImpl implements FacebookService {
     }
 
     @Override
-    public PlatformPostResult storyOnFacebookPage(FileData story, String title, String content, Long facebookPageId) {
+    public PlatformPostResult storyOnFacebookPage(FileData story, String title, Long facebookPageId) {
         try {
             if (story == null) {
                 return PlatformPostResult.failure(PlatformType.FACEBOOK, "Story file is required for Story post.");
@@ -305,9 +306,11 @@ public class FacebookServiceImpl implements FacebookService {
                     .orElseThrow(() -> new ResourceNotFoundException("Facebook post not found with ID: " + facebookPostId));
 
             FacebookPageTokenDTO tokenDTO = metaAuthService.getPageCachedToken(pageId);
-            String insightsUrl = String.format(
-                    "https://graph.facebook.com/v22.0/%s/insights/?access_token=%s&metric=%s",
-                    facebookPostId,
+            String insightsUrl;
+
+            insightsUrl = String.format(
+                    "https://graph.facebook.com/v19.0/%s/insights/?access_token=%s&metric=%s",
+                    facebookPost.getPage().getFacebookPageId()+'_'+facebookPostId,
                     tokenDTO.accessToken(),
                     metricList
             );
@@ -317,13 +320,107 @@ public class FacebookServiceImpl implements FacebookService {
             if (!response.getStatusCode().is2xxSuccessful()) {
                 throw new RuntimeException("Failed to fetch insights: " + response.getBody());
             }
-            Map<String, Object> insights = new HashMap<>();
-            insights.put("post", facebookPost);
-            insights.put("insights", response.getBody());
+
+            List<Map<String, Object>> dataList = (List<Map<String, Object>>) response.getBody().get("data");
+
+            Integer impressions = 0, reactions = 0, videoViews = 0, postClicks = 0;
+
+            for (Map<String, Object> metric : dataList) {
+                String name = (String) metric.get("name");
+                List<Map<String, Object>> values = (List<Map<String, Object>>) metric.get("values");
+                Object valueObj = values.get(values.size() - 1).get("value");
+
+                switch (name) {
+                    case "post_impressions" -> impressions = toInt(valueObj);
+                    case "post_video_views" -> videoViews = toInt(valueObj);
+                    case "post_clicks" -> postClicks = toInt(valueObj);
+                    case "post_reactions_by_type_total" -> {
+                        if (valueObj instanceof Map<?, ?> valueMap) {
+                            reactions = valueMap.values().stream()
+                                    .filter(Number.class::isInstance)
+                                    .mapToInt(val -> ((Number) val).intValue())
+                                    .sum();
+                        }
+                    }
+                }
+            }
+
+            MetaInsights insights = new MetaInsights(
+                    facebookPostId,
+                    impressions,
+                    reactions,
+                    videoViews,
+                    postClicks
+            );
+
+            return PlatformInsightsResult.success(PlatformType.FACEBOOK, insights);
+
+        } catch (Exception e) {
+            return PlatformInsightsResult.failure(PlatformType.FACEBOOK, e.getMessage());
+        }
+    }
+    private int toInt(Object obj) {
+        return (obj instanceof Number) ? ((Number) obj).intValue() : 0;
+    }
+
+    @Override
+    public PlatformInsightsResult getFacebookReelInsights(Long pageId, String facebookReelId, String metricList) {
+        try {
+            FacebookReel facebookReel = facebookReelRepository.findById(facebookReelId)
+                    .orElseThrow(() -> new ResourceNotFoundException("Facebook post not found with ID: " + facebookReelId));
+
+            FacebookPageTokenDTO tokenDTO = metaAuthService.getPageCachedToken(pageId);
+
+            RestTemplate restTemplate = new RestTemplate();
+            ResponseEntity<Map> response = restTemplate.exchange(fetchVideoInsightsURL(facebookReelId, tokenDTO), HttpMethod.GET, null, Map.class);
+            if (!response.getStatusCode().is2xxSuccessful()) {
+                throw new RuntimeException("Failed to fetch insights: " + response.getBody());
+            }
+
+            List<Map<String, Object>> dataList = (List<Map<String, Object>>) response.getBody().get("data");
+
+            Integer impressions = 0, reactions = 0, videoViews = 0, postClicks = 0;
+
+            for (Map<String, Object> metric : dataList) {
+                String name = (String) metric.get("name");
+                List<Map<String, Object>> values = (List<Map<String, Object>>) metric.get("values");
+                Object valueObj = values.get(values.size() - 1).get("value");
+
+                switch (name) {
+                    case "post_impressions" -> impressions = toInt(valueObj);
+                    case "post_video_views" -> videoViews = toInt(valueObj);
+                    case "post_clicks" -> postClicks = toInt(valueObj);
+                    case "post_reactions_by_type_total" -> {
+                        if (valueObj instanceof Map<?, ?> valueMap) {
+                            reactions = valueMap.values().stream()
+                                    .filter(Number.class::isInstance)
+                                    .mapToInt(val -> ((Number) val).intValue())
+                                    .sum();
+                        }
+                    }
+                }
+            }
+
+            MetaInsights insights = new MetaInsights(
+                    facebookReelId,
+                    impressions,
+                    reactions,
+                    videoViews,
+                    postClicks
+            );
+
             return PlatformInsightsResult.success(PlatformType.FACEBOOK, insights);
         } catch (Exception e) {
             return PlatformInsightsResult.failure(PlatformType.FACEBOOK, e.getMessage());
         }
+    }
+
+    private String fetchVideoInsightsURL(String facebookReelId, FacebookPageTokenDTO tokenDTO){
+        return String.format(
+                "https://graph.facebook.com/v22.0/%s/video_insights/?access_token=%s&metric=total_video_views,total_video_reactions_by_type_total",
+                facebookReelId,
+                tokenDTO.accessToken()
+        );
     }
 
     @Override
@@ -340,7 +437,7 @@ public class FacebookServiceImpl implements FacebookService {
         }
     }
 
-    @Override
+/*    @Override
     public ResponseEntity<Object> getUserPages(Long accountId) {
         try {
             JsonNode userPages = fetchUserPages(accountId);
@@ -351,7 +448,8 @@ public class FacebookServiceImpl implements FacebookService {
                 for (JsonNode page : userPages.get("data")) {
                     ConnectionFacebookPageDTO dto = new ConnectionFacebookPageDTO(
                             page.get("id").asText(),
-                            page.get("name").asText()
+                            page.get("name").asText(),
+                            getProfilePic(page.get("id").asText(), page.get("access_token").asText())
                     );
                     pageList.add(dto);
                 }
@@ -362,8 +460,53 @@ public class FacebookServiceImpl implements FacebookService {
         } catch (Exception e) {
             return ResponseEntity.badRequest().body("Error fetching user pages: " + e.getMessage());
         }
+    }*/
+
+    @Override
+    public ResponseEntity<Object> getUserPages(Long accountId) {
+        ExecutorService executor = Executors.newFixedThreadPool(10); // tweak size if needed
+        try {
+            JsonNode userPages = fetchUserPages(accountId);
+
+            if (!userPages.has("data")) {
+                return ResponseEntity.ok(Collections.emptyList());
+            }
+
+            List<CompletableFuture<ConnectionFacebookPageDTO>> futures = new ArrayList<>();
+
+            for (JsonNode page : userPages.get("data")) {
+                String pageId = page.get("id").asText();
+                String pageName = page.get("name").asText();
+                String accessToken = page.get("access_token").asText();
+
+                futures.add(CompletableFuture.supplyAsync(() -> {
+                    String imageUrl = getProfilePic(pageId, accessToken);
+                    return new ConnectionFacebookPageDTO(pageId, pageName, accountId, imageUrl);
+                }, executor));
+            }
+
+            List<ConnectionFacebookPageDTO> pageList = futures.stream()
+                    .map(CompletableFuture::join)
+                    .collect(Collectors.toList());
+
+            return ResponseEntity.ok(pageList);
+
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("Error fetching user pages: " + e.getMessage());
+        } finally {
+            executor.shutdown();
+        }
     }
 
+    @Override
+    public ResponseEntity<Object> getProfilePicture(Long accountId) {
+        try {
+            FacebookAccountTokenDTO token = metaAuthService.getAccountCachedToken(accountId, FacebookTokenType.FACEBOOK_LONG_LIVED);
+            return ResponseEntity.ok(getProfilePic(token.facebookAccountId(),token.accessToken()));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("Error fetching user picture: " + e.getMessage());
+        }
+    }
     //Utility public methods -------------------------------------------------------------------------------------------------------------------------------
 
     @Override
@@ -372,7 +515,7 @@ public class FacebookServiceImpl implements FacebookService {
 
         token = metaAuthService.getAccountCachedToken(accountId, FacebookTokenType.FACEBOOK_LONG_LIVED);
 
-        String url = "https://graph.facebook.com/v19.0/me/accounts?access_token=" + token.accessToken();
+        String url = "https://graph.facebook.com/v19.0/me/accounts?fields=link,name,access_token&access_token=" + token.accessToken();
 
         RestTemplate restTemplate = new RestTemplate();
         ResponseEntity<String> response = restTemplate.getForEntity(url, String.class);
@@ -419,6 +562,73 @@ public class FacebookServiceImpl implements FacebookService {
         } catch (Exception e) {
             return ResponseEntity.badRequest().body("Error fetching page picture: " + e.getMessage());
         }
+    }
+
+    @Override
+    public String deleteFacebookPost(FacebookPost facebookPost) {
+        try {
+            boolean result = sendDeleteRequest(facebookPost.getFacebookPostId(), facebookPost.getPage().getId());
+            if (!result) {
+                return "Failed to delete post: " + facebookPost.getFacebookPostId();
+            }
+            facebookPostRepository.delete(facebookPost);
+            facebookMediaRepository.deleteAll(facebookPost.getFacebookMediaList());
+
+            return "Post deleted successfully";
+        } catch (Exception e) {
+            return e.getMessage();
+        }
+    }
+
+    @Override
+    public String deleteFacebookReel(FacebookReel facebookReel) {
+        try {
+            boolean result = sendDeleteRequest(facebookReel.getFacebookVideoId(), facebookReel.getPage().getId());
+            if (!result) {
+                return "Failed to delete post: " + facebookReel.getFacebookVideoId();
+            }
+            facebookReelRepository.delete(facebookReel);
+
+            return "Reel deleted successfully";
+        } catch (Exception e) {
+            return e.getMessage();
+        }
+    }
+
+    private boolean sendDeleteRequest(String postId, Long pageId) {
+        FacebookPageTokenDTO tokenDTO = metaAuthService.getPageCachedToken(pageId);
+        String url = String.format(
+                "https://graph.facebook.com/v22.0/%s_%s?access_token=%s",
+                tokenDTO.facebookPageId(),
+                postId,
+                tokenDTO.accessToken()
+        );
+
+        RestTemplate restTemplate = new RestTemplate();
+        ResponseEntity<Map> response = restTemplate.exchange(url, HttpMethod.DELETE, null, Map.class);
+
+        if (!response.getStatusCode().is2xxSuccessful()) {
+            return false;
+        }
+        return true;
+    }
+
+
+    private String getProfilePic(String pageId, String accessToken) {
+        String url = String.format(
+                "https://graph.facebook.com/v22.0/%s/picture?redirect=false&height=1080&width=1080&access_token=%s",
+                pageId,
+                accessToken
+        );
+        RestTemplate restTemplate = new RestTemplate();
+        ResponseEntity<Map> response = restTemplate.exchange(url, HttpMethod.GET, null, Map.class);
+
+        if (!response.getStatusCode().is2xxSuccessful()) {
+            throw new RuntimeException("Failed to fetch page picture: " + response.getBody());
+        }
+        Map<String, Object> data = (Map<String, Object>) response.getBody().get("data");
+
+        return (String) data.get("url");
     }
 
     //Utility private methods -------------------------------------------------------------------------------------------------------------------------------

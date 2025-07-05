@@ -6,8 +6,9 @@ import com.MarketingMVP.AllVantage.Entities.Tokens.ConfirmationToken.Confirmatio
 import com.MarketingMVP.AllVantage.Entities.UserEntity.UserEntity;
 import lombok.NonNull;
 
-public interface ConfirmationTokenService {
+import java.util.UUID;
 
+public interface ConfirmationTokenService {
 
     ConfirmationToken fetchTokenByToken(final String token);
     String generateConfirmationToken(@NonNull UserEntity userEntity);
@@ -17,4 +18,5 @@ public interface ConfirmationTokenService {
     String getConfirmationPage();
     String getAlreadyConfirmedPage();
 
+    void deleteAllTokensByUserId(UUID id);
 }

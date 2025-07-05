@@ -2,7 +2,7 @@ package com.MarketingMVP.AllVantage.Services.Platform_Specific.Meta.MetaAuth;
 
 import com.MarketingMVP.AllVantage.DTOs.Facebook.AccountToken.FacebookAccountTokenDTO;
 import com.MarketingMVP.AllVantage.DTOs.Facebook.PageToken.FacebookPageTokenDTO;
-import com.MarketingMVP.AllVantage.Entities.Platform_Specific.Facebook.Page.FacebookPage;
+import com.MarketingMVP.AllVantage.Entities.PlatformAccounts.Facebook.Page.FacebookPage;
 import com.MarketingMVP.AllVantage.Entities.Tokens.OAuthToken.Facebook.FacebookAccount.FacebookAccountToken;
 import com.MarketingMVP.AllVantage.Entities.Tokens.OAuthToken.Facebook.FacebookTokenType;
 import com.MarketingMVP.AllVantage.Entities.Tokens.OAuthToken.Facebook.FacebookPage.FacebookPageToken;
@@ -18,7 +18,7 @@ public interface MetaAuthService {
 
     RedirectView authenticateGlobalAccount();
 
-    ResponseEntity<Object> authenticateGlobalAccountCallback(String authorizationCode);
+    RedirectView authenticateGlobalAccountCallback(String authorizationCode);
 
     FacebookPage authenticateFacebookPage(Long accountId, String pageId) throws JsonProcessingException;
 

@@ -2,16 +2,10 @@ package com.MarketingMVP.AllVantage.Services.Authentication;
 
 
 import com.MarketingMVP.AllVantage.DTOs.Authentication.*;
-import com.MarketingMVP.AllVantage.DTOs.Authentication.Admin.AdminLoginResponseDTO;
-import com.MarketingMVP.AllVantage.DTOs.Authentication.Client.ClientLogInResponseDTO;
 import com.MarketingMVP.AllVantage.DTOs.Authentication.Client.ClientRegisterDTO;
 import com.MarketingMVP.AllVantage.DTOs.Authentication.Client.ClientRegisterResponseDTO;
-import com.MarketingMVP.AllVantage.DTOs.Authentication.Employee.EmployeeLoginResponseDTO;
 import com.MarketingMVP.AllVantage.DTOs.Authentication.Employee.EmployeeRegisterDTO;
 import com.MarketingMVP.AllVantage.DTOs.Authentication.Employee.EmployeeRegisterResponseDTO;
-import com.MarketingMVP.AllVantage.DTOs.UserEntity.Admin.AdminDTOMapper;
-import com.MarketingMVP.AllVantage.DTOs.UserEntity.Client.ClientDTOMapper;
-import com.MarketingMVP.AllVantage.DTOs.UserEntity.Employee.EmployeeDTOMapper;
 import com.MarketingMVP.AllVantage.DTOs.UserEntity.UserDTO;
 import com.MarketingMVP.AllVantage.DTOs.UserEntity.UserDTOMapper;
 import com.MarketingMVP.AllVantage.Entities.Role.Role;
@@ -27,6 +21,7 @@ import com.MarketingMVP.AllVantage.Exceptions.RevokedTokenException;
 import com.MarketingMVP.AllVantage.Security.JWT.JWTService;
 import com.MarketingMVP.AllVantage.Security.Utility.SecurityConstants;
 import com.MarketingMVP.AllVantage.Services.FileData.FileService;
+import com.MarketingMVP.AllVantage.Services.Mail.SimpleMailSender;
 import com.MarketingMVP.AllVantage.Services.Role.RoleService;
 import com.MarketingMVP.AllVantage.Services.Token.Confirmation.ConfirmationTokenService;
 import com.MarketingMVP.AllVantage.Services.Token.Refresh.RefreshTokenService;
@@ -51,6 +46,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.security.SecureRandom;
 import java.time.LocalDateTime;
 import java.util.*;
 
@@ -65,12 +61,10 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     private final TokenService tokenService;
     private final AuthenticationManager authenticationManager;
     private final JWTService jwtService;
-    private final EmployeeDTOMapper employeeDTOMapper;
-    private final ClientDTOMapper clientDTOMapper;
-    private final FileService fileService;
-    private final AdminDTOMapper adminDTOMapper;
+    private final UserDTOMapper userDTOMapper;
+    private final SimpleMailSender simpleMailSender;
 
-    public AuthenticationServiceImpl(RoleService roleService, UserService userService, PasswordEncoder passwordEncoder, ConfirmationTokenService confirmationTokenService, RefreshTokenService refreshTokenService, TokenService tokenService, AuthenticationManager authenticationManager, JWTService jwtService, EmployeeDTOMapper employeeDTOMapper, ClientDTOMapper clientDTOMapper, FileService fileService, AdminDTOMapper adminDTOMapper) {
+    public AuthenticationServiceImpl(RoleService roleService, UserService userService, PasswordEncoder passwordEncoder, ConfirmationTokenService confirmationTokenService, RefreshTokenService refreshTokenService, TokenService tokenService, AuthenticationManager authenticationManager, JWTService jwtService, UserDTOMapper userDTOMapper, SimpleMailSender simpleMailSender) {
         this.roleService = roleService;
         this.userService = userService;
         this.passwordEncoder = passwordEncoder;
@@ -79,10 +73,8 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         this.tokenService = tokenService;
         this.authenticationManager = authenticationManager;
         this.jwtService = jwtService;
-        this.employeeDTOMapper = employeeDTOMapper;
-        this.clientDTOMapper = clientDTOMapper;
-        this.fileService = fileService;
-        this.adminDTOMapper = adminDTOMapper;
+        this.userDTOMapper = userDTOMapper;
+        this.simpleMailSender = simpleMailSender;
     }
 
     @Value("${app.base-url}")
@@ -93,6 +85,8 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         try {
             verifyCredentialsExistence(clientRegisterDTO.getUsername(), clientRegisterDTO.getEmail(), clientRegisterDTO.getPhoneNumber());
 
+            String password = generateRandomPassword(12);
+
             Role role = roleService.fetchRoleByName("CLIENT");
             Client client = new Client();
             client.setFirstName(clientRegisterDTO.getFirstName());
@@ -101,7 +95,11 @@ public class AuthenticationServiceImpl implements AuthenticationService {
             client.setEmail(clientRegisterDTO.getEmail().toLowerCase());
             client.setPhoneNumber(clientRegisterDTO.getPhoneNumber());
             client.setCreationDate(new Date());
-            client.setPassword(passwordEncoder.encode(clientRegisterDTO.getPassword()));
+            client.setPassword(passwordEncoder.encode(password));
+            client.setPostalCode(clientRegisterDTO.getPostalCode());
+            client.setAddress(clientRegisterDTO.getAddress());
+            client.setCountry(clientRegisterDTO.getCountry());
+            client.setState(clientRegisterDTO.getState());
             client.setLocked(false);
             client.setEnabled(false);
             client.setRole(role);
@@ -109,13 +107,14 @@ public class AuthenticationServiceImpl implements AuthenticationService {
             Client saveClient = userService.saveClient(client);
 
             String confirmationToken = confirmationTokenService.generateConfirmationToken(saveClient);
-            String refreshToken = refreshTokenService.generateRefreshToken(saveClient);
+
+            String confirmationLink = baseUrl + "/api/v1/auth/confirm?token=" + confirmationToken;
+            simpleMailSender.sendAuthMailToClient(saveClient, password, confirmationLink);
 
             final ClientRegisterResponseDTO registerResponse = ClientRegisterResponseDTO
                     .builder()
                     .confirmationToken(confirmationToken)
-                    .refreshToken(refreshToken)
-                    .clientDTO(clientDTOMapper.apply(saveClient))
+                    .userDTO(userDTOMapper.apply(saveClient))
                     .build();
 
             return ResponseEntity.status(200).body(registerResponse);
@@ -131,6 +130,8 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         try {
             verifyCredentialsExistence(employeeRegisterDTO.getUsername(), employeeRegisterDTO.getEmail(), employeeRegisterDTO.getPhoneNumber());
 
+            String password = generateRandomPassword(12);
+
             Role role = roleService.fetchRoleByName("EMPLOYEE");
             Employee employee = new Employee();
             employee.setFirstName(employeeRegisterDTO.getFirstName());
@@ -139,7 +140,11 @@ public class AuthenticationServiceImpl implements AuthenticationService {
             employee.setEmail(employeeRegisterDTO.getEmail().toLowerCase());
             employee.setPhoneNumber(employeeRegisterDTO.getPhoneNumber());
             employee.setCreationDate(new Date());
-            employee.setPassword(passwordEncoder.encode(employeeRegisterDTO.getPassword()));
+            employee.setPassword(passwordEncoder.encode(password));
+            employee.setPostalCode(employeeRegisterDTO.getPostalCode());
+            employee.setAddress(employeeRegisterDTO.getAddress());
+            employee.setCountry(employeeRegisterDTO.getCountry());
+            employee.setState(employeeRegisterDTO.getState());
             employee.setLocked(false);
             employee.setEnabled(false);
             employee.setSuits(new ArrayList<>());
@@ -148,13 +153,14 @@ public class AuthenticationServiceImpl implements AuthenticationService {
             Employee savedEmployee = userService.saveEmployee(employee);
 
             String confirmationToken = confirmationTokenService.generateConfirmationToken(savedEmployee);
-            String refreshToken = refreshTokenService.generateRefreshToken(savedEmployee);
+
+            String confirmationLink = baseUrl + "/api/v1/auth/confirm?token=" + confirmationToken;
+            simpleMailSender.sendAuthMailToEmployee(savedEmployee, password, confirmationLink);
 
             final EmployeeRegisterResponseDTO registerResponse = EmployeeRegisterResponseDTO
                     .builder()
                     .confirmationToken(confirmationToken)
-                    .refreshToken(refreshToken)
-                    .employeeDTO(employeeDTOMapper.apply(savedEmployee))
+                    .userDTO(userDTOMapper.apply(savedEmployee))
                     .build();
 
             return ResponseEntity.status(200).body(registerResponse);
@@ -164,6 +170,17 @@ public class AuthenticationServiceImpl implements AuthenticationService {
             return ResponseEntity.status(500).body(e.getMessage());
         }
     }
+
+    private String generateRandomPassword(int length) {
+        String chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()-_+=<>?";
+        SecureRandom random = new SecureRandom();
+        StringBuilder password = new StringBuilder(length);
+        for (int i = 0; i < length; i++) {
+            password.append(chars.charAt(random.nextInt(chars.length())));
+        }
+        return password.toString();
+    }
+
 
     @Override
     public ResponseEntity<Object> login(@NonNull LoginDTO loginDto) {
@@ -185,29 +202,6 @@ public class AuthenticationServiceImpl implements AuthenticationService {
             SecurityContextHolder.getContext().setAuthentication(authentication);
 
             UserEntity user = userService.getUserByUsername(loginDto.getUsername());
-
-            Object loginResponse;
-
-            switch (user.getRole().getName()) {
-                case "CLIENT":
-                    loginResponse = ClientLogInResponseDTO.builder()
-                            .clientDTO(clientDTOMapper.apply(userService.getClientById(user.getId())))
-                            .build();
-                    break;
-
-                case "EMPLOYEE":
-                    loginResponse = EmployeeLoginResponseDTO.builder().build();
-                    break;
-
-                case "ADMIN":
-                    loginResponse = AdminLoginResponseDTO.builder()
-                            .adminDTO(adminDTOMapper.apply(userService.getAdminById(user.getId())))
-                            .build();
-                    break;
-
-                default:
-                    return ResponseEntity.status(500).body("User role not specified");
-            }
             revokeAllUserRefreshToken(user);
 
             String jwtAccessToken = revokeGenerateAndSaveToken(user);
@@ -219,7 +213,6 @@ public class AuthenticationServiceImpl implements AuthenticationService {
                     .maxAge(SecurityConstants.ACCESS_JWT_EXPIRATION)
                     .sameSite("Strict")
                     .build();
-
 
             if (loginDto.isRememberMe()) {
                 String jwtRefreshToken = refreshTokenService.generateRefreshToken(user);
@@ -235,11 +228,11 @@ public class AuthenticationServiceImpl implements AuthenticationService {
                 return ResponseEntity.ok()
                         .header(HttpHeaders.SET_COOKIE, accessCookie.toString())
                         .header(HttpHeaders.SET_COOKIE, refreshCookie.toString())
-                        .body(loginResponse);
+                        .body(userDTOMapper.apply(userService.getUserById(user.getId())));
             }else{
                 return ResponseEntity.ok()
                         .header(HttpHeaders.SET_COOKIE, accessCookie.toString())
-                        .body(loginResponse);
+                        .body(userDTOMapper.apply(userService.getUserById(user.getId())));
             }
 
         } catch (ResourceNotFoundException e) {

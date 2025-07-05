@@ -8,6 +8,7 @@ public record LinkedinOrganizationDTO(
         String organizationName,
         Date createdTime,
         String organizationUsername,
+        String linkedinOrgId,
         Long linkedinAccountId
 ) {
 }

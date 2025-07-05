@@ -4,6 +4,8 @@ import com.MarketingMVP.AllVantage.DTOs.Response.Insights.PlatformInsightsResult
 import com.MarketingMVP.AllVantage.DTOs.Response.Postable.PlatformPostResult;
 import com.MarketingMVP.AllVantage.Entities.FileData.FileData;
 import com.MarketingMVP.AllVantage.Entities.PlatformContent.Facebook.FacebookMedia;
+import com.MarketingMVP.AllVantage.Entities.PlatformContent.Facebook.FacebookPost;
+import com.MarketingMVP.AllVantage.Entities.PlatformContent.Facebook.FacebookReel;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import jakarta.validation.constraints.NotNull;
@@ -33,7 +35,6 @@ public interface  FacebookService {
     PlatformPostResult storyOnFacebookPage(
             FileData story,
             @NotNull String title,
-            @NotNull String content,
             Long facebookPageId
     );
 
@@ -42,6 +43,8 @@ public interface  FacebookService {
     String getFacebookPageImageUrl(Long pageId);
 
     PlatformInsightsResult getFacebookPostInsights(Long pageId, String facebookPostId, String metricList);
+
+    PlatformInsightsResult getFacebookReelInsights(Long pageId, String facebookReelId, String metricList);
 
     ResponseEntity<Object> getAllPosts(Long id);
 
@@ -56,4 +59,10 @@ public interface  FacebookService {
     PlatformInsightsResult getFacebookInsights(Long id, Date startDate, Date endDate);
 
     ResponseEntity<Object> getPagePicture(Long pageId);
+
+    ResponseEntity<Object> getProfilePicture(Long accountId);
+
+    String deleteFacebookPost(FacebookPost post);
+
+    String deleteFacebookReel(FacebookReel facebookReel);
 }

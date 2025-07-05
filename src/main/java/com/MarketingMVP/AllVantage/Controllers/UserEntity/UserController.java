@@ -2,8 +2,6 @@ package com.MarketingMVP.AllVantage.Controllers.UserEntity;
 
 import com.MarketingMVP.AllVantage.DTOs.Authentication.Client.ClientRegisterDTO;
 import com.MarketingMVP.AllVantage.DTOs.Authentication.Employee.EmployeeRegisterDTO;
-import com.MarketingMVP.AllVantage.DTOs.UserEntity.Client.ClientDTO;
-import com.MarketingMVP.AllVantage.DTOs.UserEntity.UserDTO;
 import com.MarketingMVP.AllVantage.Entities.UserEntity.UserEntity;
 import com.MarketingMVP.AllVantage.Services.Authentication.AuthenticationService;
 import com.MarketingMVP.AllVantage.Services.Suit.SuitService;
@@ -45,9 +43,9 @@ public class UserController {
         return suitService.addNewSuit(name, description, id, file, suitColor);
     }
 
-    @PostMapping("/{id}/add_image")
-    public ResponseEntity<Object> addImage(@RequestParam("file") MultipartFile file, @PathVariable UUID id) {
-        return userService.addImage(file, id);
+    @PutMapping("/{id}/add_image")
+    public ResponseEntity<Object> addImage(@RequestParam("file") MultipartFile file, @PathVariable UUID id, @AuthenticationPrincipal UserDetails user) {
+        return userService.addImage(file, id, user);
     }
 
     @GetMapping("/")
@@ -79,9 +77,13 @@ public class UserController {
     public ResponseEntity<Object> lockAccount(@PathVariable UUID id, @AuthenticationPrincipal UserDetails userDetails) {
         return userService.lockAccount(id, userDetails);
     }
+
+    @PutMapping("/{id}/delete")
+    public ResponseEntity<Object> deleteAccount(@PathVariable UUID id) {
+        return userService.deleteAccount(id);
+    }
     @PutMapping("/{id}/unlock")
     public ResponseEntity<Object> unlockAccount(@PathVariable UUID id, @AuthenticationPrincipal UserDetails userDetails) {
         return userService.unlockAccount(id, userDetails);
     }
-
 }

@@ -3,8 +3,8 @@ package com.MarketingMVP.AllVantage.Services.Platform_Specific.Meta.Instagram;
 import com.MarketingMVP.AllVantage.DTOs.Facebook.PageToken.FacebookPageTokenDTO;
 import com.MarketingMVP.AllVantage.DTOs.Response.Insights.PlatformInsightsResult;
 import com.MarketingMVP.AllVantage.DTOs.Response.Postable.PlatformPostResult;
-import com.MarketingMVP.AllVantage.Entities.Platform_Specific.Facebook.Page.FacebookPage;
-import com.MarketingMVP.AllVantage.Entities.Platform_Specific.Instagram.InstagramAccount;
+import com.MarketingMVP.AllVantage.Entities.PlatformAccounts.Facebook.Page.FacebookPage;
+import com.MarketingMVP.AllVantage.Entities.PlatformAccounts.Instagram.InstagramAccount;
 import com.MarketingMVP.AllVantage.Entities.FileData.FileData;
 import com.MarketingMVP.AllVantage.Entities.PlatformContent.Instagram.InstagramMedia;
 import com.MarketingMVP.AllVantage.Entities.PlatformContent.Instagram.InstagramPost;
@@ -44,7 +44,7 @@ import java.util.function.Supplier;
 @Service
 public class InstagramServiceImpl implements InstagramService{
 
-    private final String ngrokUrl = " https://856e-197-31-56-241.ngrok-free.app/";
+    private final String ngrokUrl = " https://3bda-41-229-25-26.ngrok-free.app/";
 
     private final MetaAuthService metaAuthService;
     private final FacebookPageRepository facebookPageRepository;
@@ -68,32 +68,51 @@ public class InstagramServiceImpl implements InstagramService{
 
     @Override
     public ResponseEntity<Object> getPageInstagramAccounts(Long pageId) {
-        FacebookPageTokenDTO tokenDTO = metaAuthService.getPageCachedToken(pageId);
-
-        String url = String.format("https://graph.facebook.com/v22.0/%s?fields=instagram_business_account&access_token=%s",
-                tokenDTO.facebookPageId(),
-                tokenDTO.accessToken());
-
-        RestTemplate restTemplate = new RestTemplate();
-        ResponseEntity<String> response = restTemplate.getForEntity(url, String.class);
-
         try {
-            ObjectMapper mapper = new ObjectMapper();
-            JsonNode root = mapper.readTree(response.getBody());
-            JsonNode instaAccount = root.path("instagram_business_account");
+            FacebookPageTokenDTO tokenDTO = metaAuthService.getPageCachedToken(pageId);
 
-            if (instaAccount.isMissingNode()) {
+            String pageUrl = String.format(
+                    "https://graph.facebook.com/v22.0/%s?fields=instagram_business_account&access_token=%s",
+                    tokenDTO.facebookPageId(),
+                    tokenDTO.accessToken()
+            );
+
+            RestTemplate restTemplate = new RestTemplate();
+            ResponseEntity<String> pageResponse = restTemplate.getForEntity(pageUrl, String.class);
+
+            ObjectMapper mapper = new ObjectMapper();
+            JsonNode pageRoot = mapper.readTree(pageResponse.getBody());
+            JsonNode instaAccount = pageRoot.path("instagram_business_account");
+
+            if (instaAccount.isMissingNode() || instaAccount.path("id").isMissingNode()) {
                 return ResponseEntity.status(HttpStatus.NOT_FOUND)
                         .body("No Instagram Business account connected to this Page.");
             }
 
             String instagramId = instaAccount.path("id").asText();
-            return ResponseEntity.ok(Map.of("instagram_id", instagramId));
+
+            String instaUrl = String.format(
+                    "https://graph.facebook.com/v22.0/%s?fields=id,name,profile_picture_url&access_token=%s",
+                    instagramId,
+                    tokenDTO.accessToken()
+            );
+
+            ResponseEntity<String> instaResponse = restTemplate.getForEntity(instaUrl, String.class);
+            JsonNode instaData = mapper.readTree(instaResponse.getBody());
+
+            Map<String, Object> result = new HashMap<>();
+            result.put("pageId", pageId);
+            result.put("instagram_id", instaData.path("id").asText());
+            result.put("name", instaData.path("name").asText());
+            result.put("profile_picture_url", instaData.path("profile_picture_url").asText());
+
+            return ResponseEntity.ok(result);
 
         } catch (Exception e) {
-            return ResponseEntity.internalServerError().body(e.getMessage());
+            return ResponseEntity.internalServerError().body(Map.of("error", e.getMessage()));
         }
     }
+
 
     @Override
     public ResponseEntity<Object> getInstagramAccountDetails(String instagramId, Long pageId) {
@@ -320,19 +339,25 @@ public class InstagramServiceImpl implements InstagramService{
         }
         throw new IllegalStateException("Media processing timed out for ID: " + creationId);
     }
-    private void waitForVideoUpload(String creationId, String accessToken) throws InterruptedException {
-        String url = String.format("https://graph.facebook.com/v22.0/%s?fields=status_code&access_token=%s", creationId, accessToken);
-        RestTemplate restTemplate = new RestTemplate();
+    private boolean waitForVideoUpload(String creationId, String accessToken) throws InterruptedException {
+        try {
+            String url = String.format("https://graph.facebook.com/v22.0/%s?fields=status_code&access_token=%s", creationId, accessToken);
+            RestTemplate restTemplate = new RestTemplate();
 
-        String status = "IN_PROGRESS";
-        while (status.equals("IN_PROGRESS")) {
-            ResponseEntity<Map> response = restTemplate.getForEntity(url, Map.class);
-            status = (String) ((Map) response.getBody()).get("status_code");
-            System.out.println(creationId + ": " + status);
-            if ("FINISHED".equals(status)) return;
-            if (status.equals("ERROR")) throw new RuntimeException("Video upload failed for ID: " + creationId);
+            String status = "IN_PROGRESS";
+            while (status.equals("IN_PROGRESS")) {
+                ResponseEntity<Map> response = restTemplate.getForEntity(url, Map.class);
+                status = (String) ((Map) response.getBody()).get("status_code");
+                System.out.println(creationId + ": " + status);
+                if ("FINISHED".equals(status)) return true;
+                if (status.equals("ERROR")) throw new RuntimeException("Video upload failed for ID: " + creationId);
 
-            Thread.sleep(3000); // wait 1 second
+                Thread.sleep(3000); // wait 1 second
+            }
+            return false;
+        } catch (Exception e) {
+            System.out.println("Error while waiting for video upload: " + e.getMessage());
+            return false;
         }
     }
     private HttpHeaders buildHeaders() {
@@ -426,7 +451,14 @@ public class InstagramServiceImpl implements InstagramService{
             );
 
             // Wait for processing if needed
-            waitForVideoUpload(mediaId, tokenDTO.accessToken());
+            boolean result = waitForVideoUpload(mediaId, tokenDTO.accessToken());
+
+            if (!result){
+                return PlatformPostResult.failure(
+                        PlatformType.INSTAGRAM,
+                        "Failed to process the media for Instagram Reel"
+                );
+            }
 
             InstagramMedia media = new InstagramMedia(
                     mediaId,
@@ -487,8 +519,14 @@ public class InstagramServiceImpl implements InstagramService{
             );
 
             // Wait for processing if needed
-            waitForVideoUpload(mediaId, tokenDTO.accessToken());
+            boolean result = waitForVideoUpload(mediaId, tokenDTO.accessToken());
 
+            if (!result){
+                return PlatformPostResult.failure(
+                        PlatformType.INSTAGRAM,
+                        "Failed to process the media for Instagram Story"
+                );
+            }
             InstagramMedia media = new InstagramMedia(
                     mediaId,
                     fileData,
@@ -606,6 +644,28 @@ public class InstagramServiceImpl implements InstagramService{
     @Override
     public ResponseEntity<Object> getAllReels(Long accountId) {
         return ResponseEntity.ok(instagramReelRepository.findAllByAccountId(accountId));
+    }
+
+    @Override
+    public String deleteInstagramPost(InstagramPost instagramPost) {
+        try {
+            instagramPostRepository.delete(instagramPost);
+            instagramMediaRepository.deleteAll(instagramPost.getInstagramMediaList());
+            return "Instagram reel with ID: " + instagramPost.getInstagramPostId() + " deleted successfully.";
+        } catch (Exception e) {
+            return "Failed to delete Instagram reel with ID: " + instagramPost.getInstagramPostId() + ". Error: " + e.getMessage();
+        }
+    }
+
+    @Override
+    public String deleteInstagramReel(InstagramReel instagramReel) {
+        try {
+            instagramReelRepository.delete(instagramReel);
+            instagramMediaRepository.delete(instagramReel.getInstagramMedia());
+            return "Instagram reel with ID: " + instagramReel.getInstagramReelId() + " deleted successfully.";
+        } catch (Exception e) {
+            return "Failed to delete Instagram reel with ID: " + instagramReel.getInstagramReelId() + ". Error: " + e.getMessage();
+        }
     }
 
     private <T> T withRetry(Supplier<T> action, int maxAttempts, long initialDelayMillis, String taskDescription) throws Exception {

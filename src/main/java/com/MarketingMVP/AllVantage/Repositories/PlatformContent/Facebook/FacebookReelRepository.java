@@ -4,5 +4,5 @@ import com.MarketingMVP.AllVantage.Entities.PlatformContent.Facebook.FacebookRee
 import com.MarketingMVP.AllVantage.Entities.PlatformContent.Facebook.FacebookStory;
 import org.springframework.data.jpa.repository.JpaRepository;
 
-public interface FacebookReelRepository extends JpaRepository<FacebookReel, Long> {
+public interface FacebookReelRepository extends JpaRepository<FacebookReel, String> {
 }

@@ -16,7 +16,13 @@ public class EmployeeRegisterDTO {
 
     private String email;
 
-    private String password;
-
     private String phoneNumber;
+
+    private String address;
+
+    private String state;
+
+    private String country;
+
+    private String postalCode;
 }

@@ -47,6 +47,4 @@ public class Post extends Postable {
         this.instagramPosts = instagramPosts;
         this.linkedinPosts = linkedinPosts;
     }
-
-
 }

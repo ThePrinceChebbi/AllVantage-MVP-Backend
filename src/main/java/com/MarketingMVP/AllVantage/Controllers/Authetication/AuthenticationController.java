@@ -24,11 +24,6 @@ public class AuthenticationController {
         return authenticationService.login(loginDTO);
     }
 
-    @PostMapping("/refresh")
-    public ResponseEntity<Object> refresh(HttpServletRequest request, HttpServletResponse response) {
-        return authenticationService.refresh(request,response);
-    }
-
     @GetMapping("/confirm")
     public String confirm(@RequestParam(name = "token") String token) {
         return authenticationService.confirmation(token);

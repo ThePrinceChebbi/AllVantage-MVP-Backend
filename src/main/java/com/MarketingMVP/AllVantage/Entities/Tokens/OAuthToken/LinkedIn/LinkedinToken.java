@@ -1,6 +1,6 @@
 package com.MarketingMVP.AllVantage.Entities.Tokens.OAuthToken.LinkedIn;
 
-import com.MarketingMVP.AllVantage.Entities.Platform_Specific.LinkedIn.Account.LinkedInAccount;
+import com.MarketingMVP.AllVantage.Entities.PlatformAccounts.LinkedIn.Account.LinkedInAccount;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;

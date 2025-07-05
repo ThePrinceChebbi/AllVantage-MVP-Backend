@@ -3,11 +3,6 @@ package com.MarketingMVP.AllVantage.Services.UserEntity;
 
 import com.MarketingMVP.AllVantage.DTOs.Authentication.LoginDTO;
 import com.MarketingMVP.AllVantage.DTOs.Suit.SuitDTOMapper;
-import com.MarketingMVP.AllVantage.DTOs.UserEntity.Admin.AdminDTOMapper;
-import com.MarketingMVP.AllVantage.DTOs.UserEntity.Client.ClientDTO;
-import com.MarketingMVP.AllVantage.DTOs.UserEntity.Client.ClientDTOMapper;
-import com.MarketingMVP.AllVantage.DTOs.UserEntity.Employee.EmployeeDTO;
-import com.MarketingMVP.AllVantage.DTOs.UserEntity.Employee.EmployeeDTOMapper;
 import com.MarketingMVP.AllVantage.DTOs.UserEntity.UserDTO;
 import com.MarketingMVP.AllVantage.DTOs.UserEntity.UserDTOMapper;
 import com.MarketingMVP.AllVantage.Entities.FileData.FileData;
@@ -19,8 +14,10 @@ import com.MarketingMVP.AllVantage.Exceptions.ResourceNotFoundException;
 import com.MarketingMVP.AllVantage.Exceptions.UnauthorizedActionException;
 import com.MarketingMVP.AllVantage.Repositories.UserEntity.UserRepository;
 import com.MarketingMVP.AllVantage.Services.FileData.FileService;
+import com.MarketingMVP.AllVantage.Services.Token.Confirmation.ConfirmationTokenService;
 import jakarta.transaction.Transactional;
 import lombok.NonNull;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
@@ -31,24 +28,20 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 public class UserServiceImpl implements UserService {
     private final UserRepository userRepository;
-    private final EmployeeDTOMapper employeeDTOMapper;
-    private final ClientDTOMapper clientDTOMapper;
-    private final AdminDTOMapper adminDTOMapper;
     private final FileService fileService;
     private final UserDTOMapper userDTOMapper;
+    private final ConfirmationTokenService confirmationTokenService;
 
-    public UserServiceImpl(UserRepository userRepository, EmployeeDTOMapper employeeDTOMapper, ClientDTOMapper clientDTOMapper, AdminDTOMapper adminDTOMapper, FileService fileService, UserDTOMapper userDTOMapper) {
+    public UserServiceImpl(UserRepository userRepository, FileService fileService, UserDTOMapper userDTOMapper, ConfirmationTokenService confirmationTokenService) {
         this.userRepository = userRepository;
-        this.employeeDTOMapper = employeeDTOMapper;
-        this.clientDTOMapper = clientDTOMapper;
-        this.adminDTOMapper = adminDTOMapper;
         this.fileService = fileService;
         this.userDTOMapper = userDTOMapper;
+        this.confirmationTokenService = confirmationTokenService;
     }
 
     @Override
@@ -74,15 +67,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public ResponseEntity<Object> getAllUsers() {
-        List<Record> users = userRepository.findAll().stream().map(user -> {
-            if (user instanceof Employee){
-                return employeeDTOMapper.apply((Employee) user);
-            }else if (user instanceof Client){
-                return clientDTOMapper.apply((Client) user);
-            }else {
-                return adminDTOMapper.apply((Admin) user);
-            }
-        }).toList();
+        List<UserDTO> users = userRepository.findAll().stream().map(userDTOMapper).toList();
         return ResponseEntity.status(200).body(users);
     }
 
@@ -92,9 +77,12 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public ResponseEntity<Object> addImage(MultipartFile file, UUID id) {
+    public ResponseEntity<Object> addImage(MultipartFile file, UUID id, UserDetails userDetails) {
         try{
             UserEntity user = getUserById(id);
+            if (!user.getRole().getName().equals("ADMIN") && !user.getUsername().equals(userDetails.getUsername()) ){
+                throw new UnauthorizedActionException("Sorry, you can't add an image to this account");
+            }
             FileData fileData = fileService.processUploadedFile(file);
             user.setImage(fileData);
             saveUser(user);
@@ -119,7 +107,7 @@ public class UserServiceImpl implements UserService {
             }
 
             Pageable pageable = PageRequest.of(pageNumber, size);
-            List<ClientDTO> clients = userRepository.findAllClients(pageable).stream().map(clientDTOMapper).toList();
+            List<UserDTO> clients = userRepository.findAllClients(pageable).stream().map(userDTOMapper).toList();
 
             Map<String, Object> map = new HashMap<>();
             map.put("clients", clients);
@@ -146,7 +134,7 @@ public class UserServiceImpl implements UserService {
                 pageNumber = 0;
             }
             Pageable pageable = PageRequest.of(pageNumber, size);
-            List<EmployeeDTO> employees = userRepository.findAllEmployees(pageable).stream().map(employeeDTOMapper).toList();
+            List<UserDTO> employees = userRepository.findAllEmployees(pageable).stream().map(userDTOMapper).toList();
 
             Map<String, Object> map = new HashMap<>();
             map.put("employees", employees);
@@ -166,12 +154,12 @@ public class UserServiceImpl implements UserService {
             if (user instanceof Employee){
                 Map<String, Object> map = new HashMap<>();
                 map.put("user", userDTOMapper.apply(user));
-                map.put("suits", ((Employee) user).getSuits().stream().map(new SuitDTOMapper(clientDTOMapper, employeeDTOMapper)).toList());
+                map.put("suits", ((Employee) user).getSuits().stream().map(new SuitDTOMapper(userDTOMapper)).toList());
                 return ResponseEntity.status(200).body(map);
             }else if (user instanceof Client){
                 Map<String, Object> map = new HashMap<>();
                 map.put("user", userDTOMapper.apply(user));
-                map.put("suits", ((Client) user).getSuits().stream().map(new SuitDTOMapper(clientDTOMapper, employeeDTOMapper)).toList());
+                map.put("suits", ((Client) user).getSuits().stream().map(new SuitDTOMapper(userDTOMapper)).toList());
                 return ResponseEntity.status(200).body(map);
             }else {
                 throw new UnauthorizedActionException("Sorry you can't access this account");
@@ -208,6 +196,25 @@ public class UserServiceImpl implements UserService {
             return ResponseEntity.status(401).body(e.getMessage());
         } catch (Exception e){
             e.printStackTrace();
+            return ResponseEntity.status(500).body(e.getMessage());
+        }
+    }
+
+    @Override
+    public ResponseEntity<Object> deleteAccount(UUID id) {
+        try{
+            UserEntity user = getUserById(id);
+            if (user.getRole().getName().equals("ADMIN")){
+                throw new UnauthorizedActionException("Sorry, you can't delete an Admin account");
+            }
+            confirmationTokenService.deleteAllTokensByUserId(id);
+            userRepository.delete(user);
+            return ResponseEntity.status(200).body("Account deleted successfully");
+        } catch (ResourceNotFoundException e){
+            return ResponseEntity.status(404).body(e.getMessage());
+        } catch (UnauthorizedActionException e){
+            return ResponseEntity.status(401).body(e.getMessage());
+        } catch (Exception e){
             return ResponseEntity.status(500).body(e.getMessage());
         }
     }

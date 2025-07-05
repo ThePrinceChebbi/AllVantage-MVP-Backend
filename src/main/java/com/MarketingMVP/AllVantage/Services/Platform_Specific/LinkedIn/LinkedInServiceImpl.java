@@ -11,8 +11,8 @@ import com.MarketingMVP.AllVantage.Entities.PlatformContent.LinkedIn.LinkedinMed
 import com.MarketingMVP.AllVantage.Entities.PlatformContent.LinkedIn.LinkedinPost;
 import com.MarketingMVP.AllVantage.Entities.PlatformContent.LinkedIn.LinkedinReel;
 import com.MarketingMVP.AllVantage.Entities.PlatformContent.PlatformMediaType;
-import com.MarketingMVP.AllVantage.Entities.Platform_Specific.LinkedIn.Account.LinkedInAccount;
-import com.MarketingMVP.AllVantage.Entities.Platform_Specific.LinkedIn.Organization.LinkedInOrganization;
+import com.MarketingMVP.AllVantage.Entities.PlatformAccounts.LinkedIn.Account.LinkedInAccount;
+import com.MarketingMVP.AllVantage.Entities.PlatformAccounts.LinkedIn.Organization.LinkedInOrganization;
 import com.MarketingMVP.AllVantage.Entities.Tokens.OAuthToken.LinkedIn.LinkedinToken;
 import com.MarketingMVP.AllVantage.Exceptions.ResourceNotFoundException;
 import com.MarketingMVP.AllVantage.Repositories.Account.LinkedIn.LinkedInAccountRepository;
@@ -35,6 +35,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.servlet.view.RedirectView;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.web.util.UriComponentsBuilder;
 
 import java.io.*;
 import java.net.HttpURLConnection;
@@ -114,15 +115,28 @@ public class LinkedInServiceImpl implements LinkedInService{
 
     @Transactional
     @Override
-    public ResponseEntity<Object> authenticateGlobalAccountCallback(String authorizationCode) {
-        try {
+    public RedirectView authenticateGlobalAccountCallback(String authorizationCode) {
+        try{
             LinkedInAccountDTO account = new LinkedInAccountDTOMapper()
                     .apply(exchangeCodeForToken(authorizationCode, redirectUri));
-            return ResponseEntity.ok(account);
-        } catch (ResourceNotFoundException e) {
-            return ResponseEntity.status(404).body(e.getMessage());
+            String redirectUrl = UriComponentsBuilder
+                    .fromUriString("http://localhost:4200/")
+                    .queryParam("name", account.accountName())
+                    .queryParam("platform", "Linkedin")
+                    .queryParam("message", "success")
+                    .build()
+                    .toUriString();
+
+            return new RedirectView(redirectUrl);
         } catch (Exception e) {
-            return ResponseEntity.internalServerError().body(e.getMessage());
+            String redirectUrl = UriComponentsBuilder
+                    .fromUriString("http://localhost:4200/")
+                    .queryParam("platform", "Facebook")
+                    .queryParam("message", "failed")
+                    .build()
+                    .toUriString();
+
+            return new RedirectView(redirectUrl);
         }
     }
 
@@ -296,20 +310,6 @@ public class LinkedInServiceImpl implements LinkedInService{
             throw new ResourceNotFoundException("Token not found for account: " + accountId + ", please authenticate again.");
         }
         return cacheToken(token);
-    }
-
-    private boolean validateToken(LinkedinToken token) {
-        if (token == null) return false;
-
-        long expiresIn;
-        TimeUnit timeUnit;
-        expiresIn = token.getExpiresIn();
-        timeUnit = TimeUnit.SECONDS;
-
-        if (expiresIn == 0) return true;
-        long expirationMillis = System.currentTimeMillis() + TimeUnit.MILLISECONDS.convert(expiresIn, timeUnit);
-        return System.currentTimeMillis() <= expirationMillis;
-
     }
 
     @Override
@@ -678,7 +678,6 @@ public class LinkedInServiceImpl implements LinkedInService{
 
         return linkedinMediaRepository.save(media);
     }
-
     @Override
     public PlatformInsightsResult getLinkedInInsights(Long organizationId, String postUrn) {
         try {
@@ -688,95 +687,54 @@ public class LinkedInServiceImpl implements LinkedInService{
             LinkedinTokenDTO tokenDTO = getCachedToken(organization.getLinkedInAccount().getId());
             String orgUrn = "urn:li:organization:" + organization.getOrganizationId();
 
-            String baseUrl = "https://api.linkedin.com/v2/organizationalEntityShareStatistics";
-            StringBuilder urlBuilder = new StringBuilder(baseUrl)
+            StringBuilder urlBuilder = new StringBuilder("https://api.linkedin.com/rest/organizationalEntityShareStatistics")
                     .append("?q=organizationalEntity")
                     .append("&organizationalEntity=").append(URLEncoder.encode(orgUrn, StandardCharsets.UTF_8));
 
-            if (postUrn != null && !postUrn.trim().isEmpty()) {
+            if (postUrn != null && !postUrn.isBlank()) {
                 if (!postUrn.startsWith("urn:li:")) {
-                    if (postUrn.matches("\\d+")) {
-                        postUrn = "urn:li:share:" + postUrn;
-                    } else if (postUrn.startsWith("ACoAAA")) {
-                        postUrn = "urn:li:activity:" + postUrn;
-                    }
+                    postUrn = postUrn.matches("\\d+") ? "urn:li:share:" + postUrn : postUrn;
                 }
 
-                boolean isUGC = postUrn.contains("ugcPost");
-                String encodedPostUrn = URLEncoder.encode(postUrn, StandardCharsets.UTF_8);
-
-                // Use the correct parameter structure based on post type
-                if (isUGC) {
-                    baseUrl = "https://api.linkedin.com/v2/organizationalEntityUgcPostStats";
-                    urlBuilder = new StringBuilder(baseUrl)
-                            .append("?q=organizationalEntity")
-                            .append("&organizationalEntity=").append(URLEncoder.encode(orgUrn, StandardCharsets.UTF_8))
-                            .append("&ugcPosts=List(").append(encodedPostUrn).append(")");
-                } else {
-                    urlBuilder.append("&shares=List(").append(encodedPostUrn).append(")");
-                }
+                String paramName = postUrn.contains("ugcPost") ? "ugcPosts" : "shares";
+                urlBuilder.append("&").append(paramName).append("=List(")
+                        .append(URLEncoder.encode(postUrn, StandardCharsets.UTF_8)).append(")");
             }
 
-            String fullUrl = urlBuilder.toString();
-            System.out.println("LinkedIn API Request: " + fullUrl);
-
-            HttpURLConnection conn = (HttpURLConnection) new URL(fullUrl).openConnection();
+            HttpURLConnection conn = (HttpURLConnection) new URL(urlBuilder.toString()).openConnection();
             conn.setRequestMethod("GET");
             conn.setRequestProperty("Authorization", "Bearer " + tokenDTO.accessToken());
             conn.setRequestProperty("LinkedIn-Version", "202504");
             conn.setRequestProperty("X-Restli-Protocol-Version", "2.0.0");
 
-            System.out.println("Final URL sent to LinkedIn: " + conn.getURL());
-
             int status = conn.getResponseCode();
+            InputStream stream = (status == 200) ? conn.getInputStream() : conn.getErrorStream();
+            String responseStr = new BufferedReader(new InputStreamReader(stream))
+                    .lines().collect(Collectors.joining("\n"));
+
             if (status != 200) {
-                String error = "";
-                if (conn.getErrorStream() != null) {
-                    error = new BufferedReader(new InputStreamReader(conn.getErrorStream()))
-                            .lines().collect(Collectors.joining("\n"));
-                    System.out.println("LinkedIn API Error Response: " + error);
-                }
-                return PlatformInsightsResult.failure(PlatformType.LINKEDIN,
-                        "LinkedIn API error (" + status + "): " + error);
+                return PlatformInsightsResult.failure(PlatformType.LINKEDIN, "LinkedIn API error (" + status + "): " + responseStr);
             }
 
-            String responseStr = new BufferedReader(new InputStreamReader(conn.getInputStream()))
-                    .lines().collect(Collectors.joining("\n"));
-            System.out.println("LinkedIn API Success Response: " + responseStr);
-
-            ObjectMapper mapper = new ObjectMapper();
-            JsonNode response = mapper.readTree(responseStr);
+            JsonNode response = new ObjectMapper().readTree(responseStr);
+            JsonNode element = response.path("elements").isEmpty() ? null : response.path("elements").get(0);
+            if (element == null) {
+                return PlatformInsightsResult.failure(PlatformType.LINKEDIN, "No insight data found.");
+            }
 
             Map<String, Object> insights = new HashMap<>();
-            JsonNode elements = response.path("elements");
+            JsonNode statsNode = element.path("totalShareStatistics");
+            statsNode.fields().forEachRemaining(entry -> {
+                JsonNode val = entry.getValue();
+                if (val.isNumber()) insights.put(entry.getKey(), val.numberValue());
+                else if (val.isTextual()) insights.put(entry.getKey(), val.asText());
+                else if (val.isBoolean()) insights.put(entry.getKey(), val.booleanValue());
+            });
 
-            if (!elements.isEmpty()) {
-                JsonNode element = elements.get(0);
+            if (element.has("share")) insights.put("shareUrn", element.get("share").asText());
+            if (element.has("ugcPost")) insights.put("ugcPostUrn", element.get("ugcPost").asText());
+            if (element.has("organizationalEntity")) insights.put("orgUrn", element.get("organizationalEntity").asText());
 
-                JsonNode statsNode = element.path("totalShareStatistics");
-                if (!statsNode.isMissingNode() && !statsNode.isEmpty()) {
-                    statsNode.fields().forEachRemaining(entry -> {
-                        String key = entry.getKey();
-                        JsonNode value = entry.getValue();
-                        if (value.isNumber()) {
-                            insights.put(key, value.numberValue());
-                        } else if (value.isTextual()) {
-                            insights.put(key, value.asText());
-                        } else if (value.isBoolean()) {
-                            insights.put(key, value.booleanValue());
-                        }
-                    });
-                }
-
-                if (element.has("share")) {
-                    insights.put("shareUrn", element.get("share").asText());
-                }
-                if (element.has("organizationalEntity")) {
-                    insights.put("orgUrn", element.get("organizationalEntity").asText());
-                }
-            }
-
-            System.out.println("Extracted insights: " + insights);
             return PlatformInsightsResult.success(PlatformType.LINKEDIN, insights);
 
         } catch (Exception e) {
@@ -785,16 +743,12 @@ public class LinkedInServiceImpl implements LinkedInService{
     }
 
     @Override
-    public ResponseEntity<Object> getLinkedInOrgLogo400x400(Long orgId) {
+    public ResponseEntity<Object> getLinkedInOrgLogo400x400(Long accountId, String orgId) {
         try {
-
-            LinkedInOrganization organization = linkedInOrganizationRepository.findById(orgId)
-                    .orElseThrow(() -> new ResourceNotFoundException("LinkedIn organization not found with ID: " + orgId));
-
-            LinkedinTokenDTO tokenDTO = getCachedToken(organization.getLinkedInAccount().getId());
+            LinkedinTokenDTO tokenDTO = getCachedToken(accountId);
             String url = String.format(
                     "https://api.linkedin.com/v2/organizations/%s?projection=(logoV2(original~:playableStreams))",
-                    organization.getOrganizationId()
+                    orgId
             );
 
             HttpURLConnection conn = (HttpURLConnection) new URL(url).openConnection();
@@ -840,6 +794,106 @@ public class LinkedInServiceImpl implements LinkedInService{
         } catch (Exception e) {
             return ResponseEntity.internalServerError()
                     .body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    @Override
+    public ResponseEntity<Object> getAccountProfilePicture(Long accountId) {
+        try {
+            LinkedInAccount account = linkedInAccountRepository.findById(accountId)
+                    .orElseThrow(() -> new ResourceNotFoundException("LinkedIn account not found with ID: " + accountId));
+
+            LinkedinTokenDTO tokenDTO = getCachedToken(account.getId());
+            String url = "https://api.linkedin.com/v2/userinfo";
+
+            HttpURLConnection conn = (HttpURLConnection) new URL(url).openConnection();
+            conn.setRequestMethod("GET");
+            conn.setRequestProperty("Authorization", "Bearer " + tokenDTO.accessToken());
+            conn.setRequestProperty("LinkedIn-Version", "202504");
+            conn.setRequestProperty("X-Restli-Protocol-Version", "2.0.0");
+
+            int status = conn.getResponseCode();
+            if (status != 200) {
+                String error = new BufferedReader(new InputStreamReader(conn.getErrorStream()))
+                        .lines().collect(Collectors.joining("\n"));
+                return ResponseEntity.status(status).body(Map.of("error", error));
+            }
+
+            String response = new BufferedReader(new InputStreamReader(conn.getInputStream()))
+                    .lines().collect(Collectors.joining("\n"));
+
+            ObjectMapper mapper = new ObjectMapper();
+            JsonNode root = mapper.readTree(response);
+            String pictureUrl = root.path("picture").asText();
+
+            return ResponseEntity.ok(Map.of("imageUrl", pictureUrl));
+
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError()
+                    .body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    @Override
+    public String deleteLinkedInPost(LinkedinPost linkedinPost) {
+        try {
+            boolean result = sendDeleteRequest(linkedinPost.getLinkedinPostId(), linkedinPost.getOrganization().getLinkedInAccount().getId());
+            if (!result) {
+                return "Failed to delete post. Please check the post URN and try again.";
+            }
+            linkedinPostRepository.delete(linkedinPost);
+            linkedinMediaRepository.deleteAll(linkedinPost.getLinkedinMediaList());
+            return "Post deleted successfully.";
+
+        } catch (Exception e) {
+            return "Error deleting post: " + e.getMessage();
+        }
+    }
+
+    @Override
+    public String deleteLinkedInReel(LinkedinReel linkedinReel) {
+        try {
+            boolean result = sendDeleteRequest(linkedinReel.getLinkedinReelId(), linkedinReel.getOrganization().getLinkedInAccount().getId());
+            if (!result) {
+                return "Failed to delete post. Please check the post URN and try again.";
+            }
+            linkedinReelRepository.delete(linkedinReel);
+            linkedinMediaRepository.delete(linkedinReel.getLinkedinMedia());
+            return "Post deleted successfully.";
+        } catch (Exception e) {
+            return "Error deleting post: " + e.getMessage();
+        }
+    }
+
+
+    private boolean sendDeleteRequest(String postId, Long accountId) throws Exception {
+        LinkedinTokenDTO tokenDTO = getCachedToken(accountId);
+
+        String endpoint;
+        if (postId.startsWith("urn:li:ugcPost:")) {
+            endpoint = "https://api.linkedin.com/rest/posts/" + URLEncoder.encode(postId, StandardCharsets.UTF_8);
+        } else if (postId.startsWith("urn:li:share:")) {
+            endpoint = "https://api.linkedin.com/rest/shares/" + URLEncoder.encode(postId, StandardCharsets.UTF_8);
+        } else {
+            throw new IllegalArgumentException("Unsupported LinkedIn post ID format: " + postId);
+        }
+
+        URL url = new URL(endpoint);
+        HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+        conn.setRequestMethod("DELETE");
+        conn.setRequestProperty("Authorization", "Bearer " + tokenDTO.accessToken());
+        conn.setRequestProperty("LinkedIn-Version", "202504");
+        conn.setRequestProperty("X-Restli-Protocol-Version", "2.0.0");
+        conn.setRequestProperty("X-RestLi-Method", "DELETE");
+
+        int responseCode = conn.getResponseCode();
+        if (responseCode == 204) {
+            return true;
+        } else {
+            BufferedReader in = new BufferedReader(new InputStreamReader(conn.getErrorStream()));
+            String errorResponse = in.lines().collect(Collectors.joining());
+            in.close();
+            throw new RuntimeException("LinkedIn delete failed: " + errorResponse);
         }
     }
 

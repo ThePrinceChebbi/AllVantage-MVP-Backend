@@ -37,7 +37,7 @@ public interface UserService {
 
     boolean clientExists(UUID clientId);
 
-    ResponseEntity<Object> addImage(MultipartFile file, UUID id);
+    ResponseEntity<Object> addImage(MultipartFile file, UUID id, UserDetails userDetails);
 
     ResponseEntity<Object> getAllClients(int pageNumber);
 
@@ -46,4 +46,6 @@ public interface UserService {
     ResponseEntity<Object> getAccountById(UUID id);
 
     ResponseEntity<Object> updateUserInfo(UUID id, UserEntity userEntity, UserDetails userDetails);
+
+    ResponseEntity<Object> deleteAccount(UUID id);
 }
